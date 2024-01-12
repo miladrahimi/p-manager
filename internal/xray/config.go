@@ -178,11 +178,6 @@ func NewConfig() *Config {
 					},
 					{
 						Type:        "field",
-						IP:          []string{"geoip:private"},
-						OutboundTag: "direct",
-					},
-					{
-						Type:        "field",
 						OutboundTag: "freedom",
 						Domain:      []string{"regexp:.*\\.ir$"},
 					},

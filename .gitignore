@@ -2,4 +2,3 @@
 .DS_Store
 configs/main.local.json
 third_party/xray-macos-arm64
-third_party/xray-linux-64

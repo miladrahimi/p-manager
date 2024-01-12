@@ -15,4 +15,5 @@ const (
 	ServerStatusProcessing  ServerStatus = "processing"
 	ServerStatusAvailable                = "available"
 	ServerStatusUnavailable              = "unavailable"
+	ServerStatusUnstable                 = "unstable"
 )

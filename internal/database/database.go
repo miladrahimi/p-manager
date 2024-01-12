@@ -6,8 +6,8 @@ import (
 	"github.com/labstack/gommon/random"
 	"go.uber.org/zap"
 	"os"
+	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/utils"
-	"strings"
 	"sync"
 	"time"
 )
@@ -82,7 +82,7 @@ func (d *Database) GenerateUserId() int {
 }
 
 func (d *Database) GenerateUserIdentity() string {
-	return strings.ReplaceAll(utils.UUID(), "-", "")
+	return utils.UUID()
 }
 
 func (d *Database) GenerateUserPassword() string {
@@ -135,8 +135,10 @@ func New(l *zap.Logger) *Database {
 			Users: []*User{
 				{
 					Id:        1,
+					Identity:  utils.UUID(),
 					Name:      "user1",
 					Password:  "password",
+					Method:    config.ShadowsocksMethod,
 					Quota:     0,
 					Used:      0,
 					Enabled:   true,
@@ -149,6 +151,7 @@ func New(l *zap.Logger) *Database {
 					Host:     "127.0.0.1",
 					Port:     1919,
 					Password: "password",
+					Method:   config.ShadowsocksMethod,
 					Status:   ServerStatusAvailable,
 				},
 			},

@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,7 +31,7 @@ func IsPortHealthy(host string, port int) bool {
 }
 
 func UUID() string {
-	return uuid.New().String()
+	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }
 
 func RoundFloat(val float64, precision uint) float64 {

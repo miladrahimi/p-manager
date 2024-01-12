@@ -122,7 +122,12 @@ func (c *Coordinator) syncServerStatuses() {
 		if utils.IsPortHealthy(server.Host, server.Port) {
 			server.Status = database.ServerStatusAvailable
 		} else {
-			server.Status = database.ServerStatusUnavailable
+			if server.Status == database.ServerStatusUnstable {
+				server.Status = database.ServerStatusUnavailable
+			} else {
+				server.Status = database.ServerStatusUnstable
+				continue
+			}
 		}
 		if server.Status != oldStatus {
 			isDirty = true

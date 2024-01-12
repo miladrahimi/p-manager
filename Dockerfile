@@ -4,15 +4,13 @@
 FROM ghcr.io/getimages/golang:1.21.0-bullseye AS build
 
 WORKDIR /app
-
 COPY . .
-RUN go mod tidy
-RUN go build -o ssm
 
+RUN apt-get install unzip
 RUN ./third_party/install-xray.sh
 
-RUN ls .
-RUN ls ./third_party
+RUN go mod tidy
+RUN go build -o ssm
 
 RUN tar -zcf third_party.tar.gz third_party
 RUN tar -zcf web.tar.gz web

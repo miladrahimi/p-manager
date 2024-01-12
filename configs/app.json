@@ -1,0 +1,16 @@
+{
+  "http_server": {
+    "host": "0.0.0.0",
+    "port": 80
+  },
+  "http_client": {
+    "timeout": 10000
+  },
+  "logger": {
+    "level": "debug",
+    "format": "2006-01-02 15:04:05.000"
+  },
+  "worker": {
+    "interval": 300
+  }
+}

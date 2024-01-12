@@ -1,0 +1,3 @@
+# Shadowsocks Manager
+
+No documentation...

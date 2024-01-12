@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shadowsocks Manager</title>
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator_semanticui.min.css">
+    <link rel="icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="favicon.ico">
+</head>
+<body>
+
+<div class="container py-5 text-center">
+    <div class="col">
+        <h1 class="text-dark">Shadowsocks Manager</h1>
+
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link" href="admin-users.html">Users</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="admin-servers.html">Servers</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="admin-stats.html">Stats</a>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link active" aria-current="page">Settings</span>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link" id="exit">Exit</span>
+            </li>
+        </ul>
+
+        <div id="table"></div>
+    </div>
+</div>
+
+<script src="assets/third_party/jquery-3.6.3.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.2/js/bootstrap.min.js"></script>
+<script src="assets/third_party/tabulator-5.5.2/dist/js/tabulator.min.js"></script>
+<script src="assets/js/scripts.js"></script>
+<script>
+    let tooltip = function (e, cell) {
+        let el = document.createElement("div");
+        el.style.backgroundColor = "black";
+        el.style.padding = "10px";
+        el.style.borderRadius = "5px";
+        el.style.color = "white";
+        switch (cell.getRow().getCells()[0].getValue()) {
+            case "HTTP Address":
+                el.innerText = "HTTP URL for generating profile and subscription links.";
+                break;
+            case "HTTPS Address":
+                el.innerText = "HTTPS URL for generating profile and SSCONF links.";
+                break;
+            case "Admin Password":
+                el.innerText = "Password of the manager (current) panel.";
+                break;
+            case "Traffic Ratio":
+                el.innerText = "Coefficient for displaying the consumed traffic to users!";
+                break;
+            case "Shadowsocks Host":
+                el.innerText = "Shadowsocks host that shadowsocks server listens to.";
+                break;
+            case "Shadowsocks Port":
+                el.innerText = "Shadowsocks port that shadowsocks server listens to.";
+                break;
+        }
+        return el;
+    }
+
+    let table = new Tabulator("#table", {
+        layout: "fitDataStretch",
+        validationMode: "blocking",
+        headerVisible: false,
+        rowFormatter: function (row) {
+            row.getElement().firstElementChild.style.background = "#f6f6f6"
+        },
+        columnDefaults: {
+            tooltip: tooltip,
+        },
+        columns: [
+            {
+                title: "Key", field: "key", widthGrow: 1, resizable: true,
+            },
+            {
+                title: "Value", field: "value", widthGrow: 3, resizable: true, editor: "input", editable: true
+            },
+        ],
+    });
+
+    table.on("cellEdited", function () {
+        let map = {
+            "HTTP Address": "http_address",
+            "HTTPS Address": "https_address",
+            "Admin Password": "admin_password",
+            "Traffic Ratio": "traffic_ratio",
+            "Shadowsocks Host": "shadowsocks_host",
+            "Shadowsocks Port": "shadowsocks_port",
+        }
+
+        let body = {}
+        table.getData().forEach(function (v) {
+            if (["Shadowsocks Port"].includes(v.key)) {
+                body[map[v.key]] = parseInt(v.value)
+            } else if (["Traffic Ratio"].includes(v.key)) {
+                body[map[v.key]] = parseFloat(v.value)
+            } else {
+                body[map[v.key]] = v.value
+            }
+        })
+
+        table.alert("Saving the setting...", "msg");
+
+        $.ajax({
+            contentType: "application/json",
+            data: JSON.stringify(body),
+            dataType: "json",
+            success: function () {
+                table.alert("Settings saved successfully.", "msg");
+                setTimeout(function () {
+                    window.location.reload()
+                }, 1000)
+            },
+            error: function (response) {
+                console.log(response)
+                checkAuth(response)
+                let t = 2000
+                if (response.status === 400) {
+                    table.alert(response["responseJSON"]["message"], "error");
+                } else {
+                    table.alert("Cannot save the settings.", "error");
+                    t = 1000
+                }
+                setTimeout(function () {
+                    table.clearAlert()
+                }, t)
+            },
+            processData: true,
+            type: "POST",
+            url: "/v1/settings"
+        });
+    });
+
+    function inject(response) {
+        table.setData([
+            {"key": "HTTP Address", "value": response["http_address"]},
+            {"key": "HTTPS Address", "value": response["https_address"]},
+            {"key": "Admin Password", "value": response["admin_password"]},
+            {"key": "Traffic Ratio", "value": response["traffic_ratio"]},
+            {"key": "Shadowsocks Host", "value": response["shadowsocks_host"]},
+            {"key": "Shadowsocks Port", "value": response["shadowsocks_port"]},
+        ])
+    }
+
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            inject(response)
+        },
+        error: function (response) {
+            console.log(response)
+            checkAuth(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/settings"
+    });
+</script>
+
+</body>
+</html>

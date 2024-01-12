@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shadowsocks Manager</title>
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.2/css/bootstrap.min.css">
+    <link rel="icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="favicon.ico">
+</head>
+<body>
+
+<div class="container py-5 text-center">
+    <div class="col col-md-6 col-lg-4 offset-md-3 offset-lg-4">
+        <h1 class="text-dark">Shadowsocks</h1>
+        <div class="card mt-5">
+            <div class="card-body text-start">
+                <div class="d-grid gap-2">
+                    <input type="text" class="form-control" id="username" placeholder="Username" title="Username">
+                    <input type="password" class="form-control" id="password" placeholder="Password" title="Password">
+                    <input type="button" class="btn btn-primary d-block" id="sign-in" value="Sign in">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/third_party/jquery-3.6.3.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.2/js/bootstrap.min.js"></script>
+<script src="assets/js/scripts.js"></script>
+<script>
+    jQuery(function () {
+        $('#sign-in').click(function () {
+            let me = $(this)
+            me.attr('disabled', true).val('Processing...')
+
+            $.ajax({
+                type: 'POST',
+                url: '/v1/sign-in',
+                processData: true,
+                dataType: 'json',
+                data: JSON.stringify({
+                    "username": $("#username").val(),
+                    "password": $("#password").val(),
+                }),
+                success: function (response) {
+                    localStorage.setItem("token", response['token'])
+                    window.location = "admin-users.html"
+                },
+                error: function (response) {
+                    me.removeClass('btn-primary').addClass('btn-danger')
+                    if (response.status === 401) {
+                        me.val('Unauthorized!')
+                    } else {
+                        console.log(response)
+                        me.val('Error!')
+                    }
+                    setTimeout(function () {
+                        me.removeClass('btn-danger').addClass('btn-primary')
+                        me.val('Sign in').attr('disabled', false)
+                    }, 1500)
+                }
+            });
+        })
+    })
+</script>
+</body>
+</html>

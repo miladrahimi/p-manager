@@ -19,7 +19,7 @@ FROM ghcr.io/getimages/debian:bullseye-slim
 
 WORKDIR /app
 
-COPY --from=build /app/shadowsocks shadowsocks
+COPY --from=build /app/ssm ssm
 COPY --from=build /app/configs/main.json configs/main.json
 COPY --from=build /app/storage/.gitignore storage/.gitignore
 COPY --from=build /app/third_party.tar.gz third_party.tar.gz

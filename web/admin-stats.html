@@ -37,8 +37,8 @@
         <div id="table"></div>
 
         <div class="d-flex flex-column mt-1">
-            <button class="btn btn-warning my-1" id="zero-servers">ZERO SERVERS</button>
-            <button class="btn btn-danger my-1" id="zero-users">ZERO USERS</button>
+            <button class="btn btn-danger btn-sm my-1" id="zero-servers">ZERO SERVERS</button>
+            <button class="btn btn-danger btn-sm my-1" id="zero-users">ZERO USERS</button>
         </div>
     </div>
 </div>
@@ -56,16 +56,16 @@
         el.style.color = "white";
         switch (cell.getRow().getCells()[0].getValue()) {
             case "Inbound":
-                el.innerText = "Input traffic to this server.";
+                el.innerText = "Input traffic to the current server.";
                 break;
             case "Outbound":
-                el.innerText = "Output traffic to foreign server(s).";
+                el.innerText = "Output traffic to servers defined in the Servers tab.";
                 break;
             case "Freedom":
-                el.innerText = "Output traffic to the Internet/Intranet.";
+                el.innerText = "Output traffic to the Internet (Intranet).";
                 break;
             case "Updated At":
-                el.innerText = "The time stats updated (started) at.";
+                el.innerText = "The last time that stats are updated (started) at.";
                 break;
         }
         return el;

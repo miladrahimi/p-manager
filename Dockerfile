@@ -6,7 +6,7 @@ FROM ghcr.io/getimages/golang:1.21.0-bullseye AS build
 WORKDIR /app
 COPY . .
 
-RUN apt-get install unzip
+RUN apt-get -y install unzip
 RUN ./third_party/install-xray.sh
 
 RUN go mod tidy

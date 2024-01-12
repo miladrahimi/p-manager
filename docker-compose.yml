@@ -4,7 +4,7 @@ services:
   app:
     build:
       context: .
-    image: ghcr.io/getimages/shadowsocks-manager:latest
+    image: ghcr.io/miladrahimi/shadowsocks-manager:latest
     restart: always
     volumes:
       - ./configs/:/app/configs/

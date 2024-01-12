@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: getimages/shadowsocks-manager
+  IMAGE_NAME: miladrahimi/shadowsocks-manager
 
 jobs:
   build:

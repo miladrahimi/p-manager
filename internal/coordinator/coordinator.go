@@ -124,9 +124,10 @@ func (c *Coordinator) syncServerStatuses() {
 		} else {
 			if server.Status == database.ServerStatusUnstable {
 				server.Status = database.ServerStatusUnavailable
+			} else if server.Status == database.ServerStatusUnavailable {
+				server.Status = database.ServerStatusUnavailable
 			} else {
 				server.Status = database.ServerStatusUnstable
-				continue
 			}
 		}
 		if server.Status != oldStatus {

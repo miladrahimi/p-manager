@@ -122,7 +122,7 @@ func New(l *zap.Logger) *Database {
 			Settings: &Settings{
 				AdminPassword:   "password",
 				ShadowsocksHost: "127.0.0.1",
-				ShadowsocksPort: 1919,
+				ShadowsocksPort: 1913,
 				HttpsAddress:    "",
 				HttpAddress:     "http://127.0.0.1",
 				TrafficRatio:    1,
@@ -152,7 +152,7 @@ func New(l *zap.Logger) *Database {
 					Port:     1919,
 					Password: "password",
 					Method:   config.ShadowsocksMethod,
-					Status:   ServerStatusAvailable,
+					Status:   ServerStatusProcessing,
 				},
 			},
 		},

@@ -1,3 +1,6 @@
+# Install dependencies
+apt-get -y update && apt-get -y upgrade && apt-get -y install wget curl vim git
+
 # Install docker
 wget -O install-docker.sh https://get.docker.com && \
   chmod +x install-docker.sh && \

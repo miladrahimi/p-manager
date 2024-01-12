@@ -109,7 +109,7 @@ func NewConfig() *Config {
 			{
 				Protocol: "shadowsocks",
 				Listen:   "0.0.0.0",
-				Port:     1919,
+				Port:     1913,
 				Settings: InboundSettings{
 					Clients: []Client{
 						{

@@ -100,10 +100,20 @@ func (x *Xray) runCore() {
 }
 
 func (x *Xray) UpdateClients(clients []Client) {
+	var s *InboundSettings
+	for _, i := range x.config.Inbounds {
+		if i.Protocol == "shadowsocks" {
+			s = &i.Settings
+		}
+	}
+	if s == nil {
+		x.logger.Fatal("xray: shadowsocks inbound not found")
+	}
+
 	if len(clients) > 0 {
-		x.config.Inbounds[1].Settings.Clients = clients
+		s.Clients = clients
 	} else {
-		x.config.Inbounds[1].Settings.Clients = []Client{
+		s.Clients = []Client{
 			{
 				Password: random.String(16),
 				Method:   config.ShadowsocksMethod,

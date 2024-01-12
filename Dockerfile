@@ -7,9 +7,9 @@ WORKDIR /app
 
 COPY . .
 RUN go mod tidy
-RUN go build -o xray
+RUN go build -o ssm
 
-RUN ./third_party/outline-ss-server.sh
+RUN ./third_party/install-xray.sh
 
 RUN tar -zcf third_party.tar.gz third_party
 RUN tar -zcf web.tar.gz web
@@ -21,10 +21,7 @@ WORKDIR /app
 
 COPY --from=build /app/shadowsocks shadowsocks
 COPY --from=build /app/configs/config.json configs/config.json
-COPY --from=build /app/assets/prometheus/configs/prometheus.yml storage/prometheus/configs/prometheus.yml
-COPY --from=build /app/storage/database/.gitignore storage/database/.gitignore
-COPY --from=build /app/storage/prometheus/data/.gitignore storage/prometheus/data/.gitignore
-COPY --from=build /app/storage/shadowsocks/.gitignore storage/shadowsocks/.gitignore
+COPY --from=build /app/storage/.gitignore storage/.gitignore
 COPY --from=build /app/third_party.tar.gz third_party.tar.gz
 COPY --from=build /app/web.tar.gz web.tar.gz
 
@@ -35,4 +32,4 @@ RUN rm web.tar.gz
 
 EXPOSE 80
 
-ENTRYPOINT ["./shadowsocks", "start"]
+ENTRYPOINT ["./ssm", "start"]

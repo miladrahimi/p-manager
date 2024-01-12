@@ -11,6 +11,9 @@ RUN go build -o ssm
 
 RUN ./third_party/install-xray.sh
 
+RUN ls .
+RUN ls ./third_party
+
 RUN tar -zcf third_party.tar.gz third_party
 RUN tar -zcf web.tar.gz web
 
@@ -30,6 +33,6 @@ RUN tar -xvf web.tar.gz
 RUN rm third_party.tar.gz
 RUN rm web.tar.gz
 
-EXPOSE 80
+EXPOSE 8080
 
 ENTRYPOINT ["./ssm", "start"]

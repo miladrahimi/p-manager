@@ -123,8 +123,6 @@ func New(l *zap.Logger) *Database {
 				AdminPassword:   "password",
 				ShadowsocksHost: "127.0.0.1",
 				ShadowsocksPort: 1913,
-				HttpsAddress:    "",
-				HttpAddress:     "http://127.0.0.1",
 				TrafficRatio:    1,
 			},
 			Stats: &Stats{

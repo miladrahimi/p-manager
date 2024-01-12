@@ -32,7 +32,7 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		d.Data.Settings = &settings
 		d.Save()
 
-		go coordinator.SyncServers()
+		go coordinator.SyncServersAndStatuses()
 		go coordinator.SyncUsers()
 
 		return c.JSON(http.StatusOK, settings)

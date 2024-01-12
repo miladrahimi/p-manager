@@ -145,7 +145,7 @@ func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) ech
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				d.Data.Users = slices.Delete(d.Data.Users, i, i+1)
 				d.Save()
-				go coordinator.SyncServers()
+				go coordinator.SyncUsers()
 			}
 		}
 

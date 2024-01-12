@@ -61,7 +61,7 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		d.Data.Servers = append(d.Data.Servers, server)
 		d.Save()
 
-		go coordinator.SyncServers()
+		go coordinator.SyncServersAndStatuses()
 
 		return c.JSON(http.StatusCreated, server)
 	}
@@ -93,7 +93,7 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 			server.Port = request.Port
 			server.Password = request.Password
 			d.Save()
-			go coordinator.SyncServers()
+			go coordinator.SyncServersAndStatuses()
 			return c.JSON(http.StatusOK, server)
 		}
 

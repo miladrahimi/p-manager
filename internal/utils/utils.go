@@ -18,7 +18,7 @@ func FileExist(path string) bool {
 	return true
 }
 
-func IsPortHealthy(host string, port int) bool {
+func IsPortAvailable(host string, port int) bool {
 	timeout := time.Second
 	conn, _ := net.DialTimeout("tcp", net.JoinHostPort(host, strconv.Itoa(port)), timeout)
 	if conn != nil {

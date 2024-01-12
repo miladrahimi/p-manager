@@ -32,6 +32,8 @@ func (c *Coordinator) Run() {
 }
 
 func (c *Coordinator) SyncUsers() {
+	c.log.Debug("coordinator: syncing users...")
+
 	clients := make([]xray.Client, 0, len(c.database.Data.Users))
 	for _, u := range c.database.Data.Users {
 		if !u.Enabled {
@@ -43,11 +45,14 @@ func (c *Coordinator) SyncUsers() {
 			Method:   "chacha20-ietf-poly1305",
 		})
 	}
+
 	c.xray.UpdateClients(clients)
 	c.syncXrayStatuses()
 }
 
 func (c *Coordinator) SyncServers() {
+	c.log.Debug("coordinator: syncing servers...")
+
 	servers := make([]xray.Server, 0, len(c.database.Data.Servers))
 	for _, n := range c.database.Data.Servers {
 		if n.Status == database.ServerStatusProcessing || n.Status == database.ServerStatusUnavailable {
@@ -61,15 +66,25 @@ func (c *Coordinator) SyncServers() {
 		})
 	}
 	c.xray.UpdateServers(servers)
+}
+
+func (c *Coordinator) SyncServersAndStatuses() {
+	c.log.Debug("coordinator: syncing servers and updating statuses...")
+
+	c.SyncServers()
 	c.syncServerStatuses()
 }
 
 func (c *Coordinator) syncStatuses() {
+	c.log.Debug("coordinator: syncing statuses...")
+
 	c.syncXrayStatuses()
 	c.syncServerStatuses()
 }
 
 func (c *Coordinator) syncXrayStatuses() {
+	c.log.Debug("coordinator: syncing xray statuses...")
+
 	stats, err := c.xray.QueryStats()
 	if err != nil {
 		c.log.Error("coordinator: cannot fetch query stats", zap.Error(err))
@@ -111,20 +126,21 @@ func (c *Coordinator) syncXrayStatuses() {
 	c.database.Save()
 
 	if isDirty {
+		c.log.Debug("coordinator: user syncing required")
 		c.SyncUsers()
 	}
 }
 
 func (c *Coordinator) syncServerStatuses() {
+	c.log.Debug("coordinator: syncing server statuses...")
+
 	isDirty := false
 	for _, server := range c.database.Data.Servers {
 		oldStatus := server.Status
-		if utils.IsPortHealthy(server.Host, server.Port) {
+		if utils.IsPortAvailable(server.Host, server.Port) {
 			server.Status = database.ServerStatusAvailable
-		} else {
+		} else if server.Status != database.ServerStatusUnavailable {
 			if server.Status == database.ServerStatusUnstable {
-				server.Status = database.ServerStatusUnavailable
-			} else if server.Status == database.ServerStatusUnavailable {
 				server.Status = database.ServerStatusUnavailable
 			} else {
 				server.Status = database.ServerStatusUnstable
@@ -136,6 +152,7 @@ func (c *Coordinator) syncServerStatuses() {
 	}
 
 	if isDirty {
+		c.log.Debug("coordinator: server syncing required")
 		c.database.Save()
 		c.SyncServers()
 	}

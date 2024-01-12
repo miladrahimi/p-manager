@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/utils"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -26,7 +27,7 @@ var binaryPaths = map[string]string{
 
 type Xray struct {
 	command    *exec.Cmd
-	logger     *zap.Logger
+	log        *zap.Logger
 	connection *grpc.ClientConn
 	config     *Config
 	lock       sync.Mutex
@@ -52,16 +53,16 @@ func (x *Xray) loadConfig() {
 
 	content, err := os.ReadFile(configPath)
 	if err != nil {
-		x.logger.Fatal("xray: cannot load config file", zap.Error(err))
+		x.log.Fatal("xray: cannot load config file", zap.Error(err))
 	}
 
 	err = json.Unmarshal(content, x.config)
 	if err != nil {
-		x.logger.Fatal("xray: cannot unmarshal config file", zap.Error(err))
+		x.log.Fatal("xray: cannot unmarshal config file", zap.Error(err))
 	}
 
 	if err = validator.New().Struct(x); err != nil {
-		x.logger.Fatal("xray: cannot validate config file", zap.Error(err))
+		x.log.Fatal("xray: cannot validate config file", zap.Error(err))
 	}
 }
 
@@ -71,14 +72,14 @@ func (x *Xray) saveConfig() {
 	}()
 	content, err := json.Marshal(x.config)
 	if err != nil {
-		x.logger.Fatal("xray: cannot marshal config", zap.Error(err))
+		x.log.Fatal("xray: cannot marshal config", zap.Error(err))
 	}
 
 	x.lock.Lock()
 	defer x.lock.Unlock()
 
 	if err = os.WriteFile(configPath, content, 0755); err != nil {
-		x.logger.Fatal("xray: cannot save config", zap.String("file", configPath), zap.Error(err))
+		x.log.Fatal("xray: cannot save config", zap.String("file", configPath), zap.Error(err))
 	}
 }
 
@@ -93,21 +94,23 @@ func (x *Xray) runCore() {
 	x.command.Stderr = os.Stderr
 	x.command.Stdout = os.Stdout
 
-	x.logger.Debug("xray: starting the xray core...")
+	x.log.Debug("xray: starting the xray core...")
 	if err := x.command.Run(); err != nil && err.Error() != "signal: killed" {
-		x.logger.Fatal("xray: cannot start the xray core", zap.Error(err))
+		x.log.Fatal("xray: cannot start the xray core", zap.Error(err))
 	}
 }
 
 func (x *Xray) UpdateClients(clients []Client) {
+	x.log.Debug("xray: updating clients...", zap.Int("count", len(clients)))
+
 	var s *InboundSettings
 	for _, i := range x.config.Inbounds {
-		if i.Protocol == "shadowsocks" {
+		if i.Tag == "shadowsocks" {
 			s = &i.Settings
 		}
 	}
 	if s == nil {
-		x.logger.Fatal("xray: shadowsocks inbound not found")
+		x.log.Fatal("xray: shadowsocks tag not found")
 	}
 
 	if len(clients) > 0 {
@@ -126,6 +129,8 @@ func (x *Xray) UpdateClients(clients []Client) {
 }
 
 func (x *Xray) UpdateServers(servers []Server) {
+	x.log.Debug("xray: updating servers...", zap.Int("count", len(servers)))
+
 	if len(servers) > 0 {
 		x.config.Outbounds[0].Settings.Servers = servers
 	} else {
@@ -143,42 +148,54 @@ func (x *Xray) UpdateServers(servers []Server) {
 }
 
 func (x *Xray) Reconfigure() {
-	x.logger.Info("xray: reconfiguring the xray core...")
+	x.log.Info("xray: reconfiguring the xray core...")
 	x.Shutdown()
 	x.Run()
 }
 
 func (x *Xray) Shutdown() {
-	x.logger.Debug("xray: shutting down the xray core...")
+	x.log.Debug("xray: shutting down the xray core...")
 	if x.connection != nil {
 		_ = x.connection.Close()
 	}
 	if x.command.Process != nil {
 		if err := x.command.Process.Kill(); err != nil {
-			x.logger.Error("xray: failed to shutdown the xray core", zap.Error(err))
+			x.log.Error("xray: failed to shutdown the xray core", zap.Error(err))
 		} else {
-			x.logger.Debug("xray: the xray core stopped successfully")
+			x.log.Debug("xray: the xray core stopped successfully")
 		}
 	} else {
-		x.logger.Debug("xray: the xray core is already stopped")
+		x.log.Debug("xray: the xray core is already stopped")
 	}
 }
 
 func (x *Xray) connectGrpc() {
-	address := "127.0.0.1:2414"
+	x.log.Debug("xray: connecting to xray core grpc...")
+
+	var inbound *Inbound
+	for _, i := range x.config.Inbounds {
+		if i.Tag == "api" {
+			inbound = &i
+		}
+	}
+	if inbound == nil {
+		x.log.Fatal("xray: api tag not found")
+	}
+
+	address := "127.0.0.1:" + strconv.Itoa(inbound.Port)
 	var err error
 
 	for i := 0; i < 5; i++ {
 		x.connection, err = grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			x.logger.Debug("xray: cannot connect the xray core grpc", zap.Int("try", i))
+			x.log.Debug("xray: cannot connect the xray core grpc", zap.Int("try", i))
 		} else {
 			return
 		}
 		time.Sleep(time.Second)
 	}
 
-	x.logger.Debug("xray: cannot connect the xray core grpc", zap.Error(err))
+	x.log.Debug("xray: cannot connect the xray core grpc", zap.Error(err))
 }
 
 func (x *Xray) QueryStats() ([]*stats.Stat, error) {
@@ -191,5 +208,5 @@ func (x *Xray) QueryStats() ([]*stats.Stat, error) {
 }
 
 func New(l *zap.Logger) *Xray {
-	return &Xray{logger: l, config: NewConfig()}
+	return &Xray{log: l, config: NewConfig()}
 }

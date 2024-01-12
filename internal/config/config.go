@@ -7,8 +7,8 @@ import (
 	"shadowsocks-manager/internal/utils"
 )
 
-const MainPath = "configs/app.json"
-const LocalPath = "configs/app.local.json"
+const MainPath = "configs/main.json"
+const LocalPath = "configs/main.local.json"
 const AppName = "ShadowsocksManager"
 const AppVersion = "v1.0.0"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"

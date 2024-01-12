@@ -29,7 +29,7 @@ func Subscription(d *database.Database) echo.HandlerFunc {
 
 		var lines []string
 		lines = append(lines, fmt.Sprintf(
-			"ss://%s@%s:%d/?outline=1",
+			"ss://%s@%s:%d",
 			b64.StdEncoding.EncodeToString([]byte(parts[0]+":"+parts[1])),
 			d.Data.Settings.ShadowsocksHost,
 			d.Data.Settings.ShadowsocksPort,

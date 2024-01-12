@@ -9,6 +9,9 @@ wget -O install-docker.sh https://get.docker.com && \
 wget -N --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh && \
   chmod +x bbr.sh && bash bbr.sh
 
+# Install NGINX
+docker run --name my_nginx -p 80:80 -d nginx
+
 # Generate shadowsocks configurations
 PASSWORD=$(openssl rand -base64 20) && echo '{
     "server": "0.0.0.0",

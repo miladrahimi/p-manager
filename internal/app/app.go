@@ -3,13 +3,11 @@ package app
 import (
 	"context"
 	"go.uber.org/zap"
-	"net/http"
 	"os"
 	"os/signal"
 	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/coordinator"
 	"shadowsocks-manager/internal/database"
-	"shadowsocks-manager/internal/http/client"
 	"shadowsocks-manager/internal/http/server"
 	"shadowsocks-manager/internal/logger"
 	"shadowsocks-manager/internal/xray"
@@ -21,7 +19,6 @@ type App struct {
 	Context     context.Context
 	Config      *config.Config
 	Logger      *logger.Logger
-	HttpClient  *http.Client
 	HttpServer  *server.Server
 	Database    *database.Database
 	Coordinator *coordinator.Coordinator
@@ -42,9 +39,6 @@ func Init() (app *App, err error) {
 	}
 	app.Logger.Engine.Debug("app: config and logger initialized")
 
-	app.HttpClient = client.New(app.Config)
-	app.Logger.Engine.Debug("app: http client initialized")
-
 	app.Database = database.New(app.Logger.Engine)
 	app.Database.Init()
 	app.Logger.Engine.Debug("app: database initialized")
@@ -53,7 +47,7 @@ func Init() (app *App, err error) {
 	app.Xray.Run()
 	app.Logger.Engine.Debug("app: xray initialized")
 
-	app.Coordinator = coordinator.New(app.Config, app.Logger.Engine, app.HttpClient, app.Database, app.Xray)
+	app.Coordinator = coordinator.New(app.Config, app.Logger.Engine, app.Database, app.Xray)
 	app.Coordinator.Run()
 	app.Logger.Engine.Debug("app: coordinator initialized")
 

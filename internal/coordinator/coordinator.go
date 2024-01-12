@@ -2,7 +2,6 @@ package coordinator
 
 import (
 	"go.uber.org/zap"
-	"net/http"
 	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/database"
 	"shadowsocks-manager/internal/utils"
@@ -13,7 +12,6 @@ import (
 )
 
 type Coordinator struct {
-	http     *http.Client
 	config   *config.Config
 	database *database.Database
 	log      *zap.Logger
@@ -137,7 +135,7 @@ func (c *Coordinator) syncServerStatuses() {
 	isDirty := false
 	for _, server := range c.database.Data.Servers {
 		oldStatus := server.Status
-		if utils.IsPortAvailable(server.Host, server.Port) {
+		if utils.PortAvailable(server.Host, server.Port) {
 			server.Status = database.ServerStatusAvailable
 		} else if server.Status != database.ServerStatusUnavailable {
 			if server.Status == database.ServerStatusUnstable {
@@ -158,6 +156,6 @@ func (c *Coordinator) syncServerStatuses() {
 	}
 }
 
-func New(c *config.Config, l *zap.Logger, h *http.Client, d *database.Database, x *xray.Xray) *Coordinator {
-	return &Coordinator{config: c, log: l, http: h, database: d, xray: x}
+func New(c *config.Config, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
+	return &Coordinator{config: c, log: l, database: d, xray: x}
 }

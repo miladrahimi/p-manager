@@ -8,7 +8,7 @@ import (
 
 func Profile() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if c.QueryParam("c") != "" && c.QueryParam("u") == "" {
+		if c.QueryParam("c") != "" {
 			return c.Redirect(http.StatusMovedPermanently, "/profile?u="+c.QueryParam("c"))
 		}
 

@@ -13,7 +13,7 @@ wget -N --no-check-certificate https://github.com/teddysun/across/raw/master/bbr
 docker run --name my_nginx -p 80:80 -d nginx
 
 # Generate shadowsocks configurations
-PASSWORD=$(openssl rand -base64 20) && echo '{
+PASSWORD=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9') && echo '{
     "server": "0.0.0.0",
     "server_port": 1919,
     "password": "'"$PASSWORD"'",

@@ -107,6 +107,11 @@ func (c *Coordinator) SyncServersAndStats() {
 	c.syncServerStats()
 }
 
+func (c *Coordinator) SyncSettings() {
+	c.log.Debug("coordinator: syncing settings...")
+	c.xray.UpdateInboundPort(c.database.Data.Settings.ShadowsocksPort)
+}
+
 func (c *Coordinator) syncStats() {
 	c.log.Debug("coordinator: syncing statuses...")
 

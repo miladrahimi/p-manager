@@ -111,9 +111,11 @@ func (x *Xray) UpdateInboundPort(port int) {
 		x.log.Fatal("xray: shadowsocks tag not found")
 	}
 
-	x.config.Inbounds[index].Port = port
-	x.saveConfig()
-	x.Reconfigure()
+	if x.config.Inbounds[index].Port != port {
+		x.config.Inbounds[index].Port = port
+		x.saveConfig()
+		x.Reconfigure()
+	}
 }
 
 func (x *Xray) UpdateClients(clients []Client) {

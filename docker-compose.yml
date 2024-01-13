@@ -6,10 +6,8 @@ services:
       context: .
     image: ghcr.io/miladrahimi/shadowsocks-manager:latest
     restart: always
+    network_mode: host
     volumes:
       - ./configs/:/app/configs/
       - ./storage/:/app/storage/
       - ./web/:/app/web/
-    ports:
-      - "${APP_EXPOSED_PORT:-80}:8080"
-      - "${SS_EXPOSED_PORT:-1913}:1913"

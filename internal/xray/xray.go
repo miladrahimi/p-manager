@@ -101,17 +101,17 @@ func (x *Xray) runCore() {
 func (x *Xray) UpdateInboundPort(port int) {
 	x.log.Debug("xray: updating inbound port...", zap.Int("port", port))
 
-	var inbound *Inbound
-	for _, i := range x.config.Inbounds {
-		if i.Tag == "shadowsocks" {
-			inbound = &i
+	index := -1
+	for i, inbound := range x.config.Inbounds {
+		if inbound.Tag == "shadowsocks" {
+			index = i
 		}
 	}
-	if inbound == nil {
+	if index == -1 {
 		x.log.Fatal("xray: shadowsocks tag not found")
 	}
 
-	inbound.Port = port
+	x.config.Inbounds[index].Port = port
 	x.saveConfig()
 	x.Reconfigure()
 }

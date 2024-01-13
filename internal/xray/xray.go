@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-playground/validator"
-	"github.com/labstack/gommon/random"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -12,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/utils"
 	"strconv"
 	"sync"
@@ -100,30 +98,39 @@ func (x *Xray) runCore() {
 	}
 }
 
-func (x *Xray) UpdateClients(clients []Client) {
-	x.log.Debug("xray: updating clients...", zap.Int("count", len(clients)))
+func (x *Xray) UpdateInboundPort(port int) {
+	x.log.Debug("xray: updating inbound port...", zap.Int("port", port))
 
-	var s *InboundSettings
+	var inbound *Inbound
 	for _, i := range x.config.Inbounds {
 		if i.Tag == "shadowsocks" {
-			s = &i.Settings
+			inbound = &i
 		}
 	}
-	if s == nil {
+	if inbound == nil {
 		x.log.Fatal("xray: shadowsocks tag not found")
 	}
 
-	if len(clients) > 0 {
-		s.Clients = clients
-	} else {
-		s.Clients = []Client{
-			{
-				Password: random.String(16),
-				Method:   config.ShadowsocksMethod,
-				Email:    "1",
-			},
+	inbound.Port = port
+	x.saveConfig()
+	x.Reconfigure()
+}
+
+func (x *Xray) UpdateClients(clients []Client) {
+	x.log.Debug("xray: updating clients...", zap.Int("count", len(clients)))
+
+	var inbound *Inbound
+	for _, i := range x.config.Inbounds {
+		if i.Tag == "shadowsocks" {
+			inbound = &i
 		}
 	}
+	if inbound == nil {
+		x.log.Fatal("xray: shadowsocks tag not found")
+	}
+
+	inbound.Settings.Clients = clients
+
 	x.saveConfig()
 	x.Reconfigure()
 }
@@ -131,18 +138,8 @@ func (x *Xray) UpdateClients(clients []Client) {
 func (x *Xray) UpdateServers(servers []Server) {
 	x.log.Debug("xray: updating servers...", zap.Int("count", len(servers)))
 
-	if len(servers) > 0 {
-		x.config.Outbounds[0].Settings.Servers = servers
-	} else {
-		x.config.Outbounds[0].Settings.Servers = []Server{
-			{
-				Address:  "127.0.0.1",
-				Port:     1919,
-				Method:   config.ShadowsocksMethod,
-				Password: "password",
-			},
-		}
-	}
+	x.config.Outbounds[0].Settings.Servers = servers
+
 	x.saveConfig()
 	x.Reconfigure()
 }

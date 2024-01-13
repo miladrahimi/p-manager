@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Logger(log *zap.Logger) echo.MiddlewareFunc {
+func Logger(l *zap.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) error {
 			start := time.Now()
@@ -40,13 +40,13 @@ func Logger(log *zap.Logger) echo.MiddlewareFunc {
 			n := res.Status
 			switch {
 			case n >= 500:
-				log.With(zap.Error(err)).Error("Server error", fields...)
+				l.With(zap.Error(err)).Error("Server error", fields...)
 			case n >= 400:
-				log.With(zap.Error(err)).Warn("Client error", fields...)
+				l.With(zap.Error(err)).Warn("Client error", fields...)
 			case n >= 300:
-				log.Info("Redirection", fields...)
+				l.Info("Redirection", fields...)
 			default:
-				log.Info("Success", fields...)
+				l.Info("Success", fields...)
 			}
 
 			return nil

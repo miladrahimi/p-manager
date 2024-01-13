@@ -74,7 +74,7 @@ func (s *Server) Run() {
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)
 		if err := s.Engine.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.logger.Fatal("http server: cannot start", zap.String("address", address), zap.Error(err))
+			s.logger.Fatal("http server: failed to start", zap.String("address", address), zap.Error(err))
 		}
 	}()
 }
@@ -84,7 +84,7 @@ func (s *Server) Shutdown() {
 	defer cancel()
 
 	if err := s.Engine.Shutdown(c); err != nil {
-		s.logger.Error("http server: cannot close", zap.Error(err))
+		s.logger.Error("http server: failed to close", zap.Error(err))
 	} else {
 		s.logger.Debug("http server: closed successfully")
 	}

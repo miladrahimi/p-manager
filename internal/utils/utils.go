@@ -18,6 +18,7 @@ func FileExist(path string) bool {
 	return true
 }
 
+// PortAvailable checks if the TCP port is reachable or not.
 func PortAvailable(host string, port int) bool {
 	timeout := time.Second
 	conn, _ := net.DialTimeout("tcp", net.JoinHostPort(host, strconv.Itoa(port)), timeout)

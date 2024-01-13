@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"github.com/labstack/gommon/random"
 	"go.uber.org/zap"
 	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/database"
@@ -19,10 +20,10 @@ type Coordinator struct {
 }
 
 func (c *Coordinator) Run() {
+	c.log.Debug("coordinator: running...")
 	go func() {
-		c.log.Debug("coordinator starting...")
 		for {
-			c.log.Debug("coordinator working...")
+			c.log.Debug("coordinator: worker running...")
 			c.syncStatuses()
 			time.Sleep(time.Duration(c.config.Worker.Interval) * time.Second)
 		}
@@ -40,34 +41,67 @@ func (c *Coordinator) SyncUsers() {
 		clients = append(clients, xray.Client{
 			Email:    strconv.Itoa(u.Id),
 			Password: u.Password,
-			Method:   "chacha20-ietf-poly1305",
+			Method:   u.Method,
+		})
+	}
+
+	if len(clients) == 0 {
+		clients = append(clients, xray.Client{
+			Email:    strconv.Itoa(1),
+			Password: random.String(16),
+			Method:   config.ShadowsocksMethod,
 		})
 	}
 
 	c.xray.UpdateClients(clients)
+}
+
+func (c *Coordinator) SyncUsersAndStatuses() {
+	c.log.Debug("coordinator: syncing users and statuses...")
+	c.SyncUsers()
 	c.syncXrayStatuses()
 }
 
 func (c *Coordinator) SyncServers() {
 	c.log.Debug("coordinator: syncing servers...")
 
-	servers := make([]xray.Server, 0, len(c.database.Data.Servers))
-	for _, n := range c.database.Data.Servers {
-		if n.Status == database.ServerStatusProcessing || n.Status == database.ServerStatusUnavailable {
+	var servers []xray.Server
+	for _, s := range c.database.Data.Servers {
+		if s.Status == database.ServerStatusProcessing || s.Status == database.ServerStatusUnavailable {
 			continue
 		}
 		servers = append(servers, xray.Server{
-			Address:  n.Host,
-			Port:     n.Port,
-			Method:   "chacha20-ietf-poly1305",
-			Password: n.Password,
+			Address:  s.Host,
+			Port:     s.Port,
+			Method:   s.Method,
+			Password: s.Password,
 		})
 	}
+
+	if len(servers) == 0 {
+		if len(c.database.Data.Servers) > 0 {
+			s := c.database.Data.Servers[len(c.database.Data.Servers)-1]
+			servers = append(servers, xray.Server{
+				Address:  s.Host,
+				Port:     s.Port,
+				Method:   s.Method,
+				Password: s.Password,
+			})
+		} else {
+			servers = append(servers, xray.Server{
+				Address:  "127.0.0.1",
+				Port:     1919,
+				Method:   config.ShadowsocksMethod,
+				Password: "password",
+			})
+		}
+	}
+
 	c.xray.UpdateServers(servers)
 }
 
 func (c *Coordinator) SyncServersAndStatuses() {
-	c.log.Debug("coordinator: syncing servers and updating statuses...")
+	c.log.Debug("coordinator: syncing servers and statuses...")
 
 	c.SyncServers()
 	c.syncServerStatuses()
@@ -90,13 +124,12 @@ func (c *Coordinator) syncXrayStatuses() {
 	}
 
 	users := map[int]int64{}
-
 	for _, s := range stats {
 		parts := strings.Split(s.GetName(), ">>>")
 		if parts[0] == "user" {
 			id, err := strconv.Atoi(parts[1])
 			if err != nil {
-				c.log.Error("coordinator: cannot detect user", zap.String("id", parts[1]), zap.Error(err))
+				c.log.Error("coordinator: unknown user", zap.String("id", parts[1]), zap.Error(err))
 				continue
 			}
 			users[id] += s.GetValue()
@@ -109,22 +142,22 @@ func (c *Coordinator) syncXrayStatuses() {
 		}
 	}
 
-	isDirty := false
+	isSyncRequired := false
 	for _, u := range c.database.Data.Users {
 		if bytes, found := users[u.Id]; found {
 			u.UsedBytes += bytes
 			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1024/1024/1024, 2)
 			if u.Quota != 0 && u.Used > float64(u.Quota) {
 				u.Enabled = false
-				isDirty = true
+				isSyncRequired = true
 			}
 		}
 	}
 
 	c.database.Save()
 
-	if isDirty {
-		c.log.Debug("coordinator: user syncing required")
+	if isSyncRequired {
+		c.log.Debug("coordinator: user syncing is required")
 		c.SyncUsers()
 	}
 }
@@ -132,25 +165,25 @@ func (c *Coordinator) syncXrayStatuses() {
 func (c *Coordinator) syncServerStatuses() {
 	c.log.Debug("coordinator: syncing server statuses...")
 
-	isDirty := false
+	isSyncRequired := false
 	for _, server := range c.database.Data.Servers {
 		oldStatus := server.Status
 		if utils.PortAvailable(server.Host, server.Port) {
 			server.Status = database.ServerStatusAvailable
-		} else if server.Status != database.ServerStatusUnavailable {
-			if server.Status == database.ServerStatusUnstable {
-				server.Status = database.ServerStatusUnavailable
-			} else {
+		} else {
+			if server.Status == database.ServerStatusAvailable {
 				server.Status = database.ServerStatusUnstable
+			} else {
+				server.Status = database.ServerStatusUnavailable
 			}
 		}
 		if server.Status != oldStatus {
-			isDirty = true
+			isSyncRequired = true
 		}
 	}
 
-	if isDirty {
-		c.log.Debug("coordinator: server syncing required")
+	if isSyncRequired {
+		c.log.Debug("coordinator: server syncing is required")
 		c.database.Save()
 		c.SyncServers()
 	}

@@ -25,8 +25,8 @@ type App struct {
 	Xray        *xray.Xray
 }
 
-// Init creates an instance of the application with dependencies injected.
-func Init() (app *App, err error) {
+// New creates an instance of the application with dependencies injected.
+func New() (app *App, err error) {
 	app = &App{}
 
 	app.Config = config.New()
@@ -37,27 +37,23 @@ func Init() (app *App, err error) {
 	if app.Logger.Init() != nil {
 		return nil, err
 	}
-	app.Logger.Engine.Debug("app: config and logger initialized")
 
 	app.Database = database.New(app.Logger.Engine)
-	app.Database.Init()
-	app.Logger.Engine.Debug("app: database initialized")
-
 	app.Xray = xray.New(app.Logger.Engine)
-	app.Xray.Run()
-	app.Logger.Engine.Debug("app: xray initialized")
-
 	app.Coordinator = coordinator.New(app.Config, app.Logger.Engine, app.Database, app.Xray)
-	app.Coordinator.Run()
-	app.Logger.Engine.Debug("app: coordinator initialized")
-
 	app.HttpServer = server.New(app.Config, app.Logger.Engine, app.Coordinator, app.Database)
-	app.HttpServer.Run()
-	app.Logger.Engine.Debug("app: http server initialized")
 
 	app.setupSignalListener()
 
 	return app, nil
+}
+
+// Boot initializes application modules
+func (a *App) Boot() {
+	a.Database.Init()
+	a.Xray.Run()
+	a.Coordinator.Run()
+	a.HttpServer.Run()
 }
 
 // setupSignalListener sets up a listener to signals from os.

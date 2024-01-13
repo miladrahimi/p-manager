@@ -17,7 +17,7 @@ type Logger struct {
 func (l *Logger) Init() (err error) {
 	level := zap.NewAtomicLevel()
 	if err = level.UnmarshalText([]byte(l.config.Logger.Level)); err != nil {
-		return fmt.Errorf("invalid log level %s, err: %v", l.config.Logger.Level, err)
+		return fmt.Errorf("logger: invalid level %s, err: %v", l.config.Logger.Level, err)
 	}
 
 	l.Engine, err = zap.Config{
@@ -41,7 +41,7 @@ func (l *Logger) Init() (err error) {
 		},
 	}.Build()
 	if err != nil {
-		return fmt.Errorf("cannot build logger, err: %v", err)
+		return fmt.Errorf("logger: failed to build, err: %v", err)
 	}
 
 	return nil
@@ -49,9 +49,9 @@ func (l *Logger) Init() (err error) {
 
 func (l *Logger) Shutdown() {
 	if err := l.Engine.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) {
-		l.Engine.Warn("cannot close the log", zap.Error(err))
+		l.Engine.Error("logger: failed to close", zap.Error(err))
 	} else {
-		l.Engine.Debug("log closed successfully")
+		l.Engine.Debug("logger: closed successfully")
 	}
 }
 

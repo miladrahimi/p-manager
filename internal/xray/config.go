@@ -1,5 +1,7 @@
 package xray
 
+import "shadowsocks-manager/internal/config"
+
 type Log struct {
 	LogLevel string `json:"loglevel"`
 }
@@ -115,7 +117,7 @@ func NewConfig() *Config {
 						{
 							Email:    "1",
 							Password: "password",
-							Method:   "chacha20-ietf-poly1305",
+							Method:   config.ShadowsocksMethod,
 						},
 					},
 					Network: "tcp,udp",
@@ -132,7 +134,7 @@ func NewConfig() *Config {
 						{
 							Address:  "127.0.0.1",
 							Port:     1919,
-							Method:   "chacha20-ietf-poly1305",
+							Method:   config.ShadowsocksMethod,
 							Password: "password",
 						},
 					},

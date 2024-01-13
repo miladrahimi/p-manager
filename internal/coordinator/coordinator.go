@@ -24,7 +24,7 @@ func (c *Coordinator) Run() {
 	go func() {
 		for {
 			c.log.Debug("coordinator: worker running...")
-			c.syncStatuses()
+			c.syncStats()
 			time.Sleep(time.Duration(c.config.Worker.Interval) * time.Second)
 		}
 	}()
@@ -56,10 +56,10 @@ func (c *Coordinator) SyncUsers() {
 	c.xray.UpdateClients(clients)
 }
 
-func (c *Coordinator) SyncUsersAndStatuses() {
-	c.log.Debug("coordinator: syncing users and statuses...")
+func (c *Coordinator) SyncUsersAndStats() {
+	c.log.Debug("coordinator: syncing users and stats...")
 	c.SyncUsers()
-	c.syncXrayStatuses()
+	c.syncXrayStats()
 }
 
 func (c *Coordinator) SyncServers() {
@@ -100,21 +100,21 @@ func (c *Coordinator) SyncServers() {
 	c.xray.UpdateServers(servers)
 }
 
-func (c *Coordinator) SyncServersAndStatuses() {
-	c.log.Debug("coordinator: syncing servers and statuses...")
+func (c *Coordinator) SyncServersAndStats() {
+	c.log.Debug("coordinator: syncing servers and stats...")
 
 	c.SyncServers()
-	c.syncServerStatuses()
+	c.syncServerStats()
 }
 
-func (c *Coordinator) syncStatuses() {
+func (c *Coordinator) syncStats() {
 	c.log.Debug("coordinator: syncing statuses...")
 
-	c.syncXrayStatuses()
-	c.syncServerStatuses()
+	c.syncXrayStats()
+	c.syncServerStats()
 }
 
-func (c *Coordinator) syncXrayStatuses() {
+func (c *Coordinator) syncXrayStats() {
 	c.log.Debug("coordinator: syncing xray statuses...")
 
 	stats, err := c.xray.QueryStats()
@@ -146,7 +146,7 @@ func (c *Coordinator) syncXrayStatuses() {
 	for _, u := range c.database.Data.Users {
 		if bytes, found := users[u.Id]; found {
 			u.UsedBytes += bytes
-			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1024/1024/1024, 2)
+			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
 			if u.Quota != 0 && u.Used > float64(u.Quota) {
 				u.Enabled = false
 				isSyncRequired = true
@@ -162,7 +162,7 @@ func (c *Coordinator) syncXrayStatuses() {
 	}
 }
 
-func (c *Coordinator) syncServerStatuses() {
+func (c *Coordinator) syncServerStats() {
 	c.log.Debug("coordinator: syncing server statuses...")
 
 	isSyncRequired := false
@@ -170,12 +170,10 @@ func (c *Coordinator) syncServerStatuses() {
 		oldStatus := server.Status
 		if utils.PortAvailable(server.Host, server.Port) {
 			server.Status = database.ServerStatusAvailable
+		} else if server.Status == database.ServerStatusAvailable {
+			server.Status = database.ServerStatusUnstable
 		} else {
-			if server.Status == database.ServerStatusAvailable {
-				server.Status = database.ServerStatusUnstable
-			} else {
-				server.Status = database.ServerStatusUnavailable
-			}
+			server.Status = database.ServerStatusUnavailable
 		}
 		if server.Status != oldStatus {
 			isSyncRequired = true

@@ -28,5 +28,5 @@ function ts2string(timestamp) {
 }
 
 function bytes2gb(bytes) {
-    return (parseFloat(bytes) / 1024 / 1024 / 1024).toFixed(2)
+    return (parseFloat(bytes) / 1000 / 1000 / 1000).toFixed(2)
 }

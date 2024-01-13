@@ -33,7 +33,7 @@ func (c *Coordinator) Run() {
 func (c *Coordinator) SyncUsers() {
 	c.log.Debug("coordinator: syncing users...")
 
-	clients := make([]xray.Client, 0, len(c.database.Data.Users))
+	var clients []xray.Client
 	for _, u := range c.database.Data.Users {
 		if !u.Enabled {
 			continue

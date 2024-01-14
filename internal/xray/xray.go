@@ -83,7 +83,6 @@ func (x *Xray) saveConfig() {
 
 func (x *Xray) Run() {
 	x.initConfig()
-	x.verifyShadowsocksPort()
 	x.initApiPort()
 	go x.runCore()
 	x.connectGrpc()
@@ -100,14 +99,6 @@ func (x *Xray) initApiPort() {
 		x.log.Debug("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
 		x.config.Inbounds[index].Port = np
 		x.saveConfig()
-	}
-}
-
-func (x *Xray) verifyShadowsocksPort() {
-	index := x.findShadowsocksInboundIndex()
-	p := x.config.Inbounds[index].Port
-	if !utils.PortFree(p) {
-		x.log.Fatal("xray: configured port for shadowsocks is already in use", zap.Int("port", p))
 	}
 }
 

@@ -4,7 +4,7 @@
 
 ### Installation
 
-A convenient method for installing Shadowsocks Manager involves cloning this repository onto the bridge server and executing it using Docker Compose.
+The convenient method for installing Shadowsocks Manager is cloning this repository onto the bridge server and executing it using Docker Compose.
 
 ``` shell
 git clone https://github.com/miladrahimi/shadowsocks-manager.git
@@ -14,20 +14,18 @@ docker compose up -d
 
 ### Setting up Shadowsocks servers
 
-To set up Shadowsocks servers on remote servers, you can execute the following shell commands on the server.
-The final command will display the Shadowsocks server information, which you can input into the Shadowsocks Manager's "Servers" tab.
+To set up Shadowsocks servers on foreign servers, you can execute the following shell commands on the server.
+The final command will display the Shadowsocks server information, which you can enter into the Shadowsocks Manager's "Servers" tab.
 
 ``` shell
 # Install dependencies
-apt-get -y update && apt-get -y upgrade && apt-get -y install wget curl vim git
+apt-get -y update && apt-get -y upgrade && apt-get -y install wget curl vim git openssl
 
 # Install docker
-wget -O install-docker.sh https://get.docker.com && \
-  chmod +x install-docker.sh && ./install-docker.sh
+wget -O install-docker.sh https://get.docker.com && chmod +x install-docker.sh && ./install-docker.sh
 
 # Install BBR
-wget -N --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh && \
-  chmod +x bbr.sh && bash bbr.sh
+wget -N --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh && chmod +x bbr.sh && bash bbr.sh
 
 # Install NGINX
 docker run --name my_nginx -p 80:80 -d nginx

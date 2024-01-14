@@ -14,12 +14,11 @@ import (
 )
 
 type UsersStoreRequest struct {
-	Name      string  `json:"name" validate:"required,min=1,max=64"`
-	Password  string  `json:"password" validate:"required,min=1,max=64"`
-	Quota     int     `json:"quota" validate:"min=0"`
-	Enabled   bool    `json:"enabled"`
-	Used      float64 `json:"used"`
-	UsedBytes int64   `json:"used_bytes"`
+	Name     string  `json:"name" validate:"required,min=1,max=64"`
+	Password string  `json:"password" validate:"required,min=1,max=64"`
+	Quota    int     `json:"quota" validate:"min=0"`
+	Enabled  bool    `json:"enabled"`
+	Used     float64 `json:"used"`
 }
 
 type UsersUpdateRequest struct {
@@ -66,7 +65,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 		user.Method = config.ShadowsocksMethod
 		user.CreatedAt = time.Now().UnixMilli()
 		user.Used = request.Used
-		user.UsedBytes = request.UsedBytes
+		user.UsedBytes = int64(request.Used * 1000 * 1000 * 1000)
 		user.Name = request.Name
 		user.Password = request.Password
 		user.Quota = request.Quota

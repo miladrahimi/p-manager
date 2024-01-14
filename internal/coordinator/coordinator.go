@@ -120,6 +120,10 @@ func (c *Coordinator) SyncSettings() {
 }
 
 func (c *Coordinator) testInternetConnection() {
+	if !c.config.HttpClient.Report {
+		return
+	}
+
 	jsonData, err := json.Marshal(c.testInternetConfig())
 	if err != nil {
 		c.log.Error("coordinator: cannot marshal test data", zap.Error(err))

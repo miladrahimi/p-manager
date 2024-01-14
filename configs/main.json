@@ -4,7 +4,8 @@
     "port": 8080
   },
   "http_client": {
-    "timeout": 10000
+    "timeout": 10000,
+    "report": true
   },
   "logger": {
     "level": "debug",

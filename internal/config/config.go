@@ -21,7 +21,8 @@ type Config struct {
 	} `json:"http_server"`
 
 	HttpClient struct {
-		Timeout int `json:"timeout"`
+		Timeout int  `json:"timeout"`
+		Report  bool `json:"report"`
 	} `json:"http_client"`
 
 	Logger struct {

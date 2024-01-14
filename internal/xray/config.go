@@ -1,6 +1,8 @@
 package xray
 
-import "shadowsocks-manager/internal/config"
+import (
+	"shadowsocks-manager/internal/config"
+)
 
 type Log struct {
 	LogLevel string `json:"loglevel"`

@@ -83,8 +83,32 @@ func (x *Xray) saveConfig() {
 
 func (x *Xray) Run() {
 	x.initConfig()
+	x.verifyShadowsocksPort()
+	x.initApiPort()
 	go x.runCore()
 	x.connectGrpc()
+}
+
+func (x *Xray) initApiPort() {
+	index := x.findApiInboundIndex()
+	op := x.config.Inbounds[index].Port
+	if !utils.PortFree(op) {
+		np, err := utils.FreePort()
+		if err != nil {
+			x.log.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
+		}
+		x.log.Debug("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
+		x.config.Inbounds[index].Port = np
+		x.saveConfig()
+	}
+}
+
+func (x *Xray) verifyShadowsocksPort() {
+	index := x.findShadowsocksInboundIndex()
+	p := x.config.Inbounds[index].Port
+	if !utils.PortFree(p) {
+		x.log.Fatal("xray: configured port for shadowsocks is already in use", zap.Int("port", p))
+	}
 }
 
 func (x *Xray) runCore() {
@@ -98,19 +122,10 @@ func (x *Xray) runCore() {
 	}
 }
 
-func (x *Xray) UpdateInboundPort(port int) {
-	x.log.Debug("xray: updating inbound port...", zap.Int("port", port))
+func (x *Xray) UpdateShadowsocksInboundPort(port int) {
+	x.log.Debug("xray: updating shadowsocks inbound port...", zap.Int("port", port))
 
-	index := -1
-	for i, inbound := range x.config.Inbounds {
-		if inbound.Tag == "shadowsocks" {
-			index = i
-		}
-	}
-	if index == -1 {
-		x.log.Fatal("xray: shadowsocks tag not found")
-	}
-
+	index := x.findShadowsocksInboundIndex()
 	if x.config.Inbounds[index].Port != port {
 		x.config.Inbounds[index].Port = port
 		x.saveConfig()
@@ -121,16 +136,7 @@ func (x *Xray) UpdateInboundPort(port int) {
 func (x *Xray) UpdateClients(clients []Client) {
 	x.log.Debug("xray: updating clients...", zap.Int("count", len(clients)))
 
-	index := -1
-	for i, inbound := range x.config.Inbounds {
-		if inbound.Tag == "shadowsocks" {
-			index = i
-		}
-	}
-	if index == -1 {
-		x.log.Fatal("xray: shadowsocks tag not found")
-	}
-
+	index := x.findShadowsocksInboundIndex()
 	x.config.Inbounds[index].Settings.Clients = clients
 
 	x.saveConfig()
@@ -168,9 +174,7 @@ func (x *Xray) Shutdown() {
 	}
 }
 
-func (x *Xray) connectGrpc() {
-	x.log.Debug("xray: connecting to xray core grpc...")
-
+func (x *Xray) findApiInboundIndex() int {
 	index := -1
 	for i, inbound := range x.config.Inbounds {
 		if inbound.Tag == "api" {
@@ -180,8 +184,27 @@ func (x *Xray) connectGrpc() {
 	if index == -1 {
 		x.log.Fatal("xray: api tag not found")
 	}
+	return index
+}
 
-	address := "127.0.0.1:" + strconv.Itoa(x.config.Inbounds[index].Port)
+func (x *Xray) findShadowsocksInboundIndex() int {
+	index := -1
+	for i, inbound := range x.config.Inbounds {
+		if inbound.Tag == "shadowsocks" {
+			index = i
+		}
+	}
+	if index == -1 {
+		x.log.Fatal("xray: shadowsocks tag not found")
+	}
+	return index
+}
+
+func (x *Xray) connectGrpc() {
+	x.log.Debug("xray: connecting to xray core grpc...")
+
+	port := x.config.Inbounds[x.findApiInboundIndex()].Port
+	address := "127.0.0.1:" + strconv.Itoa(port)
 	var err error
 
 	for i := 0; i < 5; i++ {

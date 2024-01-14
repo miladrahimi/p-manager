@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"shadowsocks-manager/internal/coordinator"
 	"shadowsocks-manager/internal/database"
+	"shadowsocks-manager/internal/utils"
 )
 
 func SettingsShow(d *database.Database) echo.HandlerFunc {
@@ -26,6 +27,12 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		if err := validator.New().Struct(settings); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
+			})
+		}
+
+		if settings.ShadowsocksPort != d.Data.Settings.ShadowsocksPort && !utils.PortFree(settings.ShadowsocksPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("The shadowsocks port is not free: %v", settings.ShadowsocksPort),
 			})
 		}
 

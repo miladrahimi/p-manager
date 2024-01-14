@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"math"
 	"net"
@@ -38,4 +39,36 @@ func UUID() string {
 func RoundFloat(val float64, precision uint) float64 {
 	ratio := math.Pow(10, float64(precision))
 	return math.Round(val*ratio) / ratio
+}
+
+// FreePort finds a free port.
+func FreePort() (int, error) {
+	address, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	listener, err := net.ListenTCP("tcp", address)
+	if err != nil {
+		return 0, err
+	}
+
+	defer func() {
+		err = listener.Close()
+	}()
+
+	return listener.Addr().(*net.TCPAddr).Port, err
+}
+
+func PortFree(port int) bool {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return false
+	}
+
+	if err = listener.Close(); err != nil {
+		return PortFree(port)
+	}
+
+	return true
 }

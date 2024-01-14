@@ -116,7 +116,7 @@ func (c *Coordinator) SyncServersAndStats() {
 func (c *Coordinator) SyncSettings() {
 	c.log.Debug("coordinator: syncing settings...")
 	c.testInternetConnection()
-	c.xray.UpdateInboundPort(c.database.Data.Settings.ShadowsocksPort)
+	c.xray.UpdateShadowsocksInboundPort(c.database.Data.Settings.ShadowsocksPort)
 }
 
 func (c *Coordinator) testInternetConnection() {

@@ -19,9 +19,9 @@ def get_keys(api_url, headers):
 
 # Function to process each item in the response array and make a POST request to the second API
 def process_keys(keys, second_api_url, second_headers):
-    the_id = 1
+    the_id = 0
     for key in keys:
-        # Construct the data payload for the POST request
+        the_id = the_id + 1
         payload = {
             "id": the_id,
             "identity": key.get("code"),
@@ -35,14 +35,10 @@ def process_keys(keys, second_api_url, second_headers):
             "used_bytes": key.get("used") * 1000 * 1000,
         }
 
-        the_id = the_id + 1
-
-        # Make the POST request to the second API
         try:
             request = Request(second_api_url, method='POST', headers=second_headers)
             request.add_header('Content-Type', 'application/json')
-            with urlopen(request, data=json.dumps(payload).encode('utf-8')) as response:
-                # Process the second API response as needed
+            with urlopen(request, data=json.dumps(payload).encode('utf-8')):
                 print(f"OK for name={payload['name']}")
         except HTTPError as e:
             print(f"HTTPError for name={payload['name']}: {e}")

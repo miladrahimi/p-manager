@@ -18,34 +18,34 @@ import (
 
 // App integrates the modules to serve.
 type App struct {
-	Context     context.Context
-	Config      *config.Config
-	Logger      *logger.Logger
-	HttpClient  *http.Client
-	HttpServer  *server.Server
-	Database    *database.Database
-	Coordinator *coordinator.Coordinator
-	Xray        *xray.Xray
+	context     context.Context
+	config      *config.Config
+	log         *logger.Logger
+	httpClient  *http.Client
+	httpServer  *server.Server
+	database    *database.Database
+	coordinator *coordinator.Coordinator
+	xray        *xray.Xray
 }
 
 // New creates an instance of the application with dependencies injected.
 func New() (app *App, err error) {
 	app = &App{}
 
-	app.Config = config.New()
-	if app.Config.Init() != nil {
+	app.config = config.New()
+	if app.config.Init() != nil {
 		return nil, err
 	}
-	app.Logger = logger.New(app.Config)
-	if app.Logger.Init() != nil {
+	app.log = logger.New(app.config)
+	if app.log.Init() != nil {
 		return nil, err
 	}
 
-	app.Database = database.New(app.Logger.Engine)
-	app.Xray = xray.New(app.Logger.Engine)
-	app.HttpClient = client.New(app.Config)
-	app.Coordinator = coordinator.New(app.Config, app.HttpClient, app.Logger.Engine, app.Database, app.Xray)
-	app.HttpServer = server.New(app.Config, app.Logger.Engine, app.Coordinator, app.Database)
+	app.database = database.New(app.log.Engine)
+	app.xray = xray.New(app.log.Engine)
+	app.httpClient = client.New(app.config)
+	app.coordinator = coordinator.New(app.config, app.httpClient, app.log.Engine, app.database, app.xray)
+	app.httpServer = server.New(app.config, app.log.Engine, app.coordinator, app.database)
 
 	app.setupSignalListener()
 
@@ -54,16 +54,16 @@ func New() (app *App, err error) {
 
 // Boot initializes application modules
 func (a *App) Boot() {
-	a.Database.Init()
-	a.Xray.Run()
-	a.Coordinator.Run()
-	a.HttpServer.Run()
+	a.database.Init()
+	a.xray.Run()
+	a.coordinator.Run()
+	a.httpServer.Run()
 }
 
 // setupSignalListener sets up a listener to signals from os.
 func (a *App) setupSignalListener() {
 	var cancel context.CancelFunc
-	a.Context, cancel = context.WithCancel(context.Background())
+	a.context, cancel = context.WithCancel(context.Background())
 
 	// Listen to SIGTERM
 	go func() {
@@ -71,7 +71,7 @@ func (a *App) setupSignalListener() {
 		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 
 		s := <-signalChannel
-		a.Logger.Engine.Info("app: system call", zap.String("signal", s.String()))
+		a.log.Engine.Info("app: system call", zap.String("signal", s.String()))
 
 		cancel()
 	}()
@@ -83,26 +83,26 @@ func (a *App) setupSignalListener() {
 
 		for {
 			s := <-signalChannel
-			a.Logger.Engine.Info("app: system call", zap.String("signal", s.String()))
-			a.Xray.Reconfigure()
+			a.log.Engine.Info("app: system call", zap.String("signal", s.String()))
+			a.xray.Reconfigure()
 		}
 	}()
 }
 
 // Wait avoid dying app and shut it down gracefully on exit signals.
 func (a *App) Wait() {
-	<-a.Context.Done()
+	<-a.context.Done()
 }
 
 // Shutdown closes all open resources and processes gracefully.
 func (a *App) Shutdown() {
-	if a.HttpServer != nil {
-		a.HttpServer.Shutdown()
+	if a.httpServer != nil {
+		a.httpServer.Shutdown()
 	}
-	if a.Xray != nil {
-		a.Xray.Shutdown()
+	if a.xray != nil {
+		a.xray.Shutdown()
 	}
-	if a.Logger != nil {
-		a.Logger.Shutdown()
+	if a.log != nil {
+		a.log.Shutdown()
 	}
 }

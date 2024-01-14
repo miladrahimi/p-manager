@@ -35,6 +35,17 @@
         </ul>
 
         <div id="table"></div>
+
+        <div class="card mt-3 text-start">
+            <div class="card-header">Import users from old app</div>
+            <div class="card-body">
+                <label for="url">URL:</label>
+                <input type="text" class="form-control mb-2" id="url" placeholder="http://13.12.11.10:8080" title="URL">
+                <label for="url">Token:</label>
+                <input type="text" class="form-control mb-2" id="token" placeholder="abc123xyz" title="URL">
+                <input type="button" class="btn btn-secondary d-block mt-1" id="import" value="Import">
+            </div>
+        </div>
     </div>
 </div>
 
@@ -159,6 +170,35 @@
         type: "GET",
         url: "/v1/settings"
     });
+
+    $('#import').click(function () {
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('Importing...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/import`,
+            processData: true,
+            dataType: 'json',
+            data: JSON.stringify({
+                url: $('#url').val(),
+                token: $('#token').val(),
+            }),
+            success: function () {
+                me.html('Done!')
+            },
+            error: function (response) {
+                console.log(response)
+                me.val('Error!')
+            },
+            complete: function () {
+                setTimeout(function () {
+                    me.val('Import').removeAttr('disabled')
+                }, 2000)
+            }
+        })
+    })
+
 </script>
 
 </body>

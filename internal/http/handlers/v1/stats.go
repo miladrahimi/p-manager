@@ -3,6 +3,7 @@ package v1
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"shadowsocks-manager/internal/coordinator"
 	"shadowsocks-manager/internal/database"
 	"time"
 )
@@ -33,6 +34,17 @@ func StatsZeroUsers(d *database.Database) echo.HandlerFunc {
 			u.Enabled = true
 		}
 		d.Save()
+
+		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+func StatsDeleteAllUsers(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		d.Data.Users = []*database.User{}
+		d.Save()
+
+		go coordinator.SyncUsers()
 
 		return c.NoContent(http.StatusNoContent)
 	}

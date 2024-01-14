@@ -9,6 +9,25 @@ The convenient method for installing Shadowsocks Manager is cloning this reposit
 ``` shell
 git clone https://github.com/miladrahimi/shadowsocks-manager.git
 cd shadowsocks-manager
+cp configs/main.json configs/main.local.json
+docker compose up -d
+```
+It typically runs on port 8080, but you can adjust this setting in the `configs/main.local.json` file.
+
+### Configuration
+
+It is recommended to create a `configs/main.local.json` file based on `configs/main.json` before running the app.
+If you followed the installation instructions above, you have already completed this step.
+The application uses `configs/main.local.json` and since it is set to be ignored by Git, updating the app becomes easier.
+
+### Update
+
+To update the application, execute the following commands in the app directory:
+
+``` shell
+docker compose pull
+git pull
+docker compose down
 docker compose up -d
 ```
 

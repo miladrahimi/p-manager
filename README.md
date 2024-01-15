@@ -71,7 +71,7 @@ cat config.json
     1. Open the "Servers" tab, and enter the foreign Shadowsocks server
     2. Open the "Settings" tab, and import users from the old app.
     3. In the "Settings" tab, set `Shadowsocks Host` to the bridge server IP address.
-    4. Open a user profile and check if it works fine!
+    4. Open a user profile and check if its shadowsocks link works fine!
 5. Run `docker compose down` for the `shadowsocks` (old) app.
 6. Run `docker compose down` for the `outline-bridge-server` app.
 7. Update the HTTP port to 80 in the `configs/main.local.json` file.

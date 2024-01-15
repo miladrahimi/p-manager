@@ -97,6 +97,7 @@ type Config struct {
 	Routing   Routing                `json:"routing"`
 }
 
+// NewConfig creates a new instance of Xray config.
 func NewConfig() *Config {
 	return &Config{
 		Log: Log{

@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Logger logs handler errors.
 func Logger(l *zap.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) error {

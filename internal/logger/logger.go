@@ -14,6 +14,7 @@ type Logger struct {
 	Engine *zap.Logger
 }
 
+// Init initializes the Logger.
 func (l *Logger) Init() (err error) {
 	level := zap.NewAtomicLevel()
 	if err = level.UnmarshalText([]byte(l.config.Logger.Level)); err != nil {
@@ -47,6 +48,7 @@ func (l *Logger) Init() (err error) {
 	return nil
 }
 
+// Shutdown closes the Logger.
 func (l *Logger) Shutdown() {
 	if err := l.Engine.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) {
 		l.Engine.Error("logger: failed to close", zap.Error(err))
@@ -55,6 +57,7 @@ func (l *Logger) Shutdown() {
 	}
 }
 
+// New creates a new instance of Logger
 func New(c *config.Config) (logger *Logger) {
 	return &Logger{config: c, Engine: nil}
 }

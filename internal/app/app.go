@@ -84,7 +84,7 @@ func (a *App) setupSignalListener() {
 		for {
 			s := <-signalChannel
 			a.log.Engine.Info("app: system call", zap.String("signal", s.String()))
-			a.xray.Reconfigure()
+			a.xray.Restart()
 		}
 	}()
 }

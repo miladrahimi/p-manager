@@ -32,6 +32,7 @@ func PortAvailable(host string, port int) bool {
 	return false
 }
 
+// UUID generates UUID without - character.
 func UUID() string {
 	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }
@@ -60,6 +61,7 @@ func FreePort() (int, error) {
 	return listener.Addr().(*net.TCPAddr).Port, err
 }
 
+// PortFree checks if the port is free or not.
 func PortFree(port int) bool {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {

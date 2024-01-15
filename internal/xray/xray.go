@@ -31,6 +31,7 @@ type Xray struct {
 	lock       sync.Mutex
 }
 
+// binaryPath returns the path of Xray core binary for current OS.
 func (x *Xray) binaryPath() string {
 	if path, found := binaryPaths[runtime.GOOS]; found {
 		return path
@@ -38,6 +39,7 @@ func (x *Xray) binaryPath() string {
 	return binaryPaths["linux"]
 }
 
+// initConfig stores init configurations if there is no config file and loads it.
 func (x *Xray) initConfig() {
 	if !utils.FileExist(configPath) {
 		x.saveConfig()
@@ -45,6 +47,7 @@ func (x *Xray) initConfig() {
 	x.loadConfig()
 }
 
+// loadConfig loads the stored configuration from file.
 func (x *Xray) loadConfig() {
 	x.lock.Lock()
 	defer x.lock.Unlock()
@@ -64,6 +67,7 @@ func (x *Xray) loadConfig() {
 	}
 }
 
+// saveConfig saves the current configurations.
 func (x *Xray) saveConfig() {
 	defer func() {
 		x.loadConfig()
@@ -81,6 +85,7 @@ func (x *Xray) saveConfig() {
 	}
 }
 
+// Run prepare and starts the Xray core process.
 func (x *Xray) Run() {
 	x.initConfig()
 	x.initApiPort()
@@ -88,6 +93,7 @@ func (x *Xray) Run() {
 	x.connectGrpc()
 }
 
+// initApiPort finds a free port for api inbound.
 func (x *Xray) initApiPort() {
 	index := x.findApiInboundIndex()
 	op := x.config.Inbounds[index].Port
@@ -102,6 +108,7 @@ func (x *Xray) initApiPort() {
 	}
 }
 
+// runCore runs Xray core.
 func (x *Xray) runCore() {
 	x.command = exec.Command(x.binaryPath(), "-c", configPath)
 	x.command.Stderr = os.Stderr
@@ -113,6 +120,7 @@ func (x *Xray) runCore() {
 	}
 }
 
+// UpdateShadowsocksInboundPort updates the shadowsocks inbound port.
 func (x *Xray) UpdateShadowsocksInboundPort(port int) {
 	x.log.Debug("xray: updating shadowsocks inbound port...", zap.Int("port", port))
 
@@ -120,10 +128,11 @@ func (x *Xray) UpdateShadowsocksInboundPort(port int) {
 	if x.config.Inbounds[index].Port != port {
 		x.config.Inbounds[index].Port = port
 		x.saveConfig()
-		x.Reconfigure()
+		x.Restart()
 	}
 }
 
+// UpdateClients updates the shadowsocks inbound clients (users).
 func (x *Xray) UpdateClients(clients []Client) {
 	x.log.Debug("xray: updating clients...", zap.Int("count", len(clients)))
 
@@ -131,24 +140,27 @@ func (x *Xray) UpdateClients(clients []Client) {
 	x.config.Inbounds[index].Settings.Clients = clients
 
 	x.saveConfig()
-	x.Reconfigure()
+	x.Restart()
 }
 
+// UpdateServers updates the outbound servers.
 func (x *Xray) UpdateServers(servers []Server) {
 	x.log.Debug("xray: updating servers...", zap.Int("count", len(servers)))
 
 	x.config.Outbounds[0].Settings.Servers = servers
 
 	x.saveConfig()
-	x.Reconfigure()
+	x.Restart()
 }
 
-func (x *Xray) Reconfigure() {
-	x.log.Info("xray: reconfiguring the xray core...")
+// Restart closes and runs the Xray core.
+func (x *Xray) Restart() {
+	x.log.Info("xray: restarting the xray core...")
 	x.Shutdown()
 	x.Run()
 }
 
+// Shutdown closes Xray core process.
 func (x *Xray) Shutdown() {
 	x.log.Debug("xray: shutting down the xray core...")
 	if x.connection != nil {
@@ -165,6 +177,7 @@ func (x *Xray) Shutdown() {
 	}
 }
 
+// findApiInboundIndex finds the index of the api inbound.
 func (x *Xray) findApiInboundIndex() int {
 	index := -1
 	for i, inbound := range x.config.Inbounds {
@@ -178,6 +191,7 @@ func (x *Xray) findApiInboundIndex() int {
 	return index
 }
 
+// findShadowsocksInboundIndex finds the index of the shadowsocks inbound.
 func (x *Xray) findShadowsocksInboundIndex() int {
 	index := -1
 	for i, inbound := range x.config.Inbounds {
@@ -191,6 +205,7 @@ func (x *Xray) findShadowsocksInboundIndex() int {
 	return index
 }
 
+// connectGrpc connects to the GRPC APIs provided by Xray core.
 func (x *Xray) connectGrpc() {
 	x.log.Debug("xray: connecting to xray core grpc...")
 
@@ -211,6 +226,7 @@ func (x *Xray) connectGrpc() {
 	x.log.Debug("xray: cannot connect the xray core grpc", zap.Error(err))
 }
 
+// QueryStats fetches the traffic stats from Xray core.
 func (x *Xray) QueryStats() ([]*stats.Stat, error) {
 	client := stats.NewStatsServiceClient(x.connection)
 	qs, err := client.QueryStats(context.Background(), &stats.QueryStatsRequest{Reset_: true})
@@ -220,6 +236,7 @@ func (x *Xray) QueryStats() ([]*stats.Stat, error) {
 	return qs.GetStat(), nil
 }
 
+// New creates a new instance of Xray.
 func New(l *zap.Logger) *Xray {
 	return &Xray{log: l, config: NewConfig()}
 }

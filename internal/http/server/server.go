@@ -11,7 +11,7 @@ import (
 	"shadowsocks-manager/internal/config"
 	"shadowsocks-manager/internal/coordinator"
 	"shadowsocks-manager/internal/database"
-	"shadowsocks-manager/internal/http/handlers"
+	"shadowsocks-manager/internal/http/handlers/pages"
 	"shadowsocks-manager/internal/http/handlers/v1"
 	"shadowsocks-manager/internal/http/middleware"
 	"shadowsocks-manager/internal/http/validator"
@@ -26,23 +26,14 @@ type Server struct {
 	database    *database.Database
 }
 
-func New(config *config.Config, l *zap.Logger, c *coordinator.Coordinator, d *database.Database) *Server {
-	e := echo.New()
-	e.HideBanner = true
-	e.Validator = validator.New()
-
-	return &Server{Engine: e, config: config, logger: l, coordinator: c, database: d}
-}
-
+// Run defines the required HTTP routes and starts the HTTP Server.
 func (s *Server) Run() {
 	s.Engine.Use(echoMiddleware.CORS())
 	s.Engine.Use(middleware.Logger(s.logger))
 
 	s.Engine.Static("/", "web")
 
-	s.Engine.GET("/ssconf/*", handlers.SSConf(s.database))
-	s.Engine.GET("/subscription/*", handlers.Subscription(s.database))
-	s.Engine.GET("/profile", handlers.Profile())
+	s.Engine.GET("/profile", pages.Profile())
 
 	g1 := s.Engine.Group("/v1")
 	g1.POST("/sign-in", v1.SignIn(s.database))
@@ -81,6 +72,7 @@ func (s *Server) Run() {
 	}()
 }
 
+// Shutdown closes the HTTP Server.
 func (s *Server) Shutdown() {
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -90,4 +82,13 @@ func (s *Server) Shutdown() {
 	} else {
 		s.logger.Debug("http server: closed successfully")
 	}
+}
+
+// New creates a new instance of HTTP Server.
+func New(config *config.Config, l *zap.Logger, c *coordinator.Coordinator, d *database.Database) *Server {
+	e := echo.New()
+	e.HideBanner = true
+	e.Validator = validator.New()
+
+	return &Server{Engine: e, config: config, logger: l, coordinator: c, database: d}
 }

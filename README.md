@@ -76,4 +76,4 @@ cat config.json
 6. Run `docker compose down` for the `outline-bridge-server` app.
 7. Update the HTTP port to 80 in the `configs/main.local.json` file.
 9. Run `docker compose down` and `docker compose up -d` for the `shadowsocks-manager` app.
-10. Update the `Shadowsocks Port` in the "Settings" tab to the old port so your users can use their old links.
+10. Update the `Shadowsocks Port` in the "Settings" tab to the old port, then your users won't understand this change!

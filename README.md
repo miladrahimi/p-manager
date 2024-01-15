@@ -77,3 +77,4 @@ cat config.json
 7. Update the HTTP port to 80 in the `configs/main.local.json` file.
 9. Run `docker compose down` and `docker compose up -d` for the `shadowsocks-manager` app.
 10. Update the `Shadowsocks Port` in the "Settings" tab to the old port, then your users won't understand this change!
+11. In the case of UI problems, use the full refresh option in your browser.

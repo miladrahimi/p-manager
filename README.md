@@ -10,7 +10,7 @@ cd shadowsocks-manager
 cp configs/main.json configs/main.local.json
 docker compose up -d
 ```
-It runs on port 8080 by default, you can adjust the configurations in the `configs/main.local.json` file.
+It runs on port 8080 by default, you can change the configurations in the `configs/main.local.json` file.
 
 ### Update
 

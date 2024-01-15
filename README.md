@@ -1,12 +1,12 @@
-# Shadowsocks Manager
+# Xray Manager
 
 ## Documentation
 
 ### Installation
 
 ``` shell
-git clone https://github.com/miladrahimi/shadowsocks-manager.git
-cd shadowsocks-manager
+git clone https://github.com/miladrahimi/xray-manager.git
+cd xray-manager
 cp configs/main.json configs/main.local.json
 docker compose up -d
 # It runs on port 8080 by default.

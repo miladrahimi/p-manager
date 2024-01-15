@@ -9,12 +9,14 @@ git clone https://github.com/miladrahimi/shadowsocks-manager.git
 cd shadowsocks-manager
 cp configs/main.json configs/main.local.json
 docker compose up -d
+# It runs on port 8080 by default.
 ```
-It runs on port 8080 by default, you can change the configurations in the `configs/main.local.json` file.
+
+### Configuration
+
+You can change the configurations in the `configs/main.local.json` file.
 
 ### Update
-
-To update the application, execute the following commands in the application directory:
 
 ``` shell
 docker compose pull

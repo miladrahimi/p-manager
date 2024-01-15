@@ -38,6 +38,7 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 
 		r := ProfileResponse{User: *user, ShadowsocksLink: link, Used: used}
 		r.User.Used = 0
+		r.User.Quota = int(float64(r.User.Quota) * d.Data.Settings.TrafficRatio)
 
 		return c.JSON(http.StatusOK, r)
 	}

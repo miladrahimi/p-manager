@@ -4,19 +4,13 @@
 
 ### Installation
 
-Run the following commands:
-
 ``` shell
 git clone https://github.com/miladrahimi/shadowsocks-manager.git
 cd shadowsocks-manager
 cp configs/main.json configs/main.local.json
 docker compose up -d
 ```
-It runs on port 8080 by default, you can adjust this setting in the `configs/main.local.json` file.
-
-### Configuration
-
-Edit the `configs/main.local.json` file based on your requirements.
+It runs on port 8080 by default, you can adjust the configurations in the `configs/main.local.json` file.
 
 ### Update
 
@@ -31,13 +25,14 @@ docker compose up -d
 
 ### Migrate from the old app
 
-1. Install and run `shadowsocks-manager` on the default port (8080).
-2. Visit `shadowsocks-manager` in your browser, open the "Settings" tab, and import users from the old app.
-3. Run `docker compose down` for the `shadowsocks` (old) app.
-4. Run `docker compose down` for the `outline-bridge-server` app.
-5. Update the `shadowsocks-manager` HTTP port to 80 in the `configs/main.local.json` file.
-6. Run `docker compose down` and `docker compose up -d` for the `shadowsocks-manager` app.
-7. In the "Setting" tab, update `Shadowsocks Host` and `Shadowsocks Port` to work like before.
+1. First set up foreign Shadowsocks servers (explained in the next section).
+2. Install and run `shadowsocks-manager` on the bridge server with the default port (8080).
+3. Visit `shadowsocks-manager` in your browser, open the "Settings" tab, and import users from the old app.
+4. Run `docker compose down` for the `shadowsocks` (old) app.
+5. Run `docker compose down` for the `outline-bridge-server` app.
+6. Update the `shadowsocks-manager` HTTP port to 80 in the `configs/main.local.json` file.
+7. Run `docker compose down` and `docker compose up -d` for the `shadowsocks-manager` app.
+8. In the "Setting" tab, update `Shadowsocks Host` and `Shadowsocks Port` to work like before.
 
 ### Setting up Shadowsocks servers
 

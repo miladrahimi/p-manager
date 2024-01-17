@@ -2,17 +2,17 @@ package app
 
 import (
 	"context"
+	"github.com/miladrahimi/xray-manager/internal/config"
+	"github.com/miladrahimi/xray-manager/internal/coordinator"
+	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/internal/http/client"
+	"github.com/miladrahimi/xray-manager/internal/http/server"
+	"github.com/miladrahimi/xray-manager/internal/logger"
+	"github.com/miladrahimi/xray-manager/pkg/xray"
 	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
-	"xray-manager/internal/config"
-	"xray-manager/internal/coordinator"
-	"xray-manager/internal/database"
-	"xray-manager/internal/http/client"
-	"xray-manager/internal/http/server"
-	"xray-manager/internal/logger"
-	"xray-manager/pkg/xray"
 )
 
 // App integrates the modules to serve.

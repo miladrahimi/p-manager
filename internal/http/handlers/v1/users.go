@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/internal/config"
+	"github.com/miladrahimi/xray-manager/internal/coordinator"
+	"github.com/miladrahimi/xray-manager/internal/database"
 	"net/http"
 	"slices"
 	"strconv"
 	"time"
-	"xray-manager/internal/config"
-	"xray-manager/internal/coordinator"
-	"xray-manager/internal/database"
 )
 
 type UsersStoreRequest struct {

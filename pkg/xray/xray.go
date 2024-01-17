@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-playground/validator"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	"xray-manager/pkg/utils"
 )
 
 type Xray struct {

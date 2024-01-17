@@ -3,15 +3,15 @@ package coordinator
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/miladrahimi/xray-manager/internal/config"
+	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/internal/http/client"
+	xray2 "github.com/miladrahimi/xray-manager/pkg/xray"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
 	"strconv"
 	"strings"
 	"time"
-	"xray-manager/internal/config"
-	"xray-manager/internal/database"
-	"xray-manager/internal/http/client"
-	xray2 "xray-manager/pkg/xray"
 )
 
 type Coordinator struct {

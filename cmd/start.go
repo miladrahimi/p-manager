@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/miladrahimi/xray-manager/internal/app"
 	"github.com/spf13/cobra"
-	"xray-manager/internal/app"
 )
 
 var startCmd = &cobra.Command{

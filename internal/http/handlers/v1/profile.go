@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/random"
+	"github.com/miladrahimi/xray-manager/internal/coordinator"
+	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"net/http"
-	"xray-manager/internal/coordinator"
-	"xray-manager/internal/database"
-	"xray-manager/pkg/utils"
 )
 
 type ProfileResponse struct {

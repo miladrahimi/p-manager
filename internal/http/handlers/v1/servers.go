@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/internal/coordinator"
+	"github.com/miladrahimi/xray-manager/internal/database"
 	"net/http"
 	"strconv"
-	"xray-manager/internal/coordinator"
-	"xray-manager/internal/database"
 )
 
 type ServersStoreRequest struct {

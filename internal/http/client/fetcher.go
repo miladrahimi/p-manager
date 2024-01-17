@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/internal/config"
 	"io"
 	"net/http"
 	"time"
-	"xray-manager/internal/config"
 )
 
 const DebugURL = "https://rg.miladrahimi.com/"

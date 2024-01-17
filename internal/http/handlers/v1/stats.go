@@ -2,10 +2,10 @@ package v1
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/internal/coordinator"
+	"github.com/miladrahimi/xray-manager/internal/database"
 	"net/http"
 	"time"
-	"xray-manager/internal/coordinator"
-	"xray-manager/internal/database"
 )
 
 func StatsShow(d *database.Database) echo.HandlerFunc {

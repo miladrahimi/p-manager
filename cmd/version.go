@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/spf13/cobra"
 	"runtime"
-	"xray-manager/internal/config"
 )
 
 var versionCmd = &cobra.Command{

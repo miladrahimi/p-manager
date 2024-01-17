@@ -1,4 +1,4 @@
-module xray-manager
+module github.com/miladrahimi/xray-manager
 
 go 1.21.4
 

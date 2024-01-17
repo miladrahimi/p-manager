@@ -3,9 +3,9 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"os"
 	"runtime"
-	"xray-manager/pkg/utils"
 )
 
 const MainPath = "configs/main.json"

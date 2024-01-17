@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/spf13/cobra"
-	"xray-manager/internal/config"
 )
 
 var rootCmd = &cobra.Command{

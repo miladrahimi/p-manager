@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/miladrahimi/xray-manager/cmd"
 	"os"
-	"xray-manager/cmd"
 )
 
 func main() {

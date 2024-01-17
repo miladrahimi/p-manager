@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/internal/coordinator"
+	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"io"
 	"net/http"
-	"xray-manager/internal/coordinator"
-	"xray-manager/internal/database"
-	"xray-manager/pkg/utils"
 )
 
 func SettingsShow(d *database.Database) echo.HandlerFunc {

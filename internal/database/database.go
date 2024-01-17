@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"github.com/go-playground/validator"
 	"github.com/labstack/gommon/random"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"go.uber.org/zap"
 	"os"
 	"sync"
 	"time"
-	"xray-manager/pkg/utils"
 )
 
 const Path = "storage/database.json"

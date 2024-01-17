@@ -3,10 +3,10 @@ package logger
 import (
 	"errors"
 	"fmt"
+	"github.com/miladrahimi/xray-manager/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"syscall"
-	"xray-manager/internal/config"
 )
 
 type Logger struct {

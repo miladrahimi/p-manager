@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
+	"github.com/miladrahimi/xray-manager/internal/config"
+	"github.com/miladrahimi/xray-manager/internal/coordinator"
+	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/internal/http/handlers/pages"
+	"github.com/miladrahimi/xray-manager/internal/http/handlers/v1"
+	"github.com/miladrahimi/xray-manager/internal/http/middleware"
+	"github.com/miladrahimi/xray-manager/internal/http/validator"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
-	"xray-manager/internal/config"
-	"xray-manager/internal/coordinator"
-	"xray-manager/internal/database"
-	"xray-manager/internal/http/handlers/pages"
-	"xray-manager/internal/http/handlers/v1"
-	"xray-manager/internal/http/middleware"
-	"xray-manager/internal/http/validator"
 )
 
 type Server struct {

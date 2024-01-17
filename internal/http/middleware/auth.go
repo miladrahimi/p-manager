@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/internal/database"
 	"strings"
-	"xray-manager/internal/database"
 )
 
 // Authorize checks the HTTP headers.

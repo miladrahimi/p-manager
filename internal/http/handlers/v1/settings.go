@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
-	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"io"
 	"net/http"
 )
@@ -29,12 +28,6 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		if err := validator.New().Struct(settings); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
-			})
-		}
-
-		if settings.ShadowsocksPort != d.Data.Settings.ShadowsocksPort && !utils.PortFree(settings.ShadowsocksPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("The shadowsocks port is not free: %v", settings.ShadowsocksPort),
 			})
 		}
 

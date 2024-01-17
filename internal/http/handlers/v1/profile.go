@@ -33,7 +33,7 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 
 		s := d.Data.Settings
 		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
-		link := fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.ShadowsocksPort, user.Name)
+		link := fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, 1, user.Name)
 		used := utils.RoundFloat(user.Used*d.Data.Settings.TrafficRatio, 2)
 
 		r := ProfileResponse{User: *user, ShadowsocksLink: link, Used: used}

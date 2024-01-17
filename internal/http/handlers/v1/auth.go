@@ -3,8 +3,8 @@ package v1
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"shadowsocks-manager/internal/database"
 	"time"
+	"xray-manager/internal/database"
 )
 
 type SignInRequest struct {

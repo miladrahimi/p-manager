@@ -1,19 +1,19 @@
 package database
 
-type Server struct {
-	Id       int          `json:"id"`
-	Host     string       `json:"host" validate:"required,max=128"`
-	Port     int          `json:"port" validate:"required,min=1,max=65536"`
-	Password string       `json:"password" validate:"required"`
-	Method   string       `json:"method" validate:"required,in:chacha20-ietf-poly1305"`
-	Status   ServerStatus `json:"status"`
-}
-
 type ServerStatus string
 
 const (
 	ServerStatusProcessing  ServerStatus = "processing"
 	ServerStatusAvailable                = "available"
 	ServerStatusUnavailable              = "unavailable"
-	ServerStatusUnstable                 = "unstable"
 )
+
+type Server struct {
+	Id              int          `json:"id"`
+	Host            string       `json:"host" validate:"required,max=128"`
+	HttpToken       string       `json:"http_token" validate:"required"`
+	HttpPort        int          `json:"http_port" validate:"required,min=1,max=65536"`
+	ShadowsocksPort int          `json:"shadowsocks_port" validate:"required,min=1,max=65536"`
+	Status          ServerStatus `json:"status"`
+	Traffic         int64        `json:"traffic"`
+}

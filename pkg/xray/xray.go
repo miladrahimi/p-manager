@@ -10,38 +10,25 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
 	"os/exec"
-	"runtime"
-	"shadowsocks-manager/internal/utils"
 	"strconv"
 	"sync"
 	"time"
+	"xray-manager/pkg/utils"
 )
 
-var configPath = "storage/xray.json"
-var binaryPaths = map[string]string{
-	"darwin": "third_party/xray-macos-arm64/xray",
-	"linux":  "third_party/xray-linux-64/xray",
-}
-
 type Xray struct {
+	Config     *Config
+	configPath string
+	binaryPath string
 	command    *exec.Cmd
 	log        *zap.Logger
 	connection *grpc.ClientConn
-	config     *Config
 	lock       sync.Mutex
 }
 
-// binaryPath returns the path of Xray core binary for current OS.
-func (x *Xray) binaryPath() string {
-	if path, found := binaryPaths[runtime.GOOS]; found {
-		return path
-	}
-	return binaryPaths["linux"]
-}
-
-// initConfig stores init configurations if there is no config file and loads it.
+// initConfig stores init configurations if there is no Config file and loads it.
 func (x *Xray) initConfig() {
-	if !utils.FileExist(configPath) {
+	if !utils.FileExist(x.configPath) {
 		x.saveConfig()
 	}
 	x.loadConfig()
@@ -52,18 +39,18 @@ func (x *Xray) loadConfig() {
 	x.lock.Lock()
 	defer x.lock.Unlock()
 
-	content, err := os.ReadFile(configPath)
+	content, err := os.ReadFile(x.configPath)
 	if err != nil {
-		x.log.Fatal("xray: cannot load config file", zap.Error(err))
+		x.log.Fatal("xray: cannot load Config file", zap.Error(err))
 	}
 
-	err = json.Unmarshal(content, x.config)
+	err = json.Unmarshal(content, x.Config)
 	if err != nil {
-		x.log.Fatal("xray: cannot unmarshal config file", zap.Error(err))
+		x.log.Fatal("xray: cannot unmarshal Config file", zap.Error(err))
 	}
 
 	if err = validator.New().Struct(x); err != nil {
-		x.log.Fatal("xray: cannot validate config file", zap.Error(err))
+		x.log.Fatal("xray: cannot validate Config file", zap.Error(err))
 	}
 }
 
@@ -72,16 +59,16 @@ func (x *Xray) saveConfig() {
 	defer func() {
 		x.loadConfig()
 	}()
-	content, err := json.Marshal(x.config)
+	content, err := json.Marshal(x.Config)
 	if err != nil {
-		x.log.Fatal("xray: cannot marshal config", zap.Error(err))
+		x.log.Fatal("xray: cannot marshal Config", zap.Error(err))
 	}
 
 	x.lock.Lock()
 	defer x.lock.Unlock()
 
-	if err = os.WriteFile(configPath, content, 0755); err != nil {
-		x.log.Fatal("xray: cannot save config", zap.String("file", configPath), zap.Error(err))
+	if err = os.WriteFile(x.configPath, content, 0755); err != nil {
+		x.log.Fatal("xray: cannot save Config", zap.String("file", x.configPath), zap.Error(err))
 	}
 }
 
@@ -95,22 +82,26 @@ func (x *Xray) Run() {
 
 // initApiPort finds a free port for api inbound.
 func (x *Xray) initApiPort() {
-	index := x.findApiInboundIndex()
-	op := x.config.Inbounds[index].Port
+	index := x.Config.findApiInboundIndex()
+	if index == -1 {
+		x.log.Fatal("xray: cannot find api inbound")
+	}
+
+	op := x.Config.Inbounds[index].Port
 	if !utils.PortFree(op) {
 		np, err := utils.FreePort()
 		if err != nil {
 			x.log.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
 		}
 		x.log.Debug("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
-		x.config.Inbounds[index].Port = np
+		x.Config.Inbounds[index].Port = np
 		x.saveConfig()
 	}
 }
 
 // runCore runs Xray core.
 func (x *Xray) runCore() {
-	x.command = exec.Command(x.binaryPath(), "-c", configPath)
+	x.command = exec.Command(x.binaryPath, "-c", x.configPath)
 	x.command.Stderr = os.Stderr
 	x.command.Stdout = os.Stdout
 
@@ -120,37 +111,10 @@ func (x *Xray) runCore() {
 	}
 }
 
-// UpdateShadowsocksInboundPort updates the shadowsocks inbound port.
-func (x *Xray) UpdateShadowsocksInboundPort(port int) {
-	x.log.Debug("xray: updating shadowsocks inbound port...", zap.Int("port", port))
-
-	index := x.findShadowsocksInboundIndex()
-	if x.config.Inbounds[index].Port != port {
-		x.config.Inbounds[index].Port = port
-		x.saveConfig()
-		x.Restart()
-	}
-}
-
-// UpdateClients updates the shadowsocks inbound clients (users).
-func (x *Xray) UpdateClients(clients []Client) {
-	x.log.Debug("xray: updating clients...", zap.Int("count", len(clients)))
-
-	index := x.findShadowsocksInboundIndex()
-	x.config.Inbounds[index].Settings.Clients = clients
-
+func (x *Xray) UpdateInbounds(inbounds []Inbound) {
+	inbounds = append(inbounds, x.Config.Inbounds[x.Config.findApiInboundIndex()])
+	x.Config.Inbounds = inbounds
 	x.saveConfig()
-	x.Restart()
-}
-
-// UpdateServers updates the outbound servers.
-func (x *Xray) UpdateServers(servers []Server) {
-	x.log.Debug("xray: updating servers...", zap.Int("count", len(servers)))
-
-	x.config.Outbounds[0].Settings.Servers = servers
-
-	x.saveConfig()
-	x.Restart()
 }
 
 // Restart closes and runs the Xray core.
@@ -177,42 +141,18 @@ func (x *Xray) Shutdown() {
 	}
 }
 
-// findApiInboundIndex finds the index of the api inbound.
-func (x *Xray) findApiInboundIndex() int {
-	index := -1
-	for i, inbound := range x.config.Inbounds {
-		if inbound.Tag == "api" {
-			index = i
-		}
-	}
-	if index == -1 {
-		x.log.Fatal("xray: api tag not found")
-	}
-	return index
-}
-
-// findShadowsocksInboundIndex finds the index of the shadowsocks inbound.
-func (x *Xray) findShadowsocksInboundIndex() int {
-	index := -1
-	for i, inbound := range x.config.Inbounds {
-		if inbound.Tag == "shadowsocks" {
-			index = i
-		}
-	}
-	if index == -1 {
-		x.log.Fatal("xray: shadowsocks tag not found")
-	}
-	return index
-}
-
 // connectGrpc connects to the GRPC APIs provided by Xray core.
 func (x *Xray) connectGrpc() {
 	x.log.Debug("xray: connecting to xray core grpc...")
 
-	port := x.config.Inbounds[x.findApiInboundIndex()].Port
+	index := x.Config.findApiInboundIndex()
+	if index == -1 {
+		x.log.Fatal("xray: cannot find api inbound")
+	}
+
+	port := x.Config.Inbounds[index].Port
 	address := "127.0.0.1:" + strconv.Itoa(port)
 	var err error
-
 	for i := 0; i < 5; i++ {
 		x.connection, err = grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
@@ -237,6 +177,6 @@ func (x *Xray) QueryStats() ([]*stats.Stat, error) {
 }
 
 // New creates a new instance of Xray.
-func New(l *zap.Logger) *Xray {
-	return &Xray{log: l, config: NewConfig()}
+func New(l *zap.Logger, configPath, binaryPath string) *Xray {
+	return &Xray{log: l, Config: NewConfig(), binaryPath: binaryPath, configPath: configPath}
 }

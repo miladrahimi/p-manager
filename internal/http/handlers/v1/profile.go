@@ -6,9 +6,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/random"
 	"net/http"
-	"shadowsocks-manager/internal/coordinator"
-	"shadowsocks-manager/internal/database"
-	"shadowsocks-manager/internal/utils"
+	"xray-manager/internal/coordinator"
+	"xray-manager/internal/database"
+	"xray-manager/pkg/utils"
 )
 
 type ProfileResponse struct {
@@ -32,8 +32,8 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 		}
 
 		s := d.Data.Settings
-		auth := base64.StdEncoding.EncodeToString([]byte(user.Method + ":" + user.Password))
-		link := fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.ShadowsocksHost, s.ShadowsocksPort, user.Name)
+		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
+		link := fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.ShadowsocksPort, user.Name)
 		used := utils.RoundFloat(user.Used*d.Data.Settings.TrafficRatio, 2)
 
 		r := ProfileResponse{User: *user, ShadowsocksLink: link, Used: used}
@@ -63,7 +63,7 @@ func ProfileReset(coordinator *coordinator.Coordinator, d *database.Database) ec
 			newPassword = random.String(16)
 			isUnique := true
 			for _, u := range d.Data.Users {
-				if u.Password == newPassword {
+				if u.ShadowsocksPassword == newPassword {
 					isUnique = false
 					break
 				}
@@ -72,10 +72,10 @@ func ProfileReset(coordinator *coordinator.Coordinator, d *database.Database) ec
 				break
 			}
 		}
-		user.Password = newPassword
+		user.ShadowsocksPassword = newPassword
 		d.Save()
 
-		go coordinator.SyncUsers()
+		go coordinator.SyncConfigs()
 
 		return c.JSON(http.StatusOK, user)
 	}

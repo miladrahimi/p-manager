@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 RUN go mod tidy
-RUN go build -o shadowsocks-manager
+RUN go build -o xray-manager
 
 RUN tar -zcf web.tar.gz web
 
@@ -16,7 +16,7 @@ FROM ghcr.io/getimages/debian:bookworm-slim
 
 WORKDIR /app
 
-COPY --from=build /app/shadowsocks-manager shadowsocks-manager
+COPY --from=build /app/xray-manager xray-manager
 COPY --from=build /app/configs/main.json configs/main.json
 COPY --from=build /app/storage/.gitignore storage/.gitignore
 COPY --from=build /app/third_party/xray-linux-64/xray third_party/xray-linux-64/xray
@@ -27,4 +27,4 @@ RUN rm web.tar.gz
 
 EXPOSE 8080
 
-ENTRYPOINT ["./shadowsocks-manager", "start"]
+ENTRYPOINT ["./xray-manager", "start"]

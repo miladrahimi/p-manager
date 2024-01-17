@@ -7,9 +7,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
-	"shadowsocks-manager/internal/coordinator"
-	"shadowsocks-manager/internal/database"
-	"shadowsocks-manager/internal/utils"
+	"xray-manager/internal/coordinator"
+	"xray-manager/internal/database"
+	"xray-manager/pkg/utils"
 )
 
 func SettingsShow(d *database.Database) echo.HandlerFunc {
@@ -41,7 +41,7 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		d.Data.Settings = &settings
 		d.Save()
 
-		go coordinator.SyncSettings()
+		go coordinator.DebugSettings()
 
 		return c.JSON(http.StatusOK, settings)
 	}
@@ -115,7 +115,7 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 		for _, key := range Keys {
 			exist := false
 			for _, u := range d.Data.Users {
-				if u.Password == key.Secret {
+				if u.ShadowsocksPassword == key.Secret {
 					exist = true
 				}
 				if u.Identity == key.Code {
@@ -129,19 +129,19 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 			user := &database.User{}
 			user.Id = d.GenerateUserId()
 			user.Identity = key.Code
-			user.Method = key.Cipher
+			user.ShadowsocksMethod = key.Cipher
 			user.CreatedAt = key.CreatedAt
 			user.Used = float64(key.Used) / 1000
 			user.UsedBytes = int64(user.Used * 1000 * 1000 * 1000)
 			user.Name = key.Name
-			user.Password = key.Secret
+			user.ShadowsocksPassword = key.Secret
 			user.Quota = key.Quota / 1000
 			user.Enabled = key.Enabled
 			d.Data.Users = append(d.Data.Users, user)
 		}
 
 		d.Save()
-		go coordinator.SyncUsers()
+		go coordinator.SyncConfigs()
 
 		return c.JSON(http.StatusOK, map[string]string{
 			"message": "success",

@@ -8,14 +8,14 @@ import (
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
 	"net/http"
-	"shadowsocks-manager/internal/config"
-	"shadowsocks-manager/internal/coordinator"
-	"shadowsocks-manager/internal/database"
-	"shadowsocks-manager/internal/http/handlers/pages"
-	"shadowsocks-manager/internal/http/handlers/v1"
-	"shadowsocks-manager/internal/http/middleware"
-	"shadowsocks-manager/internal/http/validator"
 	"time"
+	"xray-manager/internal/config"
+	"xray-manager/internal/coordinator"
+	"xray-manager/internal/database"
+	"xray-manager/internal/http/handlers/pages"
+	"xray-manager/internal/http/handlers/v1"
+	"xray-manager/internal/http/middleware"
+	"xray-manager/internal/http/validator"
 )
 
 type Server struct {

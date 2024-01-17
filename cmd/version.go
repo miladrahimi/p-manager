@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"runtime"
-	"shadowsocks-manager/internal/config"
+	"xray-manager/internal/config"
 )
 
 var versionCmd = &cobra.Command{

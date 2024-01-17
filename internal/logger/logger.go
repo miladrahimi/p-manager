@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"shadowsocks-manager/internal/config"
 	"syscall"
+	"xray-manager/internal/config"
 )
 
 type Logger struct {

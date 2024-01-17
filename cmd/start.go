@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"shadowsocks-manager/internal/app"
+	"xray-manager/internal/app"
 )
 
 var startCmd = &cobra.Command{

@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"shadowsocks-manager/internal/config"
+	"xray-manager/internal/config"
 )
 
 var rootCmd = &cobra.Command{
-	Use: "shadowsocks-manager",
+	Use: "xray-manager",
 }
 
 func init() {

@@ -5,12 +5,12 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"shadowsocks-manager/internal/config"
-	"shadowsocks-manager/internal/coordinator"
-	"shadowsocks-manager/internal/database"
 	"slices"
 	"strconv"
 	"time"
+	"xray-manager/internal/config"
+	"xray-manager/internal/coordinator"
+	"xray-manager/internal/database"
 )
 
 type UsersStoreRequest struct {
@@ -52,7 +52,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 					"message": "The name is already taken.",
 				})
 			}
-			if u.Password == request.Password {
+			if u.ShadowsocksPassword == request.Password {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"message": "The password is already taken.",
 				})
@@ -62,19 +62,19 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 		user := &database.User{}
 		user.Id = d.GenerateUserId()
 		user.Identity = d.GenerateUserIdentity()
-		user.Method = config.ShadowsocksMethod
+		user.ShadowsocksMethod = config.ShadowsocksMethod
 		user.CreatedAt = time.Now().UnixMilli()
 		user.Used = request.Used
 		user.UsedBytes = int64(request.Used * 1000 * 1000 * 1000)
 		user.Name = request.Name
-		user.Password = request.Password
+		user.ShadowsocksPassword = request.Password
 		user.Quota = request.Quota
 		user.Enabled = request.Enabled
 
 		d.Data.Users = append(d.Data.Users, user)
 		d.Save()
 
-		go coordinator.SyncUsers()
+		go coordinator.SyncConfigs()
 
 		return c.JSON(http.StatusCreated, user)
 	}
@@ -104,7 +104,7 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 						"message": "The name is already taken.",
 					})
 				}
-				if u.Password == request.Password {
+				if u.ShadowsocksPassword == request.Password {
 					return c.JSON(http.StatusBadRequest, map[string]string{
 						"message": "The password is already taken.",
 					})
@@ -114,11 +114,11 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 
 		if user != nil {
 			user.Name = request.Name
-			user.Password = request.Password
+			user.ShadowsocksPassword = request.Password
 			user.Quota = request.Quota
 			user.Enabled = request.Enabled
 			d.Save()
-			go coordinator.SyncUsers()
+			go coordinator.SyncConfigs()
 			return c.JSON(http.StatusOK, user)
 		}
 
@@ -126,13 +126,12 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 	}
 }
 
-func KeysZero(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func KeysZero(_ *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		for _, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				u.Used = 0
 				d.Save()
-				go coordinator.SyncUsers()
 				return c.NoContent(http.StatusNoContent)
 			}
 		}
@@ -147,7 +146,7 @@ func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) ech
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				d.Data.Users = slices.Delete(d.Data.Users, i, i+1)
 				d.Save()
-				go coordinator.SyncUsers()
+				go coordinator.SyncConfigs()
 			}
 		}
 

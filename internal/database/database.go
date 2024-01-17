@@ -6,10 +6,9 @@ import (
 	"github.com/labstack/gommon/random"
 	"go.uber.org/zap"
 	"os"
-	"shadowsocks-manager/internal/config"
-	"shadowsocks-manager/internal/utils"
 	"sync"
 	"time"
+	"xray-manager/pkg/utils"
 )
 
 const Path = "storage/database.json"
@@ -93,7 +92,7 @@ func (d *Database) GenerateUserPassword() string {
 		r := random.String(16)
 		isUnique := true
 		for _, user := range d.Data.Users {
-			if user.Password == r {
+			if user.ShadowsocksPassword == r {
 				isUnique = false
 				break
 			}
@@ -120,39 +119,16 @@ func New(l *zap.Logger) *Database {
 		log: l,
 		Data: &Data{
 			Settings: &Settings{
-				AdminPassword:   "password",
-				ShadowsocksHost: "127.0.0.1",
-				ShadowsocksPort: 1913,
-				TrafficRatio:    1,
+				AdminPassword: "password",
+				Host:          "127.0.0.1",
+				TrafficRatio:  1,
 			},
 			Stats: &Stats{
-				Inbound:   0,
-				Outbound:  0,
+				Traffic:   0,
 				UpdatedAt: time.Now().UnixMilli(),
 			},
-			Users: []*User{
-				{
-					Id:        1,
-					Identity:  utils.UUID(),
-					Name:      "user1",
-					Password:  "password",
-					Method:    config.ShadowsocksMethod,
-					Quota:     0,
-					Used:      0,
-					Enabled:   true,
-					CreatedAt: time.Now().UnixMilli(),
-				},
-			},
-			Servers: []*Server{
-				{
-					Id:       1,
-					Host:     "127.0.0.1",
-					Port:     1919,
-					Password: "password",
-					Method:   config.ShadowsocksMethod,
-					Status:   ServerStatusProcessing,
-				},
-			},
+			Users:   []*User{},
+			Servers: []*Server{},
 		},
 	}
 }

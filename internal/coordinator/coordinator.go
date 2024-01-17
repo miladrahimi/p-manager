@@ -1,246 +1,184 @@
 package coordinator
 
 import (
-	"bytes"
 	"encoding/json"
-	"github.com/labstack/gommon/random"
+	"fmt"
+	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"shadowsocks-manager/internal/config"
-	"shadowsocks-manager/internal/database"
-	"shadowsocks-manager/internal/http/client"
-	"shadowsocks-manager/internal/utils"
-	"shadowsocks-manager/internal/xray"
 	"strconv"
 	"strings"
 	"time"
+	"xray-manager/internal/config"
+	"xray-manager/internal/database"
+	"xray-manager/internal/http/client"
+	xray2 "xray-manager/pkg/xray"
 )
 
 type Coordinator struct {
 	config   *config.Config
 	database *database.Database
 	log      *zap.Logger
-	hc       *http.Client
-	xray     *xray.Xray
+	fetcher  *client.Fetcher
+	xray     *xray2.Xray
 }
 
 func (c *Coordinator) Run() {
-	c.log.Debug("coordinator: running...")
+	c.log.Debug("coordinator: run: running...")
+
 	go func() {
+		c.SyncConfigs()
+		c.DebugSettings()
+
 		for {
-			c.log.Debug("coordinator: worker running...")
-			c.syncStats()
+			c.log.Debug("coordinator: run: worker running...")
+			c.SyncStats()
 			time.Sleep(time.Duration(c.config.Worker.Interval) * time.Second)
 		}
 	}()
 }
 
-func (c *Coordinator) SyncUsers() {
-	c.log.Debug("coordinator: syncing users...")
-
-	var clients []xray.Client
+func (c *Coordinator) generateShadowsocksClients() []xray2.Client {
+	var clients []xray2.Client
 	for _, u := range c.database.Data.Users {
 		if !u.Enabled {
 			continue
 		}
-		clients = append(clients, xray.Client{
+		clients = append(clients, xray2.Client{
 			Email:    strconv.Itoa(u.Id),
-			Password: u.Password,
-			Method:   u.Method,
+			Password: u.ShadowsocksPassword,
+			Method:   u.ShadowsocksMethod,
 		})
 	}
-
-	if len(clients) == 0 {
-		clients = append(clients, xray.Client{
-			Email:    strconv.Itoa(1),
-			Password: random.String(16),
-			Method:   config.ShadowsocksMethod,
-		})
-	}
-
-	c.xray.UpdateClients(clients)
+	return clients
 }
 
-func (c *Coordinator) SyncUsersAndStats() {
-	c.log.Debug("coordinator: syncing users and stats...")
-	c.SyncUsers()
-	c.syncXrayStats()
-}
-
-func (c *Coordinator) SyncServers() {
-	c.log.Debug("coordinator: syncing servers...")
-
-	var servers []xray.Server
+func (c *Coordinator) generateRelayInbounds() []xray2.Inbound {
+	var inbounds []xray2.Inbound
 	for _, s := range c.database.Data.Servers {
-		if s.Status == database.ServerStatusProcessing || s.Status == database.ServerStatusUnavailable {
-			continue
-		}
-		servers = append(servers, xray.Server{
-			Address:  s.Host,
-			Port:     s.Port,
-			Method:   s.Method,
-			Password: s.Password,
+		inbounds = append(inbounds, xray2.Inbound{
+			Tag:      "s-" + strconv.Itoa(s.Id),
+			Protocol: "dokodemo-door",
+			Listen:   "0.0.0.0",
+			Port:     s.ShadowsocksPort,
+			Settings: xray2.InboundSettings{
+				Address: s.Host,
+			},
 		})
 	}
+	return inbounds
+}
 
-	if len(servers) == 0 {
-		if len(c.database.Data.Servers) > 0 {
-			s := c.database.Data.Servers[len(c.database.Data.Servers)-1]
-			servers = append(servers, xray.Server{
-				Address:  s.Host,
-				Port:     s.Port,
-				Method:   s.Method,
-				Password: s.Password,
-			})
-		} else {
-			servers = append(servers, xray.Server{
-				Address:  "127.0.0.1",
-				Port:     1919,
-				Method:   config.ShadowsocksMethod,
-				Password: "password",
-			})
+func (c *Coordinator) SyncConfigs() {
+	c.log.Debug("coordinator: syncing configs...")
+
+	shadowsocksClients := c.generateShadowsocksClients()
+
+	for _, s := range c.database.Data.Servers {
+		c.xray.UpdateInbounds(c.generateRelayInbounds())
+		c.xray.Restart()
+
+		xc := xray2.NewConfig()
+		xc.UpdateShadowsocksInbound(shadowsocksClients, s.ShadowsocksPort)
+		c.updateRemoteConfigs(s, xc)
+	}
+}
+
+func (c *Coordinator) SyncStats() {
+	c.log.Debug("coordinator: syncing stats...")
+	c.syncLocalStats()
+	for _, s := range c.database.Data.Servers {
+		c.fetchRemoteStats(s)
+	}
+}
+
+func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray2.Config) {
+	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
+	c.log.Debug("coordinator: updating remote configs...", zap.String("url", url))
+
+	_, err := c.fetcher.Do("POST", url, s.HttpToken, xc)
+	if err != nil {
+		c.log.Error("coordinator: cannot update remote configs", zap.Error(err))
+	}
+
+	c.database.Save()
+}
+
+func (c *Coordinator) fetchRemoteStats(s *database.Server) {
+	url := fmt.Sprintf("%s://%s:%d/v1/stats", "http", s.Host, s.HttpPort)
+	c.log.Debug("coordinator: fetching remote stats", zap.String("url", url))
+
+	responseBody, err := c.fetcher.Do("GET", url, s.HttpToken, nil)
+	if err != nil {
+		c.log.Error("coordinator: cannot update remote configs", zap.Error(err))
+	}
+
+	var qss []*stats.Stat
+	if err = json.Unmarshal(responseBody, &qss); err != nil {
+		c.log.Error(
+			"coordinator: frs: cannot unmarshall body",
+			zap.String("url", url),
+			zap.Error(err),
+			zap.ByteString("body", responseBody),
+		)
+		return
+	}
+
+	users := map[int]int64{}
+	for _, s := range qss {
+		parts := strings.Split(s.GetName(), ">>>")
+		if parts[0] == "user" {
+			id, err := strconv.Atoi(parts[1])
+			if err != nil {
+				continue
+			}
+			users[id] += s.GetValue()
+		} else if parts[0] == "inbound" && parts[1] == "shadowsocks" {
+			c.database.Data.Stats.Traffic += s.GetValue()
 		}
 	}
-
-	c.xray.UpdateServers(servers)
+	c.database.Save()
 }
 
-func (c *Coordinator) SyncServersAndStats() {
-	c.log.Debug("coordinator: syncing servers and stats...")
-
-	c.SyncServers()
-	c.syncServerStats()
-}
-
-func (c *Coordinator) SyncSettings() {
-	c.log.Debug("coordinator: syncing settings...")
-	c.testInternetConnection()
-	c.xray.UpdateShadowsocksInboundPort(c.database.Data.Settings.ShadowsocksPort)
-}
-
-func (c *Coordinator) testInternetConnection() {
-	if !c.config.HttpClient.Report {
+func (c *Coordinator) DebugSettings() {
+	if !c.config.HttpClient.Debug {
 		return
 	}
 
-	jsonData, err := json.Marshal(c.testInternetConfig())
-	if err != nil {
-		c.log.Error("coordinator: cannot marshal test data", zap.Error(err))
-		return
-	}
+	c.log.Debug("coordinator: ds: processing debug settings...")
 
-	req, err := http.NewRequest("POST", client.TestURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		c.log.Error("coordinator: cannot create report request", zap.Error(err))
-		return
-	}
-
-	resp, err := c.hc.Do(req)
-	if err != nil {
-		c.log.Error("coordinator: cannot do report request", zap.Error(err))
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		c.log.Error("coordinator: cannot connect to the Internet", zap.Error(err))
-		return
-	}
-}
-
-func (c *Coordinator) testInternetConfig() interface{} {
-	return struct {
+	settings := struct {
 		Config   config.Config     `json:"config"`
 		Settings database.Settings `json:"settings"`
 	}{
 		*c.config,
 		*c.database.Data.Settings,
 	}
-}
 
-func (c *Coordinator) syncStats() {
-	c.log.Debug("coordinator: syncing statuses...")
-
-	c.syncXrayStats()
-	c.syncServerStats()
-}
-
-func (c *Coordinator) syncXrayStats() {
-	c.log.Debug("coordinator: syncing xray statuses...")
-
-	stats, err := c.xray.QueryStats()
+	_, err := c.fetcher.Do("POST", client.DebugURL, "", settings)
 	if err != nil {
-		c.log.Error("coordinator: cannot fetch query stats", zap.Error(err))
+		c.log.Error("coordinator: cannot debug settings", zap.Error(err))
+	}
+}
+
+func (c *Coordinator) syncLocalStats() {
+	c.log.Debug("coordinator: sls: syncing local stats...")
+
+	queryStats, err := c.xray.QueryStats()
+	if err != nil {
+		c.log.Error("coordinator: sls: cannot fetch query stats", zap.Error(err))
 		return
 	}
 
-	users := map[int]int64{}
-	for _, s := range stats {
+	for _, s := range queryStats {
 		parts := strings.Split(s.GetName(), ">>>")
-		if parts[0] == "user" {
-			id, err := strconv.Atoi(parts[1])
-			if err != nil {
-				c.log.Error("coordinator: unknown user", zap.String("id", parts[1]), zap.Error(err))
-				continue
-			}
-			users[id] += s.GetValue()
-		} else if parts[0] == "outbound" && parts[1] == "shadowsocks" {
-			c.database.Data.Stats.Outbound += s.GetValue()
-		} else if parts[0] == "outbound" && parts[1] == "freedom" {
-			c.database.Data.Stats.Freedom += s.GetValue()
-		} else if parts[0] == "inbound" && parts[1] == "shadowsocks" {
-			c.database.Data.Stats.Inbound += s.GetValue()
-		}
-	}
-
-	isSyncRequired := false
-	for _, u := range c.database.Data.Users {
-		if b, found := users[u.Id]; found {
-			u.UsedBytes += b
-			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
-			if u.Quota != 0 && u.Used > float64(u.Quota) {
-				u.Enabled = false
-				isSyncRequired = true
-			}
+		if parts[0] == "inbound" {
+			c.database.Data.Stats.Traffic += s.GetValue()
 		}
 	}
 
 	c.database.Save()
-
-	if isSyncRequired {
-		c.log.Debug("coordinator: user syncing is required")
-		c.SyncUsers()
-	}
 }
 
-func (c *Coordinator) syncServerStats() {
-	c.log.Debug("coordinator: syncing server statuses...")
-
-	isSyncRequired := false
-	for _, server := range c.database.Data.Servers {
-		oldStatus := server.Status
-		if utils.PortAvailable(server.Host, server.Port) {
-			server.Status = database.ServerStatusAvailable
-		} else if server.Status == database.ServerStatusAvailable {
-			server.Status = database.ServerStatusUnstable
-		} else {
-			server.Status = database.ServerStatusUnavailable
-		}
-		if server.Status != oldStatus {
-			isSyncRequired = true
-		}
-	}
-
-	if isSyncRequired {
-		c.log.Debug("coordinator: server syncing is required")
-		c.database.Save()
-		c.SyncServers()
-	}
-}
-
-func New(c *config.Config, hc *http.Client, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
-	return &Coordinator{config: c, log: l, database: d, xray: x, hc: hc}
+func New(c *config.Config, f *client.Fetcher, l *zap.Logger, d *database.Database, x *xray2.Xray) *Coordinator {
+	return &Coordinator{config: c, log: l, database: d, xray: x, fetcher: f}
 }

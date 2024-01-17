@@ -28,7 +28,7 @@ docker compose up -d
 ### Setting up Shadowsocks servers
 
 To set up Shadowsocks servers on foreign servers, you can execute the following shell commands on the server.
-The final command will display the Shadowsocks server information, which you can enter into the Shadowsocks Manager's "Servers" tab.
+The final command will display the Shadowsocks server information, which you can enter into the Xray Manager's "Servers" tab.
 
 ``` shell
 # Install dependencies
@@ -66,8 +66,8 @@ cat config.json
 ### Migrate from the old app
 
 1. First set up the foreign Shadowsocks server (explained in the section above).
-2. Install and run `shadowsocks-manager` on the bridge server with the default port (8080).
-3. Visit `shadowsocks-manager` in your browser:
+2. Install and run `xray-manager` on the bridge server with the default port (8080).
+3. Visit `xray-manager` in your browser:
     1. Open the "Servers" tab, and enter the foreign Shadowsocks server
     2. Open the "Settings" tab, and import users from the old app.
     3. In the "Settings" tab, set `Shadowsocks Host` to the bridge server IP address.
@@ -75,6 +75,6 @@ cat config.json
 5. Run `docker compose down` for the `shadowsocks` (old) app.
 6. Run `docker compose down` for the `outline-bridge-server` app.
 7. Update the HTTP port to 80 in the `configs/main.local.json` file.
-9. Run `docker compose down` and `docker compose up -d` for the `shadowsocks-manager` app.
+9. Run `docker compose down` and `docker compose up -d` for the `xray-manager` app.
 10. Update the `Shadowsocks Port` in the "Settings" tab to the old port, then your users won't understand this change!
 11. In the case of UI problems, use the full refresh option in your browser.

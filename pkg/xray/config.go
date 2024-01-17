@@ -1,7 +1,7 @@
 package xray
 
 import (
-	"shadowsocks-manager/internal/config"
+	"slices"
 )
 
 type Log struct {
@@ -97,7 +97,59 @@ type Config struct {
 	Routing   Routing                `json:"routing"`
 }
 
-// NewConfig creates a new instance of Xray config.
+// findApiInboundIndex finds the index of the api inbound.
+func (c *Config) findApiInboundIndex() int {
+	index := -1
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "api" {
+			index = i
+		}
+	}
+	return index
+}
+
+// findShadowsocksInboundIndex finds the index of the shadowsocks inbound.
+func (c *Config) findShadowsocksInboundIndex() int {
+	index := -1
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "shadowsocks" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) UpdateApiInboundPort(port int) {
+	index := c.findApiInboundIndex()
+	c.Inbounds[index].Port = port
+}
+
+func (c *Config) UpdateShadowsocksInbound(clients []Client, port int) {
+	index := c.findShadowsocksInboundIndex()
+	if len(clients) > 0 {
+		inbound := Inbound{
+			Tag:      "shadowsocks",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     port,
+			Settings: InboundSettings{
+				Clients: clients,
+				Network: "tcp,udp",
+			},
+		}
+		if index != -1 {
+			c.Inbounds[index] = inbound
+		} else {
+			c.Inbounds = append(c.Inbounds, inbound)
+		}
+	} else {
+		if index != -1 {
+			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
+		}
+	}
+}
+
+// NewConfig creates a new instance of Xray Config.
 func NewConfig() *Config {
 	return &Config{
 		Log: Log{
@@ -107,42 +159,12 @@ func NewConfig() *Config {
 			{
 				Protocol: "dokodemo-door",
 				Listen:   "127.0.0.1",
-				Port:     2414,
+				Port:     2401,
 				Settings: InboundSettings{Address: "127.0.0.1"},
 				Tag:      "api",
 			},
-			{
-				Protocol: "shadowsocks",
-				Listen:   "0.0.0.0",
-				Port:     1913,
-				Settings: InboundSettings{
-					Clients: []Client{
-						{
-							Email:    "1",
-							Password: "password",
-							Method:   config.ShadowsocksMethod,
-						},
-					},
-					Network: "tcp,udp",
-				},
-				Tag: "shadowsocks",
-			},
 		},
 		Outbounds: []Outbound{
-			{
-				Protocol: "shadowsocks",
-				Tag:      "shadowsocks",
-				Settings: &OutboundSettings{
-					Servers: []Server{
-						{
-							Address:  "127.0.0.1",
-							Port:     1919,
-							Method:   config.ShadowsocksMethod,
-							Password: "password",
-						},
-					},
-				},
-			},
 			{
 				Protocol: "freedom",
 				Tag:      "freedom",
@@ -180,11 +202,6 @@ func NewConfig() *Config {
 						InboundTag:  []string{"api"},
 						OutboundTag: "api",
 						Type:        "field",
-					},
-					{
-						Type:        "field",
-						OutboundTag: "freedom",
-						Domain:      []string{"regexp:.*\\.ir$"},
 					},
 				},
 			},

@@ -4,7 +4,7 @@ services:
   app:
     build:
       context: .
-    image: ghcr.io/miladrahimi/shadowsocks-manager:latest
+    image: ghcr.io/miladrahimi/xray-manager:latest
     restart: always
     network_mode: host
     volumes:

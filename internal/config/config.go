@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"shadowsocks-manager/internal/utils"
+	"runtime"
+	"xray-manager/pkg/utils"
 )
 
 const MainPath = "configs/main.json"
@@ -12,6 +13,12 @@ const LocalPath = "configs/main.local.json"
 const AppName = "ShadowsocksManager"
 const AppVersion = "v1.0.0"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
+const XrayConfigPath = "storage/xray.json"
+
+var xrayBinaryPaths = map[string]string{
+	"darwin": "third_party/xray-macos-arm64/xray",
+	"linux":  "third_party/xray-linux-64/xray",
+}
 
 // Config is the root configuration.
 type Config struct {
@@ -22,7 +29,7 @@ type Config struct {
 
 	HttpClient struct {
 		Timeout int  `json:"timeout"`
-		Report  bool `json:"report"`
+		Debug   bool `json:"debug"`
 	} `json:"http_client"`
 
 	Logger struct {
@@ -52,6 +59,13 @@ func (c *Config) Init() (err error) {
 	}
 
 	return nil
+}
+
+func (c *Config) XrayPath() string {
+	if path, found := xrayBinaryPaths[runtime.GOOS]; found {
+		return path
+	}
+	return xrayBinaryPaths["linux"]
 }
 
 // New creates an instance of the Config.

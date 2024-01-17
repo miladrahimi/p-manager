@@ -3,17 +3,16 @@ package app
 import (
 	"context"
 	"go.uber.org/zap"
-	"net/http"
 	"os"
 	"os/signal"
-	"shadowsocks-manager/internal/config"
-	"shadowsocks-manager/internal/coordinator"
-	"shadowsocks-manager/internal/database"
-	"shadowsocks-manager/internal/http/client"
-	"shadowsocks-manager/internal/http/server"
-	"shadowsocks-manager/internal/logger"
-	"shadowsocks-manager/internal/xray"
 	"syscall"
+	"xray-manager/internal/config"
+	"xray-manager/internal/coordinator"
+	"xray-manager/internal/database"
+	"xray-manager/internal/http/client"
+	"xray-manager/internal/http/server"
+	"xray-manager/internal/logger"
+	"xray-manager/pkg/xray"
 )
 
 // App integrates the modules to serve.
@@ -21,7 +20,7 @@ type App struct {
 	context     context.Context
 	config      *config.Config
 	log         *logger.Logger
-	httpClient  *http.Client
+	fetcher     *client.Fetcher
 	httpServer  *server.Server
 	database    *database.Database
 	coordinator *coordinator.Coordinator
@@ -42,9 +41,9 @@ func New() (app *App, err error) {
 	}
 
 	app.database = database.New(app.log.Engine)
-	app.xray = xray.New(app.log.Engine)
-	app.httpClient = client.New(app.config)
-	app.coordinator = coordinator.New(app.config, app.httpClient, app.log.Engine, app.database, app.xray)
+	app.xray = xray.New(app.log.Engine, config.XrayConfigPath, app.config.XrayPath())
+	app.fetcher = client.New(app.config)
+	app.coordinator = coordinator.New(app.config, app.fetcher, app.log.Engine, app.database, app.xray)
 	app.httpServer = server.New(app.config, app.log.Engine, app.coordinator, app.database)
 
 	app.setupSignalListener()

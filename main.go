@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"shadowsocks-manager/cmd"
+	"xray-manager/cmd"
 )
 
 func main() {

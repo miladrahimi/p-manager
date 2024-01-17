@@ -5,10 +5,9 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"shadowsocks-manager/internal/config"
-	"shadowsocks-manager/internal/coordinator"
-	"shadowsocks-manager/internal/database"
 	"strconv"
+	"xray-manager/internal/coordinator"
+	"xray-manager/internal/database"
 )
 
 type ServersStoreRequest struct {
@@ -43,7 +42,7 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		}
 
 		for _, s := range d.Data.Servers {
-			if s.Host == request.Host && s.Port == request.Port && s.Password == request.Password {
+			if s.Host == request.Host && s.HttpPort == request.Port && s.HttpToken == request.Password {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"message": "The server is already exist.",
 				})
@@ -53,15 +52,14 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		server := &database.Server{}
 		server.Id = d.GenerateServerId()
 		server.Status = database.ServerStatusProcessing
-		server.Method = config.ShadowsocksMethod
-		server.Password = request.Password
+		server.HttpToken = request.Password
 		server.Host = request.Host
-		server.Port = request.Port
+		server.HttpPort = request.Port
 
 		d.Data.Servers = append(d.Data.Servers, server)
 		d.Save()
 
-		go coordinator.SyncServersAndStats()
+		go coordinator.SyncConfigs()
 
 		return c.JSON(http.StatusCreated, server)
 	}
@@ -90,10 +88,10 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 
 		if server != nil {
 			server.Host = request.Host
-			server.Port = request.Port
-			server.Password = request.Password
+			server.HttpPort = request.Port
+			server.HttpToken = request.Password
 			d.Save()
-			go coordinator.SyncServersAndStats()
+			go coordinator.SyncConfigs()
 			return c.JSON(http.StatusOK, server)
 		}
 
@@ -114,7 +112,7 @@ func ServersDelete(coordinator *coordinator.Coordinator, d *database.Database) e
 			if s.Id == id {
 				d.Data.Servers = append(d.Data.Servers[:i], d.Data.Servers[i+1:]...)
 				d.Save()
-				go coordinator.SyncServers()
+				go coordinator.SyncConfigs()
 			}
 		}
 

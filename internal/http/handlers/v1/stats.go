@@ -3,9 +3,9 @@ package v1
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"shadowsocks-manager/internal/coordinator"
-	"shadowsocks-manager/internal/database"
 	"time"
+	"xray-manager/internal/coordinator"
+	"xray-manager/internal/database"
 )
 
 func StatsShow(d *database.Database) echo.HandlerFunc {
@@ -16,9 +16,7 @@ func StatsShow(d *database.Database) echo.HandlerFunc {
 
 func StatsZeroServers(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Data.Stats.Inbound = 0
-		d.Data.Stats.Outbound = 0
-		d.Data.Stats.Freedom = 0
+		d.Data.Stats.Traffic = 0
 		d.Data.Stats.UpdatedAt = time.Now().UnixMilli()
 		d.Save()
 
@@ -44,7 +42,7 @@ func StatsDeleteAllUsers(coordinator *coordinator.Coordinator, d *database.Datab
 		d.Data.Users = []*database.User{}
 		d.Save()
 
-		go coordinator.SyncUsers()
+		go coordinator.SyncConfigs()
 
 		return c.NoContent(http.StatusNoContent)
 	}

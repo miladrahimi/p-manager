@@ -31,11 +31,11 @@ func (x *Xray) initConfig() {
 	if !utils.FileExist(x.configPath) {
 		x.saveConfig()
 	}
-	x.loadConfig()
+	x.LoadConfig()
 }
 
-// loadConfig loads the stored configuration from file.
-func (x *Xray) loadConfig() {
+// LoadConfig loads the stored configuration from file.
+func (x *Xray) LoadConfig() {
 	x.lock.Lock()
 	defer x.lock.Unlock()
 
@@ -57,7 +57,7 @@ func (x *Xray) loadConfig() {
 // saveConfig saves the current configurations.
 func (x *Xray) saveConfig() {
 	defer func() {
-		x.loadConfig()
+		x.LoadConfig()
 	}()
 	content, err := json.Marshal(x.config)
 	if err != nil {
@@ -82,19 +82,15 @@ func (x *Xray) Run() {
 
 // initApiPort finds a free port for api inbound.
 func (x *Xray) initApiPort() {
-	index := x.config.findApiInboundIndex()
-	if index == -1 {
-		x.log.Fatal("xray: cannot find api inbound")
-	}
-
-	op := x.config.Inbounds[index].Port
+	op := x.config.ApiInbound().Port
 	if !utils.PortFree(op) {
+		x.log.Error("debug", zap.Int("p", op))
 		np, err := utils.FreePort()
 		if err != nil {
 			x.log.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
 		}
 		x.log.Debug("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
-		x.config.Inbounds[index].Port = np
+		x.config.UpdateApiInbound(np)
 		x.saveConfig()
 	}
 }
@@ -111,15 +107,10 @@ func (x *Xray) runCore() {
 	}
 }
 
-func (x *Xray) UpdateInbounds(inbounds []Inbound) {
-	inbounds = append(inbounds, x.config.Inbounds[x.config.findApiInboundIndex()])
-	x.config.Inbounds = inbounds
-	x.saveConfig()
-}
-
 // Restart closes and runs the Xray core.
 func (x *Xray) Restart() {
 	x.log.Info("xray: restarting the xray core...")
+	x.saveConfig()
 	x.Shutdown()
 	x.Run()
 }
@@ -145,7 +136,7 @@ func (x *Xray) Shutdown() {
 func (x *Xray) connectGrpc() {
 	x.log.Debug("xray: connecting to xray core grpc...")
 
-	index := x.config.findApiInboundIndex()
+	index := x.config.ApiInboundIndex()
 	if index == -1 {
 		x.log.Fatal("xray: cannot find api inbound")
 	}
@@ -166,9 +157,12 @@ func (x *Xray) connectGrpc() {
 	x.log.Debug("xray: cannot connect the xray core grpc", zap.Error(err))
 }
 
-func (x *Xray) UpdateConfig(c *Config) {
-	c.UpdateApiInboundPort(x.config.FindApiInboundPort())
-	x.config = c
+func (x *Xray) SetConfig(config *Config) {
+	x.config = config
+}
+
+func (x *Xray) Config() *Config {
+	return x.config
 }
 
 // QueryStats fetches the traffic stats from Xray core.

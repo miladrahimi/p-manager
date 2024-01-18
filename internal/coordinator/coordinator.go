@@ -6,7 +6,7 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/internal/http/client"
-	xray2 "github.com/miladrahimi/xray-manager/pkg/xray"
+	"github.com/miladrahimi/xray-manager/pkg/xray"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
 	"strconv"
@@ -19,7 +19,7 @@ type Coordinator struct {
 	database *database.Database
 	log      *zap.Logger
 	fetcher  *client.Fetcher
-	xray     *xray2.Xray
+	xray     *xray.Xray
 }
 
 func (c *Coordinator) Run() {
@@ -37,13 +37,13 @@ func (c *Coordinator) Run() {
 	}()
 }
 
-func (c *Coordinator) generateShadowsocksClients() []xray2.Client {
-	var clients []xray2.Client
+func (c *Coordinator) generateShadowsocksClients() []xray.Client {
+	var clients []xray.Client
 	for _, u := range c.database.Data.Users {
 		if !u.Enabled {
 			continue
 		}
-		clients = append(clients, xray2.Client{
+		clients = append(clients, xray.Client{
 			Email:    strconv.Itoa(u.Id),
 			Password: u.ShadowsocksPassword,
 			Method:   u.ShadowsocksMethod,
@@ -52,15 +52,15 @@ func (c *Coordinator) generateShadowsocksClients() []xray2.Client {
 	return clients
 }
 
-func (c *Coordinator) generateRelayInbounds() []xray2.Inbound {
-	var inbounds []xray2.Inbound
+func (c *Coordinator) generateRelayInbounds() []xray.Inbound {
+	var inbounds []xray.Inbound
 	for _, s := range c.database.Data.Servers {
-		inbounds = append(inbounds, xray2.Inbound{
+		inbounds = append(inbounds, xray.Inbound{
 			Tag:      "s-" + strconv.Itoa(s.Id),
 			Protocol: "dokodemo-door",
 			Listen:   "0.0.0.0",
 			Port:     s.ShadowsocksPort,
-			Settings: xray2.InboundSettings{
+			Settings: xray.InboundSettings{
 				Address: s.Host,
 			},
 		})
@@ -71,16 +71,18 @@ func (c *Coordinator) generateRelayInbounds() []xray2.Inbound {
 func (c *Coordinator) SyncConfigs() {
 	c.log.Debug("coordinator: syncing configs...")
 
+	c.xray.Config().RemoveInbounds()
 	shadowsocksClients := c.generateShadowsocksClients()
 
 	for _, s := range c.database.Data.Servers {
-		c.xray.UpdateInbounds(c.generateRelayInbounds())
-		c.xray.Restart()
-
-		xc := xray2.NewConfig()
+		xc := xray.NewConfig()
 		xc.UpdateShadowsocksInbound(shadowsocksClients, s.ShadowsocksPort)
 		c.updateRemoteConfigs(s, xc)
+
+		c.xray.Config().AddRelayInbound(s.Id, s.Host, s.ShadowsocksPort)
 	}
+
+	c.xray.Restart()
 }
 
 func (c *Coordinator) SyncStats() {
@@ -91,7 +93,7 @@ func (c *Coordinator) SyncStats() {
 	}
 }
 
-func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray2.Config) {
+func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
 	c.log.Debug("coordinator: updating remote configs...", zap.String("url", url))
 
@@ -171,6 +173,6 @@ func (c *Coordinator) syncLocalStats() {
 	c.database.Save()
 }
 
-func New(c *config.Config, f *client.Fetcher, l *zap.Logger, d *database.Database, x *xray2.Xray) *Coordinator {
+func New(c *config.Config, f *client.Fetcher, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
 	return &Coordinator{config: c, log: l, database: d, xray: x, fetcher: f}
 }

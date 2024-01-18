@@ -2,6 +2,7 @@ package xray
 
 import (
 	"slices"
+	"strconv"
 )
 
 type Log struct {
@@ -97,8 +98,8 @@ type Config struct {
 	Routing   Routing                `json:"routing"`
 }
 
-// findApiInboundIndex finds the index of the api inbound.
-func (c *Config) findApiInboundIndex() int {
+// ApiInboundIndex finds the index of the api inbound.
+func (c *Config) ApiInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
 		if inbound.Tag == "api" {
@@ -108,8 +109,8 @@ func (c *Config) findApiInboundIndex() int {
 	return index
 }
 
-// findShadowsocksInboundIndex finds the index of the shadowsocks inbound.
-func (c *Config) findShadowsocksInboundIndex() int {
+// ShadowsocksInboundIndex finds the index of the shadowsocks inbound.
+func (c *Config) ShadowsocksInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
 		if inbound.Tag == "shadowsocks" {
@@ -119,18 +120,27 @@ func (c *Config) findShadowsocksInboundIndex() int {
 	return index
 }
 
-func (c *Config) FindApiInboundPort() int {
-	index := c.findApiInboundIndex()
-	return c.Inbounds[index].Port
+func (c *Config) ApiInbound() Inbound {
+	return c.Inbounds[c.ApiInboundIndex()]
 }
 
-func (c *Config) UpdateApiInboundPort(port int) {
-	index := c.findApiInboundIndex()
-	c.Inbounds[index].Port = port
+func (c *Config) UpdateApiInbound(port int) {
+	index := c.ApiInboundIndex()
+	if index == -1 {
+		c.Inbounds = append(c.Inbounds, Inbound{
+			Tag:      "api",
+			Protocol: "dokodemo-door",
+			Listen:   "127.0.0.1",
+			Port:     port,
+			Settings: InboundSettings{Address: "127.0.0.1"},
+		})
+	} else {
+		c.Inbounds[index].Port = port
+	}
 }
 
 func (c *Config) UpdateShadowsocksInbound(clients []Client, port int) {
-	index := c.findShadowsocksInboundIndex()
+	index := c.ShadowsocksInboundIndex()
 	if len(clients) > 0 {
 		inbound := Inbound{
 			Tag:      "shadowsocks",
@@ -154,6 +164,22 @@ func (c *Config) UpdateShadowsocksInbound(clients []Client, port int) {
 	}
 }
 
+func (c *Config) RemoveInbounds() {
+	c.Inbounds = []Inbound{c.ApiInbound()}
+}
+
+func (c *Config) AddRelayInbound(id int, host string, port int) {
+	c.Inbounds = append(c.Inbounds, Inbound{
+		Tag:      "relay-" + strconv.Itoa(id),
+		Protocol: "dokodemo-door",
+		Listen:   "0.0.0.0",
+		Port:     port,
+		Settings: InboundSettings{
+			Address: host,
+		},
+	})
+}
+
 // NewConfig creates a new instance of Xray Config.
 func NewConfig() *Config {
 	return &Config{
@@ -162,17 +188,17 @@ func NewConfig() *Config {
 		},
 		Inbounds: []Inbound{
 			{
+				Tag:      "api",
 				Protocol: "dokodemo-door",
 				Listen:   "127.0.0.1",
 				Port:     2401,
 				Settings: InboundSettings{Address: "127.0.0.1"},
-				Tag:      "api",
 			},
 		},
 		Outbounds: []Outbound{
 			{
-				Protocol: "freedom",
 				Tag:      "freedom",
+				Protocol: "freedom",
 			},
 		},
 		DNS: DNS{
@@ -204,9 +230,9 @@ func NewConfig() *Config {
 			Settings: RoutingSettings{
 				Rules: []Rule{
 					{
+						Type:        "field",
 						InboundTag:  []string{"api"},
 						OutboundTag: "api",
-						Type:        "field",
 					},
 				},
 			},

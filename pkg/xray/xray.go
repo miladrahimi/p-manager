@@ -167,13 +167,13 @@ func (x *Xray) connectGrpc() {
 }
 
 // QueryStats fetches the traffic stats from Xray core.
-func (x *Xray) QueryStats() ([]*stats.Stat, error) {
+func (x *Xray) QueryStats() []*stats.Stat {
 	client := stats.NewStatsServiceClient(x.connection)
 	qs, err := client.QueryStats(context.Background(), &stats.QueryStatsRequest{Reset_: true})
 	if err != nil {
-		return nil, err
+		x.log.Error("xray: cannot fetch query stats", zap.Error(err))
 	}
-	return qs.GetStat(), nil
+	return qs.GetStat()
 }
 
 // New creates a new instance of Xray.

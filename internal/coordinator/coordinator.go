@@ -162,20 +162,12 @@ func (c *Coordinator) DebugSettings() {
 
 func (c *Coordinator) syncLocalStats() {
 	c.log.Debug("coordinator: sls: syncing local stats...")
-
-	queryStats, err := c.xray.QueryStats()
-	if err != nil {
-		c.log.Error("coordinator: sls: cannot fetch query stats", zap.Error(err))
-		return
-	}
-
-	for _, s := range queryStats {
+	for _, s := range c.xray.QueryStats() {
 		parts := strings.Split(s.GetName(), ">>>")
 		if parts[0] == "inbound" {
 			c.database.Data.Stats.Traffic += s.GetValue()
 		}
 	}
-
 	c.database.Save()
 }
 

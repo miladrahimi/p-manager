@@ -21,9 +21,9 @@ type Data struct {
 }
 
 type Database struct {
-	Data *Data
-	log  *zap.Logger
-	lock sync.Mutex
+	Data   *Data
+	Locker sync.Mutex
+	log    *zap.Logger
 }
 
 func (d *Database) Init() {
@@ -34,9 +34,6 @@ func (d *Database) Init() {
 }
 
 func (d *Database) Load() {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	content, err := os.ReadFile(Path)
 	if err != nil {
 		d.log.Fatal("database: cannot load file", zap.String("file", Path), zap.Error(err))
@@ -61,18 +58,12 @@ func (d *Database) Save() {
 		d.log.Fatal("database: cannot marshal data", zap.Error(err))
 	}
 
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	if err = os.WriteFile(Path, content, 0755); err != nil {
 		d.log.Fatal("database: cannot save file", zap.String("file", Path), zap.Error(err))
 	}
 }
 
 func (d *Database) GenerateUserId() int {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	if len(d.Data.Users) > 0 {
 		return d.Data.Users[len(d.Data.Users)-1].Id + 1
 	} else {
@@ -85,9 +76,6 @@ func (d *Database) GenerateUserIdentity() string {
 }
 
 func (d *Database) GenerateUserPassword() string {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	for {
 		r := random.String(16)
 		isUnique := true
@@ -104,9 +92,6 @@ func (d *Database) GenerateUserPassword() string {
 }
 
 func (d *Database) GenerateServerId() int {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	if len(d.Data.Servers) > 0 {
 		return d.Data.Servers[len(d.Data.Servers)-1].Id + 1
 	} else {

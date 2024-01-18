@@ -3,6 +3,7 @@ package xray
 import (
 	"slices"
 	"strconv"
+	"sync"
 )
 
 type Log struct {
@@ -96,6 +97,7 @@ type Config struct {
 	API       API                    `json:"api"`
 	Policy    Policy                 `json:"policy"`
 	Routing   Routing                `json:"routing"`
+	Locker    sync.Mutex             `json:"-"`
 }
 
 // ApiInboundIndex finds the index of the api inbound.

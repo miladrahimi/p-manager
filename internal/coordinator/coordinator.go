@@ -52,24 +52,11 @@ func (c *Coordinator) generateShadowsocksClients() []xray.Client {
 	return clients
 }
 
-func (c *Coordinator) generateRelayInbounds() []xray.Inbound {
-	var inbounds []xray.Inbound
-	for _, s := range c.database.Data.Servers {
-		inbounds = append(inbounds, xray.Inbound{
-			Tag:      "s-" + strconv.Itoa(s.Id),
-			Protocol: "dokodemo-door",
-			Listen:   "0.0.0.0",
-			Port:     s.ShadowsocksPort,
-			Settings: xray.InboundSettings{
-				Address: s.Host,
-			},
-		})
-	}
-	return inbounds
-}
-
 func (c *Coordinator) SyncConfigs() {
 	c.log.Debug("coordinator: syncing configs...")
+
+	c.xray.Config().Locker.Lock()
+	defer c.xray.Config().Locker.Unlock()
 
 	c.xray.Config().RemoveInbounds()
 	shadowsocksClients := c.generateShadowsocksClients()
@@ -101,8 +88,6 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	if err != nil {
 		c.log.Error("coordinator: cannot update remote configs", zap.Error(err))
 	}
-
-	c.database.Save()
 }
 
 func (c *Coordinator) fetchRemoteStats(s *database.Server) {

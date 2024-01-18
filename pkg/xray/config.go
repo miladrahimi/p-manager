@@ -97,7 +97,7 @@ type Config struct {
 	API       API                    `json:"api"`
 	Policy    Policy                 `json:"policy"`
 	Routing   Routing                `json:"routing"`
-	Locker    sync.Mutex             `json:"-"`
+	Locker    *sync.Mutex            `json:"-"`
 }
 
 // ApiInboundIndex finds the index of the api inbound.
@@ -185,6 +185,7 @@ func (c *Config) AddRelayInbound(id int, host string, port int) {
 // NewConfig creates a new instance of Xray Config.
 func NewConfig() *Config {
 	return &Config{
+		Locker: &sync.Mutex{},
 		Log: Log{
 			LogLevel: "warning",
 		},

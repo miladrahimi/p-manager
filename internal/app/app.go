@@ -7,7 +7,7 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/internal/http/client"
 	"github.com/miladrahimi/xray-manager/internal/http/server"
-	"github.com/miladrahimi/xray-manager/internal/logger"
+	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	"go.uber.org/zap"
 	"os"
@@ -28,27 +28,27 @@ type App struct {
 }
 
 // New creates an instance of the application with dependencies injected.
-func New() (app *App, err error) {
-	app = &App{}
+func New() (a *App, err error) {
+	a = &App{}
 
-	app.config = config.New()
-	if app.config.Init() != nil {
+	a.config = config.New()
+	if a.config.Init() != nil {
 		return nil, err
 	}
-	app.log = logger.New(app.config)
-	if app.log.Init() != nil {
+	a.log = logger.New(a.config.Logger.Level, a.config.Logger.Format)
+	if a.log.Init() != nil {
 		return nil, err
 	}
 
-	app.database = database.New(app.log.Engine)
-	app.xray = xray.New(app.log.Engine, config.XrayConfigPath, app.config.XrayPath())
-	app.fetcher = client.New(app.config)
-	app.coordinator = coordinator.New(app.config, app.fetcher, app.log.Engine, app.database, app.xray)
-	app.httpServer = server.New(app.config, app.log.Engine, app.coordinator, app.database)
+	a.database = database.New(a.log.Engine)
+	a.xray = xray.New(a.log.Engine, config.XrayConfigPath, a.config.XrayPath())
+	a.fetcher = client.New(a.config)
+	a.coordinator = coordinator.New(a.config, a.fetcher, a.log.Engine, a.database, a.xray)
+	a.httpServer = server.New(a.config, a.log.Engine, a.coordinator, a.database)
 
-	app.setupSignalListener()
+	a.setupSignalListener()
 
-	return app, nil
+	return a, nil
 }
 
 // Boot initializes application modules

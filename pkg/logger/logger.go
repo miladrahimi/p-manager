@@ -3,22 +3,22 @@ package logger
 import (
 	"errors"
 	"fmt"
-	"github.com/miladrahimi/xray-manager/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"syscall"
 )
 
 type Logger struct {
-	config *config.Config
+	level  string
+	format string
 	Engine *zap.Logger
 }
 
 // Init initializes the Logger.
 func (l *Logger) Init() (err error) {
 	level := zap.NewAtomicLevel()
-	if err = level.UnmarshalText([]byte(l.config.Logger.Level)); err != nil {
-		return fmt.Errorf("logger: invalid level %s, err: %v", l.config.Logger.Level, err)
+	if err = level.UnmarshalText([]byte(l.level)); err != nil {
+		return fmt.Errorf("logger: invalid level %s, err: %v", l.level, err)
 	}
 
 	l.Engine, err = zap.Config{
@@ -31,7 +31,7 @@ func (l *Logger) Init() (err error) {
 		ErrorOutputPaths:  []string{"stderr"},
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
-			EncodeTime:     zapcore.TimeEncoderOfLayout(l.config.Logger.Format),
+			EncodeTime:     zapcore.TimeEncoderOfLayout(l.format),
 			EncodeDuration: zapcore.StringDurationEncoder,
 			LevelKey:       "level",
 			EncodeLevel:    zapcore.CapitalLevelEncoder,
@@ -57,7 +57,7 @@ func (l *Logger) Shutdown() {
 	}
 }
 
-// New creates a new instance of Logger
-func New(c *config.Config) (logger *Logger) {
-	return &Logger{config: c, Engine: nil}
+// New creates a new instance of Logger.
+func New(level, format string) (logger *Logger) {
+	return &Logger{Engine: nil, level: level, format: format}
 }

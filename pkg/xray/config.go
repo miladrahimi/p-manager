@@ -119,6 +119,11 @@ func (c *Config) findShadowsocksInboundIndex() int {
 	return index
 }
 
+func (c *Config) FindApiInboundPort() int {
+	index := c.findApiInboundIndex()
+	return c.Inbounds[index].Port
+}
+
 func (c *Config) UpdateApiInboundPort(port int) {
 	index := c.findApiInboundIndex()
 	c.Inbounds[index].Port = port

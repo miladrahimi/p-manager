@@ -17,7 +17,7 @@ import (
 )
 
 type Xray struct {
-	Config     *Config
+	config     *Config
 	configPath string
 	binaryPath string
 	command    *exec.Cmd
@@ -44,7 +44,7 @@ func (x *Xray) loadConfig() {
 		x.log.Fatal("xray: cannot load Config file", zap.Error(err))
 	}
 
-	err = json.Unmarshal(content, x.Config)
+	err = json.Unmarshal(content, x.config)
 	if err != nil {
 		x.log.Fatal("xray: cannot unmarshal Config file", zap.Error(err))
 	}
@@ -59,7 +59,7 @@ func (x *Xray) saveConfig() {
 	defer func() {
 		x.loadConfig()
 	}()
-	content, err := json.Marshal(x.Config)
+	content, err := json.Marshal(x.config)
 	if err != nil {
 		x.log.Fatal("xray: cannot marshal Config", zap.Error(err))
 	}
@@ -82,19 +82,19 @@ func (x *Xray) Run() {
 
 // initApiPort finds a free port for api inbound.
 func (x *Xray) initApiPort() {
-	index := x.Config.findApiInboundIndex()
+	index := x.config.findApiInboundIndex()
 	if index == -1 {
 		x.log.Fatal("xray: cannot find api inbound")
 	}
 
-	op := x.Config.Inbounds[index].Port
+	op := x.config.Inbounds[index].Port
 	if !utils.PortFree(op) {
 		np, err := utils.FreePort()
 		if err != nil {
 			x.log.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
 		}
 		x.log.Debug("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
-		x.Config.Inbounds[index].Port = np
+		x.config.Inbounds[index].Port = np
 		x.saveConfig()
 	}
 }
@@ -112,8 +112,8 @@ func (x *Xray) runCore() {
 }
 
 func (x *Xray) UpdateInbounds(inbounds []Inbound) {
-	inbounds = append(inbounds, x.Config.Inbounds[x.Config.findApiInboundIndex()])
-	x.Config.Inbounds = inbounds
+	inbounds = append(inbounds, x.config.Inbounds[x.config.findApiInboundIndex()])
+	x.config.Inbounds = inbounds
 	x.saveConfig()
 }
 
@@ -145,12 +145,12 @@ func (x *Xray) Shutdown() {
 func (x *Xray) connectGrpc() {
 	x.log.Debug("xray: connecting to xray core grpc...")
 
-	index := x.Config.findApiInboundIndex()
+	index := x.config.findApiInboundIndex()
 	if index == -1 {
 		x.log.Fatal("xray: cannot find api inbound")
 	}
 
-	port := x.Config.Inbounds[index].Port
+	port := x.config.Inbounds[index].Port
 	address := "127.0.0.1:" + strconv.Itoa(port)
 	var err error
 	for i := 0; i < 5; i++ {
@@ -166,6 +166,11 @@ func (x *Xray) connectGrpc() {
 	x.log.Debug("xray: cannot connect the xray core grpc", zap.Error(err))
 }
 
+func (x *Xray) UpdateConfig(c *Config) {
+	c.UpdateApiInboundPort(x.config.FindApiInboundPort())
+	x.config = c
+}
+
 // QueryStats fetches the traffic stats from Xray core.
 func (x *Xray) QueryStats() []*stats.Stat {
 	client := stats.NewStatsServiceClient(x.connection)
@@ -178,5 +183,5 @@ func (x *Xray) QueryStats() []*stats.Stat {
 
 // New creates a new instance of Xray.
 func New(l *zap.Logger, configPath, binaryPath string) *Xray {
-	return &Xray{log: l, Config: NewConfig(), binaryPath: binaryPath, configPath: configPath}
+	return &Xray{log: l, config: NewConfig(), binaryPath: binaryPath, configPath: configPath}
 }

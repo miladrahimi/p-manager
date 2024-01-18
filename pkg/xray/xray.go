@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -23,7 +22,6 @@ type Xray struct {
 	command    *exec.Cmd
 	log        *zap.Logger
 	connection *grpc.ClientConn
-	lock       sync.Mutex
 }
 
 // initConfig stores init configurations if there is no Config file and loads it.
@@ -31,14 +29,11 @@ func (x *Xray) initConfig() {
 	if !utils.FileExist(x.configPath) {
 		x.saveConfig()
 	}
-	x.LoadConfig()
+	x.loadConfig()
 }
 
-// LoadConfig loads the stored configuration from file.
-func (x *Xray) LoadConfig() {
-	x.lock.Lock()
-	defer x.lock.Unlock()
-
+// loadConfig loads the stored configuration from file.
+func (x *Xray) loadConfig() {
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
 		x.log.Fatal("xray: cannot load Config file", zap.Error(err))
@@ -57,15 +52,12 @@ func (x *Xray) LoadConfig() {
 // saveConfig saves the current configurations.
 func (x *Xray) saveConfig() {
 	defer func() {
-		x.LoadConfig()
+		x.loadConfig()
 	}()
 	content, err := json.Marshal(x.config)
 	if err != nil {
 		x.log.Fatal("xray: cannot marshal Config", zap.Error(err))
 	}
-
-	x.lock.Lock()
-	defer x.lock.Unlock()
 
 	if err = os.WriteFile(x.configPath, content, 0755); err != nil {
 		x.log.Fatal("xray: cannot save Config", zap.String("file", x.configPath), zap.Error(err))

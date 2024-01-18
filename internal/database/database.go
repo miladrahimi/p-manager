@@ -22,7 +22,7 @@ type Data struct {
 
 type Database struct {
 	Data   *Data
-	Locker sync.Mutex
+	Locker *sync.Mutex
 	log    *zap.Logger
 }
 
@@ -101,7 +101,8 @@ func (d *Database) GenerateServerId() int {
 
 func New(l *zap.Logger) *Database {
 	return &Database{
-		log: l,
+		log:    l,
+		Locker: &sync.Mutex{},
 		Data: &Data{
 			Settings: &Settings{
 				AdminPassword: "password",

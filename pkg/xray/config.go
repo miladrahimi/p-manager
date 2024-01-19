@@ -97,7 +97,6 @@ func (c *Config) ApiInboundIndex() int {
 	return index
 }
 
-// ShadowsocksInboundIndex finds the index of the shadowsocks inbound.
 func (c *Config) ShadowsocksInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
@@ -128,6 +127,13 @@ func (c *Config) UpdateApiInbound(port int) {
 	} else {
 		c.Inbounds[index].Port = port
 	}
+}
+
+func (c *Config) ShadowsocksInbound() *Inbound {
+	if c.ShadowsocksInboundIndex() != -1 {
+		return c.Inbounds[c.ShadowsocksInboundIndex()]
+	}
+	return nil
 }
 
 func (c *Config) UpdateShadowsocksInbound(clients []*Client, port int) {

@@ -1,7 +1,7 @@
 package validator
 
 import (
-	playground "github.com/go-playground/validator"
+	playground "github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )

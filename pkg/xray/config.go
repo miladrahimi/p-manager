@@ -7,56 +7,41 @@ import (
 )
 
 type Log struct {
-	LogLevel string `json:"loglevel"`
+	LogLevel string `json:"loglevel" validate:"required,oneof=debug warning"`
 }
 
 type Client struct {
-	Password string `json:"password"`
-	Method   string `json:"method"`
-	Email    string `json:"email"`
+	Password string `json:"password" validate:"required,min=1,max=64"`
+	Method   string `json:"method" validate:"required,oneof=chacha20-ietf-poly1305 aes-128-gcm aes-256-gcm"`
+	Email    string `json:"email" validate:"required,number"`
 }
 
 type InboundSettings struct {
-	Address string   `json:"address,omitempty"`
-	Clients []Client `json:"clients,omitempty"`
-	Network string   `json:"network,omitempty"`
+	Address string    `json:"address,omitempty"`
+	Clients []*Client `json:"clients,omitempty" validate:"dive"`
+	Network string    `json:"network,omitempty"`
 }
 
 type Inbound struct {
-	Listen   string          `json:"listen"`
-	Port     int             `json:"port"`
-	Protocol string          `json:"protocol"`
-	Settings InboundSettings `json:"settings"`
-	Tag      string          `json:"tag"`
-}
-
-type Server struct {
-	Address  string `json:"address"`
-	Port     int    `json:"port"`
-	Method   string `json:"method"`
-	Password string `json:"password"`
-}
-
-type OutboundSettings struct {
-	Servers []Server `json:"servers"`
+	Listen   string           `json:"listen" validate:"required,oneof=127.0.0.1 0.0.0.0"`
+	Port     int              `json:"port" validate:"required,min=1,max=65536"`
+	Protocol string           `json:"protocol" validate:"required,oneof=shadowsocks dokodemo-door"`
+	Settings *InboundSettings `json:"settings" validate:"required"`
+	Tag      string           `json:"tag" validate:"required"`
 }
 
 type Outbound struct {
-	Protocol       string            `json:"protocol"`
-	Settings       *OutboundSettings `json:"settings,omitempty"`
-	StreamSettings *struct {
-		Network string `json:"network"`
-	} `json:"streamSettings,omitempty"`
-	Tag string `json:"tag"`
+	Protocol string `json:"protocol" validate:"required,oneof=freedom"`
+	Tag      string `json:"tag" validate:"required"`
 }
 
 type DNS struct {
-	Servers []string `json:"servers"`
+	Servers []string `json:"servers" validate:"required"`
 }
 
 type API struct {
-	Tag      string   `json:"tag"`
-	Services []string `json:"services"`
+	Tag      string   `json:"tag" validate:"required"`
+	Services []string `json:"services" validate:"required"`
 }
 
 type PolicyLevels struct {
@@ -70,33 +55,31 @@ type Policy struct {
 }
 
 type Rule struct {
-	InboundTag  []string `json:"inboundTag,omitempty"`
-	OutboundTag string   `json:"outboundTag"`
-	Type        string   `json:"type"`
-	IP          []string `json:"ip,omitempty"`
-	Domain      []string `json:"domain,omitempty"`
+	InboundTag  []string `json:"inboundTag" validate:"required"`
+	OutboundTag string   `json:"outboundTag" validate:"required"`
+	Type        string   `json:"type" validate:"required"`
 }
 
 type RoutingSettings struct {
-	Rules []Rule `json:"rules"`
+	Rules []*Rule `json:"rules" validate:"required,dive"`
 }
 
 type Routing struct {
-	DomainStrategy string          `json:"domainStrategy"`
-	DomainMatcher  string          `json:"domainMatcher"`
-	Strategy       string          `json:"strategy"`
-	Settings       RoutingSettings `json:"settings"`
+	DomainStrategy string           `json:"domainStrategy" validate:"required"`
+	DomainMatcher  string           `json:"domainMatcher" validate:"required"`
+	Strategy       string           `json:"strategy" validate:"required"`
+	Settings       *RoutingSettings `json:"settings" validate:"required"`
 }
 
 type Config struct {
-	Log       Log                    `json:"log"`
-	Inbounds  []Inbound              `json:"inbounds"`
-	Outbounds []Outbound             `json:"outbounds"`
-	DNS       DNS                    `json:"dns"`
-	Stats     map[string]interface{} `json:"stats"`
-	API       API                    `json:"api"`
-	Policy    Policy                 `json:"policy"`
-	Routing   Routing                `json:"routing"`
+	Log       *Log                   `json:"log" validate:"required"`
+	Inbounds  []*Inbound             `json:"inbounds" validate:"required,dive"`
+	Outbounds []*Outbound            `json:"outbounds" validate:"required,dive"`
+	DNS       *DNS                   `json:"dns" validate:"required"`
+	Stats     map[string]interface{} `json:"stats" validate:"required"`
+	API       *API                   `json:"api" validate:"required"`
+	Policy    *Policy                `json:"policy" validate:"required"`
+	Routing   *Routing               `json:"routing" validate:"required"`
 	Locker    *sync.Mutex            `json:"-"`
 }
 
@@ -122,34 +105,37 @@ func (c *Config) ShadowsocksInboundIndex() int {
 	return index
 }
 
-func (c *Config) ApiInbound() Inbound {
+func (c *Config) ApiInbound() *Inbound {
 	return c.Inbounds[c.ApiInboundIndex()]
 }
 
 func (c *Config) UpdateApiInbound(port int) {
 	index := c.ApiInboundIndex()
 	if index == -1 {
-		c.Inbounds = append(c.Inbounds, Inbound{
+		c.Inbounds = append(c.Inbounds, &Inbound{
 			Tag:      "api",
 			Protocol: "dokodemo-door",
 			Listen:   "127.0.0.1",
 			Port:     port,
-			Settings: InboundSettings{Address: "127.0.0.1"},
+			Settings: &InboundSettings{
+				Address: "127.0.0.1",
+				Network: "tcp",
+			},
 		})
 	} else {
 		c.Inbounds[index].Port = port
 	}
 }
 
-func (c *Config) UpdateShadowsocksInbound(clients []Client, port int) {
+func (c *Config) UpdateShadowsocksInbound(clients []*Client, port int) {
 	index := c.ShadowsocksInboundIndex()
 	if len(clients) > 0 {
-		inbound := Inbound{
+		inbound := &Inbound{
 			Tag:      "shadowsocks",
 			Protocol: "shadowsocks",
 			Listen:   "0.0.0.0",
 			Port:     port,
-			Settings: InboundSettings{
+			Settings: &InboundSettings{
 				Clients: clients,
 				Network: "tcp,udp",
 			},
@@ -167,52 +153,60 @@ func (c *Config) UpdateShadowsocksInbound(clients []Client, port int) {
 }
 
 func (c *Config) RemoveInbounds() {
-	c.Inbounds = []Inbound{c.ApiInbound()}
+	c.Inbounds = []*Inbound{c.ApiInbound()}
 }
 
 func (c *Config) AddRelayInbound(id int, host string, port int) {
-	c.Inbounds = append(c.Inbounds, Inbound{
+	c.Inbounds = append(c.Inbounds, &Inbound{
 		Tag:      "relay-" + strconv.Itoa(id),
 		Protocol: "dokodemo-door",
 		Listen:   "0.0.0.0",
 		Port:     port,
-		Settings: InboundSettings{
+		Settings: &InboundSettings{
 			Address: host,
 		},
 	})
 }
 
-// NewConfig creates a new instance of Xray Config.
+func newEmptyConfig() *Config {
+	return &Config{
+		Locker: &sync.Mutex{},
+	}
+}
+
 func NewConfig() *Config {
 	return &Config{
 		Locker: &sync.Mutex{},
-		Log: Log{
+		Log: &Log{
 			LogLevel: "warning",
 		},
-		Inbounds: []Inbound{
+		Inbounds: []*Inbound{
 			{
 				Tag:      "api",
 				Protocol: "dokodemo-door",
 				Listen:   "127.0.0.1",
-				Port:     2401,
-				Settings: InboundSettings{Address: "127.0.0.1"},
+				Port:     3411,
+				Settings: &InboundSettings{
+					Address: "127.0.0.1",
+					Network: "tcp",
+				},
 			},
 		},
-		Outbounds: []Outbound{
+		Outbounds: []*Outbound{
 			{
 				Tag:      "freedom",
 				Protocol: "freedom",
 			},
 		},
-		DNS: DNS{
+		DNS: &DNS{
 			Servers: []string{"8.8.8.8", "8.8.4.4", "localhost"},
 		},
 		Stats: map[string]interface{}{},
-		API: API{
+		API: &API{
 			Tag:      "api",
 			Services: []string{"StatsService"},
 		},
-		Policy: Policy{
+		Policy: &Policy{
 			Levels: map[string]map[string]bool{
 				"0": {
 					"statsUserUplink":   true,
@@ -226,12 +220,12 @@ func NewConfig() *Config {
 				"statsOutboundDownlink": true,
 			},
 		},
-		Routing: Routing{
+		Routing: &Routing{
 			DomainStrategy: "AsIs",
 			DomainMatcher:  "hybrid",
 			Strategy:       "rules",
-			Settings: RoutingSettings{
-				Rules: []Rule{
+			Settings: &RoutingSettings{
+				Rules: []*Rule{
 					{
 						Type:        "field",
 						InboundTag:  []string{"api"},

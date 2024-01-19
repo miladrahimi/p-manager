@@ -5,7 +5,7 @@
   "inbounds": [
     {
       "listen": "127.0.0.1",
-      "port": 2414,
+      "port": 3411,
       "protocol": "dokodemo-door",
       "settings": {
         "address": "127.0.0.1"
@@ -45,7 +45,7 @@
       "tag": "shadowsocks"
     },
     {
-      "protocol": "freedom",
+      "protocol": "shadowsocks",
       "tag": "freedom"
     }
   ],

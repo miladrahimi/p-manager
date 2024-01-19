@@ -3,7 +3,7 @@ package xray
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
@@ -24,36 +24,39 @@ type Xray struct {
 	connection *grpc.ClientConn
 }
 
-// initConfig stores init configurations if there is no Config file and loads it.
 func (x *Xray) initConfig() {
 	if !utils.FileExist(x.configPath) {
 		x.saveConfig()
+	} else {
+		x.loadConfig()
 	}
-	x.loadConfig()
 }
 
-// loadConfig loads the stored configuration from file.
 func (x *Xray) loadConfig() {
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
 		x.log.Fatal("xray: cannot load Config file", zap.Error(err))
 	}
 
-	err = json.Unmarshal(content, x.config)
+	newConfig := newEmptyConfig()
+	err = json.Unmarshal(content, newConfig)
 	if err != nil {
 		x.log.Fatal("xray: cannot unmarshal Config file", zap.Error(err))
 	}
 
-	if err = validator.New().Struct(x); err != nil {
+	v := validator.New(validator.WithRequiredStructEnabled())
+	if err = v.Struct(newConfig); err != nil {
 		x.log.Fatal("xray: cannot validate Config file", zap.Error(err))
 	}
+
+	x.config = newConfig
 }
 
-// saveConfig saves the current configurations.
 func (x *Xray) saveConfig() {
 	defer func() {
 		x.loadConfig()
 	}()
+
 	content, err := json.Marshal(x.config)
 	if err != nil {
 		x.log.Fatal("xray: cannot marshal Config", zap.Error(err))

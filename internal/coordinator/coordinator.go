@@ -37,13 +37,13 @@ func (c *Coordinator) Run() {
 	}()
 }
 
-func (c *Coordinator) generateShadowsocksClients() []xray.Client {
-	var clients []xray.Client
+func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
+	var clients []*xray.Client
 	for _, u := range c.database.Data.Users {
 		if !u.Enabled {
 			continue
 		}
-		clients = append(clients, xray.Client{
+		clients = append(clients, &xray.Client{
 			Email:    strconv.Itoa(u.Id),
 			Password: u.ShadowsocksPassword,
 			Method:   u.ShadowsocksMethod,

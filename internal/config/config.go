@@ -20,7 +20,6 @@ var xrayBinaryPaths = map[string]string{
 	"linux":  "third_party/xray-linux-64/xray",
 }
 
-// Config is the root configuration.
 type Config struct {
 	HttpServer struct {
 		Host string `json:"host"`
@@ -72,7 +71,6 @@ func (c *Config) XrayConfigPath() string {
 	return xrayConfigPath
 }
 
-// New creates an instance of the Config.
 func New() *Config {
 	return &Config{}
 }

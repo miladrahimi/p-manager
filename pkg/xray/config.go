@@ -1,6 +1,8 @@
 package xray
 
 import (
+	"fmt"
+	"github.com/go-playground/validator/v10"
 	"slices"
 	"strconv"
 	"sync"
@@ -166,6 +168,17 @@ func (c *Config) AddRelayInbound(id int, host string, port int) {
 			Address: host,
 		},
 	})
+}
+
+func (c *Config) Validate() error {
+	v := validator.New(validator.WithRequiredStructEnabled())
+	if err := v.Struct(c); err != nil {
+		return err
+	}
+	if c.ApiInboundIndex() == -1 {
+		return fmt.Errorf("api inbound not found")
+	}
+	return nil
 }
 
 func newEmptyConfig() *Config {

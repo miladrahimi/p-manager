@@ -3,7 +3,6 @@ package xray
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-playground/validator/v10"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
@@ -44,8 +43,7 @@ func (x *Xray) loadConfig() {
 		x.log.Fatal("xray: cannot unmarshal Config file", zap.Error(err))
 	}
 
-	v := validator.New(validator.WithRequiredStructEnabled())
-	if err = v.Struct(newConfig); err != nil {
+	if err = newConfig.Validate(); err != nil {
 		x.log.Fatal("xray: cannot validate Config file", zap.Error(err))
 	}
 

@@ -6,9 +6,7 @@ import (
 	"math"
 	"net"
 	"os"
-	"strconv"
 	"strings"
-	"time"
 )
 
 // FileExist checks if the given file path exists or not.
@@ -19,24 +17,12 @@ func FileExist(path string) bool {
 	return true
 }
 
-// PortAvailable checks if the TCP port is reachable or not.
-func PortAvailable(host string, port int) bool {
-	timeout := time.Second
-	conn, _ := net.DialTimeout("tcp", net.JoinHostPort(host, strconv.Itoa(port)), timeout)
-	if conn != nil {
-		defer func(conn net.Conn) {
-			_ = conn.Close()
-		}(conn)
-		return true
-	}
-	return false
-}
-
 // UUID generates UUID without - character.
 func UUID() string {
 	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }
 
+// RoundFloat rounds float numbers to the given precision.
 func RoundFloat(val float64, precision uint) float64 {
 	ratio := math.Pow(10, float64(precision))
 	return math.Round(val*ratio) / ratio

@@ -5,8 +5,8 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
-	"github.com/miladrahimi/xray-manager/internal/http/client"
 	"github.com/miladrahimi/xray-manager/internal/http/server"
+	"github.com/miladrahimi/xray-manager/pkg/fetcher"
 	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	"go.uber.org/zap"
@@ -20,7 +20,7 @@ type App struct {
 	context     context.Context
 	config      *config.Config
 	log         *logger.Logger
-	fetcher     *client.Fetcher
+	fetcher     *fetcher.Fetcher
 	httpServer  *server.Server
 	database    *database.Database
 	coordinator *coordinator.Coordinator
@@ -42,7 +42,7 @@ func New() (a *App, err error) {
 
 	a.database = database.New(a.log.Engine)
 	a.xray = xray.New(a.log.Engine, config.XrayConfigPath, a.config.XrayPath())
-	a.fetcher = client.New(a.config)
+	a.fetcher = fetcher.New(a.config)
 	a.coordinator = coordinator.New(a.config, a.fetcher, a.log.Engine, a.database, a.xray)
 	a.httpServer = server.New(a.config, a.log.Engine, a.coordinator, a.database)
 

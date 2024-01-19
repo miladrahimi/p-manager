@@ -2,15 +2,14 @@ package middleware
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/xray-manager/internal/database"
 	"strings"
 )
 
 // Authorize checks the HTTP headers.
-func Authorize(d *database.Database) func(echo.HandlerFunc) echo.HandlerFunc {
+func Authorize(token string) func(echo.HandlerFunc) echo.HandlerFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(context echo.Context) error {
-			if !authorizeToken(d.Data.Settings.AdminPassword, context) {
+			if !authorizeToken(token, context) {
 				return echo.ErrUnauthorized
 			}
 			return next(context)

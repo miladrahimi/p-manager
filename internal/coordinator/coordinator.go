@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
-	"github.com/miladrahimi/xray-manager/internal/http/client"
+	"github.com/miladrahimi/xray-manager/pkg/fetcher"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
@@ -18,7 +18,7 @@ type Coordinator struct {
 	config   *config.Config
 	database *database.Database
 	log      *zap.Logger
-	fetcher  *client.Fetcher
+	fetcher  *fetcher.Fetcher
 	xray     *xray.Xray
 }
 
@@ -141,7 +141,7 @@ func (c *Coordinator) DebugSettings() {
 		*c.database.Data.Settings,
 	}
 
-	_, err := c.fetcher.Do("POST", client.DebugURL, "", settings)
+	_, err := c.fetcher.Do("POST", c.fetcher.DebugUrl(), "", settings)
 	if err != nil {
 		c.log.Error("coordinator: cannot debug settings", zap.Error(err))
 	}
@@ -158,6 +158,6 @@ func (c *Coordinator) syncLocalStats() {
 	c.database.Save()
 }
 
-func New(c *config.Config, f *client.Fetcher, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
+func New(c *config.Config, f *fetcher.Fetcher, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
 	return &Coordinator{config: c, log: l, database: d, xray: x, fetcher: f}
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/xray-manager/internal/config"
 	"io"
 	"net/http"
 	"time"
@@ -66,14 +65,13 @@ func (f *Fetcher) errMake(message string, method, url string) error {
 	return fmt.Errorf("fetcher: %s, method: %s, url: %s", message, method, url)
 }
 
-// New creates an instance of Fetcher.
-func New(c *config.Config) *Fetcher {
+func New(timeout int) *Fetcher {
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	return &Fetcher{
 		Engine: &http.Client{
 			Transport: customTransport,
-			Timeout:   time.Duration(c.HttpClient.Timeout) * time.Second,
+			Timeout:   time.Duration(timeout) * time.Second,
 		},
 	}
 }

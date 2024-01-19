@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// Authorize checks the HTTP headers.
 func Authorize(token string) func(echo.HandlerFunc) echo.HandlerFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(context echo.Context) error {
@@ -17,7 +16,6 @@ func Authorize(token string) func(echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// authorizeToken checks the extracted token from HTTP headers.
 func authorizeToken(token string, context echo.Context) bool {
 	authHeader := context.Request().Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {

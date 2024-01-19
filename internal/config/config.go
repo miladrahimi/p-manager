@@ -13,8 +13,8 @@ const LocalPath = "configs/main.local.json"
 const AppName = "ShadowsocksManager"
 const AppVersion = "v1.0.0"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
-const XrayConfigPath = "storage/xray.json"
 
+var xrayConfigPath = "storage/xray.json"
 var xrayBinaryPaths = map[string]string{
 	"darwin": "third_party/xray-macos-arm64/xray",
 	"linux":  "third_party/xray-linux-64/xray",
@@ -61,11 +61,15 @@ func (c *Config) Init() (err error) {
 	return nil
 }
 
-func (c *Config) XrayPath() string {
+func (c *Config) XrayBinaryPath() string {
 	if path, found := xrayBinaryPaths[runtime.GOOS]; found {
 		return path
 	}
 	return xrayBinaryPaths["linux"]
+}
+
+func (c *Config) XrayConfigPath() string {
+	return xrayConfigPath
 }
 
 // New creates an instance of the Config.

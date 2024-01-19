@@ -41,7 +41,7 @@ func New() (a *App, err error) {
 	}
 
 	a.database = database.New(a.log.Engine)
-	a.xray = xray.New(a.log.Engine, config.XrayConfigPath, a.config.XrayPath())
+	a.xray = xray.New(a.log.Engine, a.config.XrayConfigPath(), a.config.XrayBinaryPath())
 	a.fetcher = fetcher.New(a.config.HttpClient.Timeout)
 	a.coordinator = coordinator.New(a.config, a.fetcher, a.log.Engine, a.database, a.xray)
 	a.httpServer = server.New(a.config, a.log.Engine, a.coordinator, a.database)

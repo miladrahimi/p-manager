@@ -15,7 +15,6 @@ import (
 	"syscall"
 )
 
-// App integrates the modules to serve.
 type App struct {
 	context     context.Context
 	config      *config.Config
@@ -27,7 +26,6 @@ type App struct {
 	xray        *xray.Xray
 }
 
-// New creates an instance of the application with dependencies injected.
 func New() (a *App, err error) {
 	a = &App{}
 
@@ -51,7 +49,6 @@ func New() (a *App, err error) {
 	return a, nil
 }
 
-// Boot initializes application modules
 func (a *App) Boot() {
 	a.database.Init()
 	a.xray.Run()
@@ -59,12 +56,10 @@ func (a *App) Boot() {
 	a.httpServer.Run()
 }
 
-// setupSignalListener sets up a listener to signals from os.
 func (a *App) setupSignalListener() {
 	var cancel context.CancelFunc
 	a.context, cancel = context.WithCancel(context.Background())
 
-	// Listen to SIGTERM
 	go func() {
 		signalChannel := make(chan os.Signal, 2)
 		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
@@ -75,7 +70,6 @@ func (a *App) setupSignalListener() {
 		cancel()
 	}()
 
-	// Listen to SIGHUP
 	go func() {
 		signalChannel := make(chan os.Signal, 2)
 		signal.Notify(signalChannel, syscall.SIGHUP)
@@ -88,12 +82,10 @@ func (a *App) setupSignalListener() {
 	}()
 }
 
-// Wait avoid dying app and shut it down gracefully on exit signals.
 func (a *App) Wait() {
 	<-a.context.Done()
 }
 
-// Shutdown closes all open resources and processes gracefully.
 func (a *App) Shutdown() {
 	if a.httpServer != nil {
 		a.httpServer.Shutdown()

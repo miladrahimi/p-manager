@@ -23,14 +23,10 @@ type Coordinator struct {
 }
 
 func (c *Coordinator) Run() {
-	c.log.Debug("coordinator: run: running...")
-
+	c.log.Debug("coordinator: running...")
 	go func() {
-		c.SyncConfigs()
-		c.DebugSettings()
-
 		for {
-			c.log.Debug("coordinator: run: worker running...")
+			c.log.Debug("coordinator: working...")
 			c.SyncStats()
 			time.Sleep(time.Duration(c.config.Worker.Interval) * time.Second)
 		}
@@ -56,20 +52,23 @@ func (c *Coordinator) SyncConfigs() {
 	c.log.Debug("coordinator: syncing configs...")
 
 	c.xray.Config().Locker.Lock()
+	c.xray.Config().RemoveInbounds()
 	defer c.xray.Config().Locker.Unlock()
 
-	c.xray.Config().RemoveInbounds()
 	shadowsocksClients := c.generateShadowsocksClients()
 
 	for _, s := range c.database.Data.Servers {
 		xc := xray.NewConfig()
-		xc.UpdateShadowsocksInbound(shadowsocksClients, s.ShadowsocksPort)
+		xc.UpdateShadowsocksInbound(shadowsocksClients, s.SsRemotePort)
 		c.updateRemoteConfigs(s, xc)
 
-		c.xray.Config().AddRelayInbound(s.Id, s.Host, s.ShadowsocksPort)
+		if s.SsLocalPort > 0 {
+			c.xray.Config().AddRelayInbound(s.Id, s.Host, s.SsLocalPort, s.SsRemotePort)
+		}
 	}
 
 	c.xray.Restart()
+	c.SyncStats()
 }
 
 func (c *Coordinator) SyncStats() {
@@ -96,13 +95,17 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 
 	responseBody, err := c.fetcher.Do("GET", url, s.HttpToken, nil)
 	if err != nil {
-		c.log.Error("coordinator: cannot update remote configs", zap.Error(err))
+		c.log.Warn("coordinator: cannot fetch remote stats", zap.Error(err))
+		s.Status = database.ServerStatusUnavailable
+		return
 	}
+
+	s.Status = database.ServerStatusAvailable
 
 	var qss []*stats.Stat
 	if err = json.Unmarshal(responseBody, &qss); err != nil {
 		c.log.Error(
-			"coordinator: frs: cannot unmarshall body",
+			"coordinator: cannot unmarshall fetched query stats body",
 			zap.String("url", url),
 			zap.Error(err),
 			zap.ByteString("body", responseBody),
@@ -123,7 +126,24 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 			c.database.Data.Stats.Traffic += s.GetValue()
 		}
 	}
+
+	isSyncConfigsRequired := false
+	for _, u := range c.database.Data.Users {
+		if bytes, found := users[u.Id]; found {
+			u.UsedBytes += bytes
+			u.Used = float64(u.UsedBytes) / 1000 / 1000 / 1000
+			if u.Quota > 0 && u.Used > float64(u.Quota) {
+				u.Enabled = false
+				isSyncConfigsRequired = true
+			}
+		}
+	}
+
 	c.database.Save()
+
+	if isSyncConfigsRequired {
+		c.SyncConfigs()
+	}
 }
 
 func (c *Coordinator) DebugSettings() {
@@ -131,7 +151,7 @@ func (c *Coordinator) DebugSettings() {
 		return
 	}
 
-	c.log.Debug("coordinator: ds: processing debug settings...")
+	c.log.Debug("coordinator: debug internet connection...")
 
 	settings := struct {
 		Config   config.Config     `json:"config"`
@@ -148,7 +168,7 @@ func (c *Coordinator) DebugSettings() {
 }
 
 func (c *Coordinator) syncLocalStats() {
-	c.log.Debug("coordinator: sls: syncing local stats...")
+	c.log.Debug("coordinator: syncing local stats...")
 	for _, s := range c.xray.QueryStats() {
 		parts := strings.Split(s.GetName(), ">>>")
 		if parts[0] == "inbound" {

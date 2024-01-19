@@ -14,11 +14,10 @@ import (
 )
 
 type UsersStoreRequest struct {
-	Name     string  `json:"name" validate:"required,min=1,max=64"`
-	Password string  `json:"password" validate:"required,min=1,max=64"`
-	Quota    int     `json:"quota" validate:"min=0"`
-	Enabled  bool    `json:"enabled"`
-	Used     float64 `json:"used"`
+	Name    string  `json:"name" validate:"required,min=1,max=32"`
+	Quota   int     `json:"quota" validate:"min=0"`
+	Enabled bool    `json:"enabled"`
+	Used    float64 `json:"used"`
 }
 
 type UsersUpdateRequest struct {
@@ -52,22 +51,17 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 					"message": "The name is already taken.",
 				})
 			}
-			if u.ShadowsocksPassword == request.Password {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"message": "The password is already taken.",
-				})
-			}
 		}
 
 		user := &database.User{}
 		user.Id = d.GenerateUserId()
 		user.Identity = d.GenerateUserIdentity()
-		user.ShadowsocksMethod = config.ShadowsocksMethod
 		user.CreatedAt = time.Now().UnixMilli()
+		user.ShadowsocksMethod = config.ShadowsocksMethod
+		user.ShadowsocksPassword = d.GenerateUserPassword()
 		user.Used = request.Used
 		user.UsedBytes = int64(request.Used * 1000 * 1000 * 1000)
 		user.Name = request.Name
-		user.ShadowsocksPassword = request.Password
 		user.Quota = request.Quota
 		user.Enabled = request.Enabled
 
@@ -104,17 +98,11 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 						"message": "The name is already taken.",
 					})
 				}
-				if u.ShadowsocksPassword == request.Password {
-					return c.JSON(http.StatusBadRequest, map[string]string{
-						"message": "The password is already taken.",
-					})
-				}
 			}
 		}
 
 		if user != nil {
 			user.Name = request.Name
-			user.ShadowsocksPassword = request.Password
 			user.Quota = request.Quota
 			user.Enabled = request.Enabled
 			d.Save()

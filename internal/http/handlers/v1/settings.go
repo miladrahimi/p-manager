@@ -123,11 +123,11 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 			user.Id = d.GenerateUserId()
 			user.Identity = key.Code
 			user.ShadowsocksMethod = key.Cipher
+			user.ShadowsocksPassword = key.Secret
 			user.CreatedAt = key.CreatedAt
 			user.Used = float64(key.Used) / 1000
 			user.UsedBytes = int64(user.Used * 1000 * 1000 * 1000)
 			user.Name = key.Name
-			user.ShadowsocksPassword = key.Secret
 			user.Quota = key.Quota / 1000
 			user.Enabled = key.Enabled
 			d.Data.Users = append(d.Data.Users, user)

@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/random"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
@@ -12,9 +11,8 @@ import (
 )
 
 type ProfileResponse struct {
-	User            database.User `json:"user"`
-	Used            float64       `json:"used"`
-	ShadowsocksLink string        `json:"shadowsocks_link"`
+	User             database.User `json:"user"`
+	ShadowsocksLinks []string      `json:"shadowsocks_links"`
 }
 
 func ProfileShow(d *database.Database) echo.HandlerFunc {
@@ -31,14 +29,22 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 			})
 		}
 
+		r := ProfileResponse{User: *user, ShadowsocksLinks: []string{}}
+		r.User.Used = utils.RoundFloat(r.User.Used*d.Data.Settings.TrafficRatio, 2)
+		r.User.Quota = int(float64(r.User.Quota) * d.Data.Settings.TrafficRatio)
+
 		s := d.Data.Settings
 		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
-		link := fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, 1, user.Name)
-		used := utils.RoundFloat(user.Used*d.Data.Settings.TrafficRatio, 2)
 
-		r := ProfileResponse{User: *user, ShadowsocksLink: link, Used: used}
-		r.User.Used = 0
-		r.User.Quota = int(float64(r.User.Quota) * d.Data.Settings.TrafficRatio)
+		for _, server := range d.Data.Servers {
+			var link string
+			if server.SsLocalPort > 0 {
+				link = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, server.SsLocalPort, user.Name)
+			} else {
+				link = fmt.Sprintf("ss://%s@%s:%d#%s", auth, server.Host, server.SsRemotePort, user.Name)
+			}
+			r.ShadowsocksLinks = append(r.ShadowsocksLinks, link)
+		}
 
 		return c.JSON(http.StatusOK, r)
 	}
@@ -58,21 +64,7 @@ func ProfileReset(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
-		var newPassword string
-		for {
-			newPassword = random.String(16)
-			isUnique := true
-			for _, u := range d.Data.Users {
-				if u.ShadowsocksPassword == newPassword {
-					isUnique = false
-					break
-				}
-			}
-			if isUnique {
-				break
-			}
-		}
-		user.ShadowsocksPassword = newPassword
+		user.ShadowsocksPassword = d.GenerateUserPassword()
 		d.Save()
 
 		go coordinator.SyncConfigs()

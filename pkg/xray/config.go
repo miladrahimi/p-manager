@@ -20,8 +20,9 @@ type Client struct {
 
 type InboundSettings struct {
 	Address string    `json:"address,omitempty"`
-	Clients []*Client `json:"clients,omitempty" validate:"dive"`
+	Clients []*Client `json:"clients,omitempty" validate:"omitempty,dive"`
 	Network string    `json:"network,omitempty"`
+	Port    int       `json:"port,omitempty" validate:"omitempty,min=1,max=65536"`
 }
 
 type Inbound struct {
@@ -158,14 +159,15 @@ func (c *Config) RemoveInbounds() {
 	c.Inbounds = []*Inbound{c.ApiInbound()}
 }
 
-func (c *Config) AddRelayInbound(id int, host string, port int) {
+func (c *Config) AddRelayInbound(id int, host string, localPort, remotePort int) {
 	c.Inbounds = append(c.Inbounds, &Inbound{
 		Tag:      "relay-" + strconv.Itoa(id),
 		Protocol: "dokodemo-door",
 		Listen:   "0.0.0.0",
-		Port:     port,
+		Port:     localPort,
 		Settings: &InboundSettings{
 			Address: host,
+			Port:    remotePort,
 		},
 	})
 }

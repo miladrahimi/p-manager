@@ -11,9 +11,11 @@ import (
 )
 
 type ServersStoreRequest struct {
-	Host     string `json:"host" validate:"required,max=64"`
-	Port     int    `json:"port" validate:"required,min=1,max=65536"`
-	Password string `json:"password" validate:"required"`
+	Host         string `json:"host" validate:"required,max=64"`
+	HttpToken    string `json:"http_token" validate:"required"`
+	HttpPort     int    `json:"http_port" validate:"required,min=1,max=65536"`
+	SsRemotePort int    `json:"ss_remote_port" validate:"required,min=1,max=65536"`
+	SsLocalPort  int    `json:"ss_local_port" validate:"min=0,max=65536"`
 }
 
 type ServersUpdateRequest struct {
@@ -42,19 +44,25 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		}
 
 		for _, s := range d.Data.Servers {
-			if s.Host == request.Host && s.HttpPort == request.Port && s.HttpToken == request.Password {
+			if s.Host == request.Host && s.HttpPort == request.SsRemotePort && s.HttpToken == request.HttpToken {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"message": "The server is already exist.",
 				})
 			}
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		server := &database.Server{}
 		server.Id = d.GenerateServerId()
 		server.Status = database.ServerStatusProcessing
-		server.HttpToken = request.Password
+		server.Traffic = 0
+		server.HttpToken = request.HttpToken
 		server.Host = request.Host
-		server.HttpPort = request.Port
+		server.HttpPort = request.HttpPort
+		server.SsLocalPort = request.SsLocalPort
+		server.SsRemotePort = request.SsRemotePort
 
 		d.Data.Servers = append(d.Data.Servers, server)
 		d.Save()
@@ -85,17 +93,24 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 				server = s
 			}
 		}
-
-		if server != nil {
-			server.Host = request.Host
-			server.HttpPort = request.Port
-			server.HttpToken = request.Password
-			d.Save()
-			go coordinator.SyncConfigs()
-			return c.JSON(http.StatusOK, server)
+		if server == nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
 		}
 
-		return c.NoContent(http.StatusNotFound)
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
+		server.Host = request.Host
+		server.HttpToken = request.HttpToken
+		server.HttpPort = request.HttpPort
+		server.SsRemotePort = request.SsRemotePort
+		server.SsLocalPort = request.SsLocalPort
+		d.Save()
+
+		go coordinator.SyncConfigs()
+
+		return c.JSON(http.StatusOK, server)
+
 	}
 }
 
@@ -107,6 +122,9 @@ func ServersDelete(coordinator *coordinator.Coordinator, d *database.Database) e
 				"message": "Cannot parse the id parameter.",
 			})
 		}
+
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
 
 		for i, s := range d.Data.Servers {
 			if s.Id == id {

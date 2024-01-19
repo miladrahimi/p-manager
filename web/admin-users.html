@@ -143,10 +143,6 @@
                 validator: ["required", "unique", "minLength:1", "maxLength:32"],
             },
             {
-                title: "Password", field: "password", resizable: true, editor: "input",
-                validator: ["required", "unique", "minLength:5", "maxLength:64"],
-            },
-            {
                 title: "Enabled", field: "enabled", resizable: true, editor: true, formatter: "tickCross"
             },
             {
@@ -187,7 +183,7 @@
     });
 
     table.on("cellEdited", function (cell) {
-        if (!cell.getData()['name'] || !cell.getData()['password']) {
+        if (!cell.getData()['name']) {
             return
         }
 
@@ -226,7 +222,6 @@
             id: 0,
             identity: "",
             name: "",
-            password: btoa(Math.random().toString()).substring(5, 20),
             quota: 0,
             used: 0,
             enabled: true,

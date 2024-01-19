@@ -1,18 +1,19 @@
 package validator
 
 import (
-	playground "github.com/go-playground/validator/v10"
+	pg "github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
 type Validator struct {
-	validator *playground.Validate
+	validator *pg.Validate
 }
 
 // Validate validates the given struct.
 func (cv *Validator) Validate(i interface{}) error {
-	if err := cv.validator.Struct(i); err != nil {
+	v := pg.New(pg.WithRequiredStructEnabled())
+	if err := v.Struct(i); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return nil
@@ -20,5 +21,5 @@ func (cv *Validator) Validate(i interface{}) error {
 
 // New creates a new instance of Validator.
 func New() *Validator {
-	return &Validator{validator: playground.New()}
+	return &Validator{validator: pg.New()}
 }

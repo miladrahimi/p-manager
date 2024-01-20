@@ -66,7 +66,7 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		d.Data.Servers = append(d.Data.Servers, server)
 		d.Save()
 
-		go coordinator.SyncConfigs()
+		go coordinator.SyncLocalConfigs()
 
 		return c.JSON(http.StatusCreated, server)
 	}
@@ -135,7 +135,7 @@ func ServersDelete(coordinator *coordinator.Coordinator, d *database.Database) e
 			if s.Id == id {
 				d.Data.Servers = append(d.Data.Servers[:i], d.Data.Servers[i+1:]...)
 				d.Save()
-				go coordinator.SyncConfigs()
+				go coordinator.SyncLocalConfigs()
 			}
 		}
 

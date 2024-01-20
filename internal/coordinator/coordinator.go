@@ -26,7 +26,7 @@ type Coordinator struct {
 
 func (c *Coordinator) Run() {
 	c.log.Info("coordinator: running...")
-	go c.syncRemoteConfigs()
+	go c.SyncRemoteConfigs()
 	go func() {
 		for {
 			c.log.Info("coordinator: working...")
@@ -53,11 +53,11 @@ func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
 
 func (c *Coordinator) SyncConfigs() {
 	c.log.Info("coordinator: syncing configs...")
-	c.syncLocalConfigs()
-	c.syncRemoteConfigs()
+	c.SyncLocalConfigs()
+	c.SyncRemoteConfigs()
 }
 
-func (c *Coordinator) syncRemoteConfigs() {
+func (c *Coordinator) SyncRemoteConfigs() {
 	c.log.Info("coordinator: syncing remote configs...")
 
 	shadowsocksClients := c.generateShadowsocksClients()
@@ -70,7 +70,7 @@ func (c *Coordinator) syncRemoteConfigs() {
 	c.syncRemoteStats()
 }
 
-func (c *Coordinator) syncLocalConfigs() {
+func (c *Coordinator) SyncLocalConfigs() {
 	c.log.Info("coordinator: syncing local configs...")
 
 	c.xray.Config().Locker.Lock()

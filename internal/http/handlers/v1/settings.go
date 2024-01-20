@@ -7,8 +7,10 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"io"
 	"net/http"
+	"time"
 )
 
 func SettingsShow(d *database.Database) echo.HandlerFunc {
@@ -31,12 +33,58 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 			})
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		d.Data.Settings = &settings
 		d.Save()
 
 		go coordinator.DebugSettings()
 
 		return c.JSON(http.StatusOK, settings)
+	}
+}
+
+func StatsShow(d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return c.JSON(http.StatusOK, d.Data.Stats)
+	}
+}
+
+func StatsZero(d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
+		d.Data.Stats.Traffic = 0
+		d.Data.Stats.UpdatedAt = time.Now().UnixMilli()
+		d.Save()
+
+		return c.JSON(http.StatusOK, d.Data.Stats)
+	}
+}
+
+func StatsZeroUsers(d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		for _, u := range d.Data.Users {
+			u.Used = 0
+			u.UsedBytes = 0
+			u.Enabled = true
+		}
+		d.Save()
+
+		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+func StatsDeleteAllUsers(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		d.Data.Users = []*database.User{}
+		d.Save()
+
+		go coordinator.SyncConfigs()
+
+		return c.NoContent(http.StatusNoContent)
 	}
 }
 
@@ -105,6 +153,9 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 			})
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		for _, key := range Keys {
 			exist := false
 			for _, u := range d.Data.Users {
@@ -125,7 +176,7 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 			user.ShadowsocksMethod = key.Cipher
 			user.ShadowsocksPassword = key.Secret
 			user.CreatedAt = key.CreatedAt
-			user.Used = float64(key.Used) / 1000
+			user.Used = utils.RoundFloat(float64(key.Used)/1000, 2)
 			user.UsedBytes = int64(user.Used * 1000 * 1000 * 1000)
 			user.Name = key.Name
 			user.Quota = key.Quota / 1000

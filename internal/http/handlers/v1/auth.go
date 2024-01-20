@@ -15,7 +15,7 @@ type SignInRequest struct {
 func SignIn(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer func() {
-			time.Sleep(time.Second * time.Duration(3))
+			time.Sleep(time.Second * time.Duration(2))
 		}()
 
 		var r SignInRequest

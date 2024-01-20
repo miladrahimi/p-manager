@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
-	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"net/http"
 )
 
@@ -30,7 +29,7 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 		}
 
 		r := ProfileResponse{User: *user, ShadowsocksLinks: []string{}}
-		r.User.Used = utils.RoundFloat(r.User.Used*d.Data.Settings.TrafficRatio, 2)
+		r.User.Used = r.User.Used * d.Data.Settings.TrafficRatio
 		r.User.Quota = int(float64(r.User.Quota) * d.Data.Settings.TrafficRatio)
 
 		s := d.Data.Settings
@@ -63,6 +62,9 @@ func ProfileReset(coordinator *coordinator.Coordinator, d *database.Database) ec
 				"message": "Not found.",
 			})
 		}
+
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
 
 		user.ShadowsocksPassword = d.GenerateUserPassword()
 		d.Save()

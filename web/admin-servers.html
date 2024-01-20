@@ -26,9 +26,6 @@
                 <span class="nav-link active" aria-current="page">Servers</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="admin-stats.html">Stats</a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" href="admin-settings.html">Settings</a>
             </li>
             <li class="nav-item">
@@ -169,6 +166,13 @@
                 editable: true
             },
             {
+                title: "Traffic (GB)",
+                field: "traffic",
+                visible: true,
+                widthGrow: 1,
+                editable: false
+            },
+            {
                 title: "Status", field: "status", widthGrow: 1, resizable: true, formatter: statusFormatter,
             },
             {
@@ -228,6 +232,7 @@
             http_port: 8080,
             ss_remote_port: 2929,
             ss_local_port: 0,
+            traffic: 0,
         })
     })
 </script>

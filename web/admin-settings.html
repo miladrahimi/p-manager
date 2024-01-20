@@ -26,9 +26,6 @@
                 <a class="nav-link" href="admin-servers.html">Servers</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="admin-stats.html">Stats</a>
-            </li>
-            <li class="nav-item">
                 <span class="nav-link active" aria-current="page">Settings</span>
             </li>
             <li class="nav-item">
@@ -38,6 +35,21 @@
 
         <div id="table"></div>
 
+        <table class="table table-bordered table-light table-sm">
+            <thead>
+            <tr>
+                <th scope="col">Total Traffic (GB)</th>
+                <th scope="col">Update At</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td id="stats-traffic">Loading...</td>
+                <td id="stats-updated-at">Loading...</td>
+            </tr>
+            </tbody>
+        </table>
+
         <div class="card bg-light-subtle mt-3 text-start">
             <div class="card-header">Import users from old app</div>
             <div class="card-body">
@@ -46,6 +58,17 @@
                 <input type="text" class="form-control form-control-sm mb-2" id="token"
                        placeholder="Token (abc123xyz...)" title="URL">
                 <input type="button" class="btn btn-secondary btn-sm mt-1" id="import" value="Import">
+            </div>
+        </div>
+
+        <div class="card bg-warning-subtle mt-3 text-start">
+            <div class="card-header">DANGER ZONE</div>
+            <div class="card-body">
+                <div class="d-flex flex-column mt-1">
+                    <button class="btn btn-danger btn-sm my-1" id="zero-servers">ZERO STATS</button>
+                    <button class="btn btn-danger btn-sm my-1" id="zero-users">ZERO USERS</button>
+                    <button class="btn btn-danger btn-sm my-1" id="delete-users">DELETE USERS</button>
+                </div>
             </div>
         </div>
     </div>
@@ -69,11 +92,8 @@
             case "Traffic Ratio":
                 el.innerText = "Coefficient for displaying the consumed traffic to users!";
                 break;
-            case "Shadowsocks Host":
-                el.innerText = "Shadowsocks host that shadowsocks server listens to.";
-                break;
-            case "Shadowsocks Port":
-                el.innerText = "Shadowsocks port that shadowsocks server listens to.";
+            case "Host":
+                el.innerText = "Host to use in proxy links.";
                 break;
         }
         return el;
@@ -103,15 +123,12 @@
         let map = {
             "Admin Password": "admin_password",
             "Traffic Ratio": "traffic_ratio",
-            "Shadowsocks Host": "shadowsocks_host",
-            "Shadowsocks Port": "shadowsocks_port",
+            "Host": "host",
         }
 
         let body = {}
         table.getData().forEach(function (v) {
-            if (["Shadowsocks Port"].includes(v.key)) {
-                body[map[v.key]] = parseInt(v.value)
-            } else if (["Traffic Ratio"].includes(v.key)) {
+            if (["Traffic Ratio"].includes(v.key)) {
                 body[map[v.key]] = parseFloat(v.value)
             } else {
                 body[map[v.key]] = v.value
@@ -154,8 +171,7 @@
         table.setData([
             {"key": "Admin Password", "value": response["admin_password"]},
             {"key": "Traffic Ratio", "value": response["traffic_ratio"]},
-            {"key": "Shadowsocks Host", "value": response["shadowsocks_host"]},
-            {"key": "Shadowsocks Port", "value": response["shadowsocks_port"]},
+            {"key": "Host", "value": response["host"]},
         ])
     }
 
@@ -171,6 +187,21 @@
         processData: true,
         type: "GET",
         url: "/v1/settings"
+    });
+
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            $("#stats-traffic").html(Math.floor(response['traffic'] / 1000 / 1000 / 1000))
+            $("#stats-updated-at").html(ts2string(response['updated_at']))
+        },
+        error: function (response) {
+            console.log(response)
+            checkAuth(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/settings/stats"
     });
 
     $('#import').click(function () {
@@ -201,6 +232,92 @@
         })
     })
 
+    $('#stats-zero').click(function () {
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('ZEROING...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/stats/zero`,
+            processData: true,
+            dataType: 'json',
+            success: function (response) {
+                me.html('DONE!')
+                setTimeout(function () {
+                    console.log(response)
+                    me.html('LOADING...')
+                    setTimeout(function () {
+                        window.location.reload()
+                    }, 2000)
+                }, 2000)
+            },
+            error: function (response) {
+                console.log(response)
+                me.val('Error!')
+                setTimeout(function () {
+                    me.val('ZERO STATS').removeAttr('disabled')
+                }, 2000)
+            }
+        })
+    })
+
+    $('#users-zero').click(function () {
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('ZEROING...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/users/zero`,
+            processData: true,
+            dataType: 'json',
+            success: function (response) {
+                me.html('DONE!')
+                setTimeout(function () {
+                    console.log(response)
+                    me.html('LOADING...')
+                    setTimeout(function () {
+                        window.location.reload()
+                    }, 2000)
+                }, 2000)
+            },
+            error: function (response) {
+                console.log(response)
+                me.val('Error!')
+                setTimeout(function () {
+                    me.val('ZERO USERS').removeAttr('disabled')
+                }, 2000)
+            }
+        })
+    })
+
+    $('#users-delete').click(function () {
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('DELETING USERS...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/users/delete`,
+            processData: true,
+            dataType: 'json',
+            success: function (response) {
+                me.html('DONE!')
+                setTimeout(function () {
+                    console.log(response)
+                    me.html('LOADING...')
+                    setTimeout(function () {
+                        window.location.reload()
+                    }, 2000)
+                }, 2000)
+            },
+            error: function (response) {
+                console.log(response)
+                me.val('Error!')
+                setTimeout(function () {
+                    me.val('DELETE USERS').removeAttr('disabled')
+                }, 2000)
+            }
+        })
+    })
 </script>
 
 </body>

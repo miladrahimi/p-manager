@@ -31,24 +31,16 @@ func ServersIndex(d *database.Database) echo.HandlerFunc {
 
 func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var request ServersStoreRequest
-		if err := c.Bind(&request); err != nil {
+		var r ServersStoreRequest
+		if err := c.Bind(&r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Cannot parse the request body.",
 			})
 		}
-		if err := validator.New().Struct(request); err != nil {
+		if err := validator.New().Struct(r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
 			})
-		}
-
-		for _, s := range d.Data.Servers {
-			if s.Host == request.Host && s.HttpPort == request.SsRemotePort && s.HttpToken == request.HttpToken {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"message": "The server is already exist.",
-				})
-			}
 		}
 
 		d.Locker.Lock()
@@ -58,11 +50,11 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		server.Id = d.GenerateServerId()
 		server.Status = database.ServerStatusProcessing
 		server.Traffic = 0
-		server.HttpToken = request.HttpToken
-		server.Host = request.Host
-		server.HttpPort = request.HttpPort
-		server.SsLocalPort = request.SsLocalPort
-		server.SsRemotePort = request.SsRemotePort
+		server.HttpToken = r.HttpToken
+		server.Host = r.Host
+		server.HttpPort = r.HttpPort
+		server.SsLocalPort = r.SsLocalPort
+		server.SsRemotePort = r.SsRemotePort
 
 		d.Data.Servers = append(d.Data.Servers, server)
 		d.Save()

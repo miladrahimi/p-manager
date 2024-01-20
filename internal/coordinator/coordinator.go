@@ -6,6 +6,7 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/pkg/fetcher"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
@@ -24,6 +25,7 @@ type Coordinator struct {
 
 func (c *Coordinator) Run() {
 	c.log.Debug("coordinator: running...")
+	go c.syncRemoteConfigs()
 	go func() {
 		for {
 			c.log.Debug("coordinator: working...")
@@ -50,32 +52,50 @@ func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
 
 func (c *Coordinator) SyncConfigs() {
 	c.log.Debug("coordinator: syncing configs...")
+	c.syncLocalConfigs()
+	c.syncRemoteConfigs()
+}
 
-	c.xray.Config().Locker.Lock()
-	c.xray.Config().RemoveInbounds()
-	defer c.xray.Config().Locker.Unlock()
+func (c *Coordinator) syncRemoteConfigs() {
+	c.log.Debug("coordinator: syncing remote configs...")
 
 	shadowsocksClients := c.generateShadowsocksClients()
-
 	for _, s := range c.database.Data.Servers {
 		xc := xray.NewConfig()
 		xc.UpdateShadowsocksInbound(shadowsocksClients, s.SsRemotePort)
-		c.updateRemoteConfigs(s, xc)
+		go c.updateRemoteConfigs(s, xc)
+	}
 
+	c.syncRemoteStats()
+}
+
+func (c *Coordinator) syncLocalConfigs() {
+	c.log.Debug("coordinator: syncing local configs...")
+
+	c.xray.Config().Locker.Lock()
+	defer c.xray.Config().Locker.Unlock()
+
+	c.xray.Config().RemoveInbounds()
+	for _, s := range c.database.Data.Servers {
 		if s.SsLocalPort > 0 {
 			c.xray.Config().AddRelayInbound(s.Id, s.Host, s.SsLocalPort, s.SsRemotePort)
 		}
 	}
 
 	c.xray.Restart()
-	c.SyncStats()
+	c.syncLocalStats()
 }
 
 func (c *Coordinator) SyncStats() {
 	c.log.Debug("coordinator: syncing stats...")
 	c.syncLocalStats()
+	c.syncRemoteStats()
+}
+
+func (c *Coordinator) syncRemoteStats() {
+	c.log.Debug("coordinator: syncing remote stats...")
 	for _, s := range c.database.Data.Servers {
-		c.fetchRemoteStats(s)
+		go c.fetchRemoteStats(s)
 	}
 }
 
@@ -93,14 +113,20 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 	url := fmt.Sprintf("%s://%s:%d/v1/stats", "http", s.Host, s.HttpPort)
 	c.log.Debug("coordinator: fetching remote stats", zap.String("url", url))
 
+	c.database.Locker.Lock()
+	defer func() {
+		c.database.Save()
+		c.database.Locker.Unlock()
+	}()
+
+	s.Status = database.ServerStatusAvailable
+
 	responseBody, err := c.fetcher.Do("GET", url, s.HttpToken, nil)
 	if err != nil {
 		c.log.Warn("coordinator: cannot fetch remote stats", zap.Error(err))
 		s.Status = database.ServerStatusUnavailable
 		return
 	}
-
-	s.Status = database.ServerStatusAvailable
 
 	var qss []*stats.Stat
 	if err = json.Unmarshal(responseBody, &qss); err != nil {
@@ -110,6 +136,7 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 			zap.Error(err),
 			zap.ByteString("body", responseBody),
 		)
+		s.Status = database.ServerStatusUnavailable
 		return
 	}
 
@@ -131,7 +158,7 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 	for _, u := range c.database.Data.Users {
 		if bytes, found := users[u.Id]; found {
 			u.UsedBytes += bytes
-			u.Used = float64(u.UsedBytes) / 1000 / 1000 / 1000
+			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
 			if u.Quota > 0 && u.Used > float64(u.Quota) {
 				u.Enabled = false
 				isSyncConfigsRequired = true
@@ -139,10 +166,8 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 		}
 	}
 
-	c.database.Save()
-
 	if isSyncConfigsRequired {
-		c.SyncConfigs()
+		go c.SyncConfigs()
 	}
 }
 
@@ -169,12 +194,17 @@ func (c *Coordinator) DebugSettings() {
 
 func (c *Coordinator) syncLocalStats() {
 	c.log.Debug("coordinator: syncing local stats...")
+
+	c.database.Locker.Lock()
+	defer c.database.Locker.Unlock()
+
 	for _, s := range c.xray.QueryStats() {
 		parts := strings.Split(s.GetName(), ">>>")
 		if parts[0] == "inbound" {
 			c.database.Data.Stats.Traffic += s.GetValue()
 		}
 	}
+
 	c.database.Save()
 }
 

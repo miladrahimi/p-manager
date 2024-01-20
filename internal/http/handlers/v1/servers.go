@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"net/http"
 	"strconv"
 )
@@ -43,6 +44,12 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
+		if r.SsLocalPort > 0 && !utils.PortFree(r.SsLocalPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("The port %d is already in use.", r.SsLocalPort),
+			})
+		}
+
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
@@ -67,13 +74,13 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 
 func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var request ServersUpdateRequest
-		if err := c.Bind(&request); err != nil {
+		var r ServersUpdateRequest
+		if err := c.Bind(&r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Cannot parse the request body.",
 			})
 		}
-		if err := validator.New().Struct(request); err != nil {
+		if err := validator.New().Struct(r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
 			})
@@ -81,7 +88,7 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 
 		var server *database.Server
 		for _, s := range d.Data.Servers {
-			if s.Id == request.Id {
+			if s.Id == r.Id {
 				server = s
 			}
 		}
@@ -89,14 +96,20 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
 		}
 
+		if r.SsLocalPort > 0 && r.SsLocalPort != server.SsLocalPort && !utils.PortFree(r.SsLocalPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("The port %d is already in use.", r.SsLocalPort),
+			})
+		}
+
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		server.Host = request.Host
-		server.HttpToken = request.HttpToken
-		server.HttpPort = request.HttpPort
-		server.SsRemotePort = request.SsRemotePort
-		server.SsLocalPort = request.SsLocalPort
+		server.Host = r.Host
+		server.HttpToken = r.HttpToken
+		server.HttpPort = r.HttpPort
+		server.SsRemotePort = r.SsRemotePort
+		server.SsLocalPort = r.SsLocalPort
 		d.Save()
 
 		go coordinator.SyncConfigs()

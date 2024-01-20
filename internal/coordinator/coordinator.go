@@ -24,11 +24,11 @@ type Coordinator struct {
 }
 
 func (c *Coordinator) Run() {
-	c.log.Debug("coordinator: running...")
+	c.log.Info("coordinator: running...")
 	go c.syncRemoteConfigs()
 	go func() {
 		for {
-			c.log.Debug("coordinator: working...")
+			c.log.Info("coordinator: working...")
 			c.SyncStats()
 			time.Sleep(time.Duration(c.config.Worker.Interval) * time.Second)
 		}
@@ -51,13 +51,13 @@ func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
 }
 
 func (c *Coordinator) SyncConfigs() {
-	c.log.Debug("coordinator: syncing configs...")
+	c.log.Info("coordinator: syncing configs...")
 	c.syncLocalConfigs()
 	c.syncRemoteConfigs()
 }
 
 func (c *Coordinator) syncRemoteConfigs() {
-	c.log.Debug("coordinator: syncing remote configs...")
+	c.log.Info("coordinator: syncing remote configs...")
 
 	shadowsocksClients := c.generateShadowsocksClients()
 	for _, s := range c.database.Data.Servers {
@@ -70,7 +70,7 @@ func (c *Coordinator) syncRemoteConfigs() {
 }
 
 func (c *Coordinator) syncLocalConfigs() {
-	c.log.Debug("coordinator: syncing local configs...")
+	c.log.Info("coordinator: syncing local configs...")
 
 	c.xray.Config().Locker.Lock()
 	defer c.xray.Config().Locker.Unlock()
@@ -82,18 +82,17 @@ func (c *Coordinator) syncLocalConfigs() {
 		}
 	}
 
-	c.xray.Restart()
-	c.syncLocalStats()
+	go c.xray.Restart()
 }
 
 func (c *Coordinator) SyncStats() {
-	c.log.Debug("coordinator: syncing stats...")
+	c.log.Info("coordinator: syncing stats...")
 	c.syncLocalStats()
 	c.syncRemoteStats()
 }
 
 func (c *Coordinator) syncRemoteStats() {
-	c.log.Debug("coordinator: syncing remote stats...")
+	c.log.Info("coordinator: syncing remote stats...")
 	for _, s := range c.database.Data.Servers {
 		go c.fetchRemoteStats(s)
 	}
@@ -101,7 +100,7 @@ func (c *Coordinator) syncRemoteStats() {
 
 func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
-	c.log.Debug("coordinator: updating remote configs...", zap.String("url", url))
+	c.log.Info("coordinator: updating remote configs...", zap.String("url", url))
 
 	_, err := c.fetcher.Do("POST", url, s.HttpToken, xc)
 	if err != nil {
@@ -111,7 +110,7 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 
 func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 	url := fmt.Sprintf("%s://%s:%d/v1/stats", "http", s.Host, s.HttpPort)
-	c.log.Debug("coordinator: fetching remote stats", zap.String("url", url))
+	c.log.Info("coordinator: fetching remote stats", zap.String("url", url))
 
 	c.database.Locker.Lock()
 	defer func() {
@@ -176,7 +175,7 @@ func (c *Coordinator) DebugSettings() {
 		return
 	}
 
-	c.log.Debug("coordinator: debug internet connection...")
+	c.log.Info("coordinator: debug internet connection...")
 
 	settings := struct {
 		Config   config.Config     `json:"config"`
@@ -193,7 +192,7 @@ func (c *Coordinator) DebugSettings() {
 }
 
 func (c *Coordinator) syncLocalStats() {
-	c.log.Debug("coordinator: syncing local stats...")
+	c.log.Info("coordinator: syncing local stats...")
 
 	c.database.Locker.Lock()
 	defer c.database.Locker.Unlock()

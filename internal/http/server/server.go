@@ -19,29 +19,29 @@ import (
 )
 
 type Server struct {
-	Engine      *echo.Echo
+	engine      *echo.Echo
 	config      *config.Config
-	logger      *zap.Logger
+	log         *zap.Logger
 	coordinator *coordinator.Coordinator
 	database    *database.Database
 }
 
 // Run defines the required HTTP routes and starts the HTTP Server.
 func (s *Server) Run() {
-	s.Engine.Use(echoMiddleware.CORS())
-	s.Engine.Use(middleware2.Logger(s.logger))
+	s.engine.Use(middleware2.Logger(s.log))
+	s.engine.Use(echoMiddleware.CORS())
 
-	s.Engine.Static("/", "web")
+	s.engine.Static("/", "web")
 
-	s.Engine.GET("/profile", pages.Profile())
+	s.engine.GET("/profile", pages.Profile())
 
-	g1 := s.Engine.Group("/v1")
+	g1 := s.engine.Group("/v1")
 	g1.POST("/sign-in", v1.SignIn(s.database))
 
 	g1.GET("/profile", v1.ProfileShow(s.database))
 	g1.POST("/profile/reset", v1.ProfileReset(s.coordinator, s.database))
 
-	g2 := s.Engine.Group("/v1")
+	g2 := s.engine.Group("/v1")
 	g2.Use(middleware2.Authorize(s.database.Data.Settings.AdminPassword))
 
 	g2.GET("/users", v1.UsersIndex(s.database))
@@ -66,8 +66,8 @@ func (s *Server) Run() {
 
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)
-		if err := s.Engine.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.logger.Fatal("http server: failed to start", zap.String("address", address), zap.Error(err))
+		if err := s.engine.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.log.Fatal("http server: failed to start", zap.String("address", address), zap.Error(err))
 		}
 	}()
 }
@@ -77,10 +77,10 @@ func (s *Server) Shutdown() {
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := s.Engine.Shutdown(c); err != nil {
-		s.logger.Error("http server: failed to close", zap.Error(err))
+	if err := s.engine.Shutdown(c); err != nil {
+		s.log.Error("http server: failed to close", zap.Error(err))
 	} else {
-		s.logger.Debug("http server: closed successfully")
+		s.log.Debug("http server: closed successfully")
 	}
 }
 
@@ -90,5 +90,5 @@ func New(config *config.Config, l *zap.Logger, c *coordinator.Coordinator, d *da
 	e.HideBanner = true
 	e.Validator = validator.New()
 
-	return &Server{Engine: e, config: config, logger: l, coordinator: c, database: d}
+	return &Server{engine: e, config: config, log: l, coordinator: c, database: d}
 }

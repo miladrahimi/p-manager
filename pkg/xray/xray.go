@@ -82,7 +82,7 @@ func (x *Xray) initApiPort() {
 		if err != nil {
 			x.log.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
 		}
-		x.log.Debug("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
+		x.log.Info("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
 		x.config.UpdateApiInbound(np)
 		x.saveConfig()
 	}
@@ -94,7 +94,7 @@ func (x *Xray) runCore() {
 	x.command.Stderr = os.Stderr
 	x.command.Stdout = os.Stdout
 
-	x.log.Debug("xray: starting the xray core...")
+	x.log.Info("xray: starting the xray core...")
 	if err := x.command.Run(); err != nil && err.Error() != "signal: killed" {
 		x.log.Fatal("xray: cannot start the xray core", zap.Error(err))
 	}
@@ -110,7 +110,7 @@ func (x *Xray) Restart() {
 
 // Shutdown closes Xray core process.
 func (x *Xray) Shutdown() {
-	x.log.Debug("xray: shutting down the xray core...")
+	x.log.Info("xray: shutting down the xray core...")
 	if x.connection != nil {
 		_ = x.connection.Close()
 	}
@@ -118,16 +118,16 @@ func (x *Xray) Shutdown() {
 		if err := x.command.Process.Kill(); err != nil {
 			x.log.Error("xray: failed to shutdown the xray core", zap.Error(err))
 		} else {
-			x.log.Debug("xray: the xray core stopped successfully")
+			x.log.Info("xray: the xray core stopped successfully")
 		}
 	} else {
-		x.log.Debug("xray: the xray core is already stopped")
+		x.log.Info("xray: the xray core is already stopped")
 	}
 }
 
 // connectGrpc connects to the GRPC APIs provided by Xray core.
 func (x *Xray) connectGrpc() {
-	x.log.Debug("xray: connecting to xray core grpc...")
+	x.log.Info("xray: connecting to xray core grpc...")
 
 	index := x.config.ApiInboundIndex()
 	if index == -1 {
@@ -147,7 +147,7 @@ func (x *Xray) connectGrpc() {
 		time.Sleep(time.Second)
 	}
 
-	x.log.Debug("xray: cannot connect the xray core grpc", zap.Error(err))
+	x.log.Error("xray: cannot connect the xray core grpc", zap.Error(err))
 }
 
 func (x *Xray) SetConfig(config *Config) {

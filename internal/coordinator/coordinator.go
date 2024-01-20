@@ -25,7 +25,7 @@ type Coordinator struct {
 }
 
 func (c *Coordinator) Run() {
-	c.log.Fatal("coordinator: running...")
+	c.log.Info("coordinator: running...")
 	go c.syncRemoteConfigs()
 	go func() {
 		for {

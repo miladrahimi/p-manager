@@ -119,10 +119,10 @@ func (x *Xray) Shutdown() {
 		if err := x.command.Process.Kill(); err != nil {
 			x.log.Error("xray: failed to shutdown the xray core", zap.Error(err))
 		} else {
-			x.log.Info("xray: the xray core stopped successfully")
+			x.log.Info("xray: the xray core closed successfully")
 		}
 	} else {
-		x.log.Info("xray: the xray core is already stopped")
+		x.log.Info("xray: the xray core is already closed")
 	}
 }
 

@@ -78,7 +78,7 @@ func SettingsServersZero(d *database.Database) echo.HandlerFunc {
 	}
 }
 
-func SettingsUsersZero(d *database.Database) echo.HandlerFunc {
+func SettingsUsersZero(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
@@ -89,6 +89,8 @@ func SettingsUsersZero(d *database.Database) echo.HandlerFunc {
 			u.Enabled = true
 		}
 		d.Save()
+
+		go coordinator.SyncRemoteConfigs()
 
 		return c.NoContent(http.StatusNoContent)
 	}
@@ -102,7 +104,7 @@ func SettingsUsersDelete(coordinator *coordinator.Coordinator, d *database.Datab
 		d.Data.Users = []*database.User{}
 		d.Save()
 
-		go coordinator.SyncConfigs()
+		go coordinator.SyncRemoteConfigs()
 
 		return c.NoContent(http.StatusNoContent)
 	}
@@ -205,7 +207,8 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 		}
 
 		d.Save()
-		go coordinator.SyncConfigs()
+
+		go coordinator.SyncRemoteConfigs()
 
 		return c.JSON(http.StatusOK, map[string]string{
 			"message": "success",

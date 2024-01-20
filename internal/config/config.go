@@ -10,7 +10,7 @@ import (
 
 const MainPath = "configs/main.json"
 const LocalPath = "configs/main.local.json"
-const AppName = "ShadowsocksManager"
+const AppName = "XrayManager"
 const AppVersion = "v1.0.0"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 

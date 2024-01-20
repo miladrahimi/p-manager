@@ -16,5 +16,5 @@ type Server struct {
 	SsRemotePort int          `json:"ss_remote_port" validate:"required,min=1,max=65536"`
 	SsLocalPort  int          `json:"ss_local_port" validate:"required,min=0,max=65536"`
 	Status       ServerStatus `json:"status"`
-	Traffic      int64        `json:"traffic"`
+	Traffic      float64      `json:"traffic"`
 }

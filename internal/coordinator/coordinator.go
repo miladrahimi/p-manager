@@ -141,16 +141,16 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 	}
 
 	users := map[int]int64{}
-	for _, s := range qss {
-		parts := strings.Split(s.GetName(), ">>>")
+	for _, qs := range qss {
+		parts := strings.Split(qs.GetName(), ">>>")
 		if parts[0] == "user" {
 			id, err := strconv.Atoi(parts[1])
 			if err != nil {
 				continue
 			}
-			users[id] += s.GetValue()
-		} else if parts[0] == "inbound" && parts[1] == "shadowsocks" {
-			c.database.Data.Stats.Traffic += s.GetValue()
+			users[id] += qs.GetValue()
+		} else if parts[0] == "inbound" {
+			s.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
 	}
 
@@ -198,10 +198,10 @@ func (c *Coordinator) syncLocalStats() {
 	c.database.Locker.Lock()
 	defer c.database.Locker.Unlock()
 
-	for _, s := range c.xray.QueryStats() {
-		parts := strings.Split(s.GetName(), ">>>")
+	for _, qs := range c.xray.QueryStats() {
+		parts := strings.Split(qs.GetName(), ">>>")
 		if parts[0] == "inbound" {
-			c.database.Data.Stats.Traffic += s.GetValue()
+			c.database.Data.Stats.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
 	}
 

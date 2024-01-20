@@ -30,11 +30,11 @@
                 </p>
                 <div class="mt-2 text-start">
                     <div class="mt-3">
-                        <small class="text-dark-emphasis">Shadowsocks Link:</small>
+                        <small class="text-dark-emphasis">Shadowsocks Links:</small>
                         <ul id="shadowsocks-links" class="small"></ul>
                     </div>
                     <div class="mt-3 text-center text-secondary">
-                        <small>Registered at</small>
+                        <small>Registered @</small>
                         <small id="created_at">-</small>
                     </div>
                 </div>
@@ -60,7 +60,7 @@
                 $("#created_at").html(ts2string(r['user']['created_at']))
 
                 if (r["shadowsocks_links"].length > 0) {
-                    r["shadowsocks_links"].forEach(function (v){
+                    r["shadowsocks_links"].forEach(function (v) {
                         $("#shadowsocks-links").append(`<li><a href="${v}">${v}</a></li>`)
                     })
                 } else {

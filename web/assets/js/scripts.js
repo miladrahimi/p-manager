@@ -26,7 +26,3 @@ function ts2string(timestamp) {
         return c.charCodeAt(0) & 0xf;
     });
 }
-
-function bytes2gb(bytes) {
-    return (parseFloat(bytes) / 1000 / 1000 / 1000).toFixed(2)
-}

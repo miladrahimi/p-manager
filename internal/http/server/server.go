@@ -59,11 +59,11 @@ func (s *Server) Run() {
 	g2.GET("/settings", v1.SettingsShow(s.database))
 	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))
 	g2.POST("/settings/import", v1.SettingsImport(s.coordinator, s.database))
-
-	g2.GET("/settings/stats", v1.StatsShow(s.database))
-	g2.POST("/settings/stats/zero", v1.StatsZero(s.database))
-	g2.POST("/settings/users/zero", v1.StatsZeroUsers(s.database))
-	g2.POST("/settings/users/delete", v1.StatsDeleteAllUsers(s.coordinator, s.database))
+	g2.GET("/settings/stats", v1.SettingsStatsShow(s.database))
+	g2.POST("/settings/stats/zero", v1.SettingsStatsZero(s.database))
+	g2.POST("/settings/servers/zero", v1.SettingsServersZero(s.database))
+	g2.POST("/settings/users/zero", v1.SettingsUsersZero(s.database))
+	g2.POST("/settings/users/delete", v1.SettingsUsersDelete(s.coordinator, s.database))
 
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)

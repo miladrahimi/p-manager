@@ -45,13 +45,13 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 	}
 }
 
-func StatsShow(d *database.Database) echo.HandlerFunc {
+func SettingsStatsShow(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, d.Data.Stats)
 	}
 }
 
-func StatsZero(d *database.Database) echo.HandlerFunc {
+func SettingsStatsZero(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
@@ -64,8 +64,25 @@ func StatsZero(d *database.Database) echo.HandlerFunc {
 	}
 }
 
-func StatsZeroUsers(d *database.Database) echo.HandlerFunc {
+func SettingsServersZero(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
+		for _, s := range d.Data.Servers {
+			s.Traffic = 0
+		}
+		d.Save()
+
+		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+func SettingsUsersZero(d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		for _, u := range d.Data.Users {
 			u.Used = 0
 			u.UsedBytes = 0
@@ -77,8 +94,11 @@ func StatsZeroUsers(d *database.Database) echo.HandlerFunc {
 	}
 }
 
-func StatsDeleteAllUsers(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func SettingsUsersDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		d.Data.Users = []*database.User{}
 		d.Save()
 

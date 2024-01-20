@@ -81,7 +81,7 @@ func (s *Server) Shutdown() {
 	if err := s.engine.Shutdown(c); err != nil {
 		s.log.Error("http server: failed to close", zap.Error(err))
 	} else {
-		s.log.Debug("http server: closed successfully")
+		s.log.Info("http server: closed successfully")
 	}
 }
 

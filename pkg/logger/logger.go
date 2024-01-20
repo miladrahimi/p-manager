@@ -77,7 +77,7 @@ func (l *Logger) Shutdown() {
 	if err := l.Engine.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) {
 		l.Engine.Error("logger: failed to close", zap.Error(err))
 	} else {
-		l.Engine.Debug("logger: closed successfully")
+		l.Engine.Info("logger: closed successfully")
 	}
 }
 

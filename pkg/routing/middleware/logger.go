@@ -3,12 +3,13 @@ package middleware
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"time"
 )
 
-func Logger(l *zap.Logger) echo.MiddlewareFunc {
+func Logger(l *logger.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) error {
 			start := time.Now()
@@ -43,10 +44,6 @@ func Logger(l *zap.Logger) echo.MiddlewareFunc {
 				l.With(zap.Error(err)).Error("Server error", fields...)
 			case n >= 400:
 				l.With(zap.Error(err)).Warn("Client error", fields...)
-			case n >= 300:
-				l.Debug("Redirection", fields...)
-			default:
-				l.Debug("Success", fields...)
 			}
 
 			return nil

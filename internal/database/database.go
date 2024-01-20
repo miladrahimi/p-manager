@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/go-playground/validator"
 	"github.com/labstack/gommon/random"
+	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"go.uber.org/zap"
 	"os"
@@ -23,7 +24,7 @@ type Data struct {
 type Database struct {
 	Data   *Data
 	Locker *sync.Mutex
-	log    *zap.Logger
+	log    *logger.Logger
 }
 
 func (d *Database) Init() {
@@ -99,7 +100,7 @@ func (d *Database) GenerateServerId() int {
 	}
 }
 
-func New(l *zap.Logger) *Database {
+func New(l *logger.Logger) *Database {
 	return &Database{
 		log:    l,
 		Locker: &sync.Mutex{},

@@ -11,6 +11,7 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/internal/http/handlers/pages"
 	"github.com/miladrahimi/xray-manager/internal/http/handlers/v1"
+	"github.com/miladrahimi/xray-manager/pkg/logger"
 	middleware2 "github.com/miladrahimi/xray-manager/pkg/routing/middleware"
 	"github.com/miladrahimi/xray-manager/pkg/routing/validator"
 	"go.uber.org/zap"
@@ -21,7 +22,7 @@ import (
 type Server struct {
 	engine      *echo.Echo
 	config      *config.Config
-	log         *zap.Logger
+	log         *logger.Logger
 	coordinator *coordinator.Coordinator
 	database    *database.Database
 }
@@ -85,7 +86,7 @@ func (s *Server) Shutdown() {
 }
 
 // New creates a new instance of HTTP Server.
-func New(config *config.Config, l *zap.Logger, c *coordinator.Coordinator, d *database.Database) *Server {
+func New(config *config.Config, l *logger.Logger, c *coordinator.Coordinator, d *database.Database) *Server {
 	e := echo.New()
 	e.HideBanner = true
 	e.Validator = validator.New()

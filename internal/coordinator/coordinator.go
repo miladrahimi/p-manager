@@ -6,6 +6,7 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/pkg/fetcher"
+	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	stats "github.com/xtls/xray-core/app/stats/command"
@@ -18,13 +19,13 @@ import (
 type Coordinator struct {
 	config   *config.Config
 	database *database.Database
-	log      *zap.Logger
+	log      *logger.Logger
 	fetcher  *fetcher.Fetcher
 	xray     *xray.Xray
 }
 
 func (c *Coordinator) Run() {
-	c.log.Info("coordinator: running...")
+	c.log.Fatal("coordinator: running...")
 	go c.syncRemoteConfigs()
 	go func() {
 		for {
@@ -122,7 +123,7 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 
 	responseBody, err := c.fetcher.Do("GET", url, s.HttpToken, nil)
 	if err != nil {
-		c.log.Warn("coordinator: cannot fetch remote stats", zap.Error(err))
+		c.log.Info("coordinator: cannot fetch remote stats", zap.Error(err))
 		s.Status = database.ServerStatusUnavailable
 		return
 	}
@@ -207,6 +208,6 @@ func (c *Coordinator) syncLocalStats() {
 	c.database.Save()
 }
 
-func New(c *config.Config, f *fetcher.Fetcher, l *zap.Logger, d *database.Database, x *xray.Xray) *Coordinator {
+func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Xray) *Coordinator {
 	return &Coordinator{config: c, log: l, database: d, xray: x, fetcher: f}
 }

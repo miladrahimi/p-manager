@@ -3,6 +3,7 @@ package xray
 import (
 	"context"
 	"encoding/json"
+	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
@@ -19,7 +20,7 @@ type Xray struct {
 	configPath string
 	binaryPath string
 	command    *exec.Cmd
-	log        *zap.Logger
+	log        *logger.Logger
 	connection *grpc.ClientConn
 }
 
@@ -169,6 +170,6 @@ func (x *Xray) QueryStats() []*stats.Stat {
 }
 
 // New creates a new instance of Xray.
-func New(l *zap.Logger, configPath, binaryPath string) *Xray {
+func New(l *logger.Logger, configPath, binaryPath string) *Xray {
 	return &Xray{log: l, config: NewConfig(), binaryPath: binaryPath, configPath: configPath}
 }

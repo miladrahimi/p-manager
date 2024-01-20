@@ -11,6 +11,7 @@ import (
 type Logger struct {
 	level  string
 	format string
+	closer func()
 	Engine *zap.Logger
 }
 
@@ -47,6 +48,31 @@ func (l *Logger) Init() (err error) {
 	return nil
 }
 
+func (l *Logger) Debug(msg string, fields ...zap.Field) {
+	l.Engine.Debug(msg, fields...)
+}
+
+func (l *Logger) Info(msg string, fields ...zap.Field) {
+	l.Engine.Info(msg, fields...)
+}
+
+func (l *Logger) Warn(msg string, fields ...zap.Field) {
+	l.Engine.Warn(msg, fields...)
+}
+
+func (l *Logger) Error(msg string, fields ...zap.Field) {
+	l.Engine.Error(msg, fields...)
+}
+
+func (l *Logger) Fatal(msg string, fields ...zap.Field) {
+	l.closer()
+	l.Engine.Fatal(msg, fields...)
+}
+
+func (l *Logger) With(fields ...zap.Field) *zap.Logger {
+	return l.Engine.With(fields...)
+}
+
 func (l *Logger) Shutdown() {
 	if err := l.Engine.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) {
 		l.Engine.Error("logger: failed to close", zap.Error(err))
@@ -55,6 +81,6 @@ func (l *Logger) Shutdown() {
 	}
 }
 
-func New(level, format string) (logger *Logger) {
-	return &Logger{Engine: nil, level: level, format: format}
+func New(level, format string, closer func()) (logger *Logger) {
+	return &Logger{Engine: nil, level: level, format: format, closer: closer}
 }

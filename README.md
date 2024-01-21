@@ -30,16 +30,13 @@ docker compose up -d
 ### Configuration
 
 ```shell
-configs/main.local.json
+vim configs/main.local.json
 ```
 
 ### Update
 
 ``` shell
-docker compose pull
-git pull
-docker compose down
-docker compose up -d
+make update
 ```
 
 ### Migrate

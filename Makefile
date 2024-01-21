@@ -13,3 +13,9 @@ fresh:
 	rm storage/database.json
 	rm storage/xray.json
 	docker compose restart
+
+update:
+	docker compose pull
+	git pull
+	docker compose down
+	docker compose up -d

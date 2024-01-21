@@ -43,7 +43,9 @@ func (s *Server) Run() {
 	g1.POST("/profile/reset", v1.ProfileReset(s.coordinator, s.database))
 
 	g2 := s.engine.Group("/v1")
-	g2.Use(middleware2.Authorize(s.database.Data.Settings.AdminPassword))
+	g2.Use(middleware2.Authorize(func() string {
+		return s.database.Data.Settings.AdminPassword
+	}))
 
 	g2.GET("/users", v1.UsersIndex(s.database))
 	g2.POST("/users", v1.UsersStore(s.coordinator, s.database))

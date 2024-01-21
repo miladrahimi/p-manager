@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-func Authorize(token string) func(echo.HandlerFunc) echo.HandlerFunc {
+func Authorize(token func() string) func(echo.HandlerFunc) echo.HandlerFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(context echo.Context) error {
-			if !authorizeToken(token, context) {
+			if !authorizeToken(token(), context) {
 				return echo.ErrUnauthorized
 			}
 			return next(context)

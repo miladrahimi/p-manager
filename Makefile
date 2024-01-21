@@ -15,7 +15,7 @@ fresh:
 	docker compose restart
 
 update:
-	docker compose pull
 	git pull
+	docker compose pull
 	docker compose down
 	docker compose up -d

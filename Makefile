@@ -1,4 +1,4 @@
-.PHONY: setup run build reset fresh
+.PHONY: setup run build reset fresh update
 
 setup:
 	./third_party/install-xray-mac.sh

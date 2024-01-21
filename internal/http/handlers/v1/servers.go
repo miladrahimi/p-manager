@@ -67,6 +67,7 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		d.Save()
 
 		go coordinator.SyncLocalConfigs()
+		go coordinator.SyncStats()
 
 		return c.JSON(http.StatusCreated, server)
 	}

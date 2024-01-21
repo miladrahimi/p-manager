@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -22,9 +23,13 @@ type Xray struct {
 	command    *exec.Cmd
 	log        *logger.Logger
 	connection *grpc.ClientConn
+	locker     *sync.Mutex
 }
 
 func (x *Xray) initConfig() {
+	x.config.Locker.Lock()
+	defer x.config.Locker.Unlock()
+
 	if !utils.FileExist(x.configPath) {
 		x.saveConfig()
 	} else {
@@ -67,6 +72,9 @@ func (x *Xray) saveConfig() {
 }
 
 func (x *Xray) Run() {
+	x.locker.Lock()
+	defer x.locker.Unlock()
+
 	x.initConfig()
 	x.initApiPort()
 	go x.runCore()
@@ -74,9 +82,11 @@ func (x *Xray) Run() {
 }
 
 func (x *Xray) initApiPort() {
+	x.config.Locker.Lock()
+	defer x.config.Locker.Unlock()
+
 	op := x.config.ApiInbound().Port
 	if !utils.PortFree(op) {
-		x.log.Error("debug", zap.Int("p", op))
 		np, err := utils.FreePort()
 		if err != nil {
 			x.log.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
@@ -110,6 +120,9 @@ func (x *Xray) Restart() {
 }
 
 func (x *Xray) Shutdown() {
+	x.locker.Lock()
+	defer x.locker.Unlock()
+
 	x.log.Info("xray: shutting down the xray core...")
 	if x.connection != nil {
 		_ = x.connection.Close()
@@ -167,5 +180,5 @@ func (x *Xray) QueryStats() []*stats.Stat {
 }
 
 func New(l *logger.Logger, configPath, binaryPath string) *Xray {
-	return &Xray{log: l, config: NewConfig(), binaryPath: binaryPath, configPath: configPath}
+	return &Xray{log: l, config: NewConfig(), binaryPath: binaryPath, configPath: configPath, locker: &sync.Mutex{}}
 }

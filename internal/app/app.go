@@ -30,11 +30,11 @@ func New() (a *App, err error) {
 	a = &App{}
 
 	a.config = config.New()
-	if a.config.Init() != nil {
+	if err = a.config.Init(); err != nil {
 		return nil, err
 	}
 	a.log = logger.New(a.config.Logger.Level, a.config.Logger.Format, a.ShutdownModules)
-	if a.log.Init() != nil {
+	if err = a.log.Init(); err != nil {
 		return nil, err
 	}
 

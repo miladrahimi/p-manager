@@ -1,13 +1,13 @@
-.PHONY: install run build reset fresh
+.PHONY: setup run build reset fresh
 
-install:
-	./third_party/install-xray.sh
+setup:
+	./third_party/install-xray-mac.sh
 
-run: install
+run:
 	go run main.go start
 
-build: install
-	go build main.go -o ssm
+build:
+	go build main.go -o xray-manager
 
 fresh:
 	rm storage/database.json

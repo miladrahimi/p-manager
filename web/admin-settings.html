@@ -35,20 +35,21 @@
 
         <div id="table"></div>
 
-        <table class="table table-bordered table-light table-sm">
-            <thead>
-            <tr>
-                <th scope="col">Total Traffic (GB)</th>
-                <th scope="col">Update At</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td id="stats-traffic">Loading...</td>
-                <td id="stats-updated-at">Loading...</td>
-            </tr>
-            </tbody>
-        </table>
+        <div class="card bg-light-subtle mt-3 text-start">
+            <div class="card-header">Stats</div>
+            <div class="card-body">
+                <div class="my-1">
+                    <span>Total traffic:</span>
+                    <span id="stats-traffic" class="text-muted"></span>
+                    <span class="text-muted">GB</span>
+                    <span class="text-muted">(since <span id="stats-updated-at"></span>)</span>
+                </div>
+                <div class="my-1">
+                    <span>Users count:</span>
+                    <span id="stats-users-count" class="text-muted"></span>
+                </div>
+            </div>
+        </div>
 
         <div class="card bg-light-subtle mt-3 text-start">
             <div class="card-header">Import users from old app</div>
@@ -195,6 +196,7 @@
         success: function (response) {
             $("#stats-traffic").html(parseFloat(response['traffic']).toFixed(2))
             $("#stats-updated-at").html(ts2string(response['updated_at']))
+            $("#stats-users-count").html(response['users_count'])
         },
         error: function (response) {
             console.log(response)

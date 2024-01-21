@@ -66,7 +66,6 @@ func (x *Xray) saveConfig() {
 	}
 }
 
-// Run prepare and starts the Xray core process.
 func (x *Xray) Run() {
 	x.initConfig()
 	x.initApiPort()
@@ -74,7 +73,6 @@ func (x *Xray) Run() {
 	x.connectGrpc()
 }
 
-// initApiPort finds a free port for api inbound.
 func (x *Xray) initApiPort() {
 	op := x.config.ApiInbound().Port
 	if !utils.PortFree(op) {
@@ -89,8 +87,11 @@ func (x *Xray) initApiPort() {
 	}
 }
 
-// runCore runs Xray core.
 func (x *Xray) runCore() {
+	if !utils.FileExist(x.binaryPath) {
+		x.log.Fatal("xray: core binary file not found", zap.String("path", x.binaryPath))
+	}
+
 	x.command = exec.Command(x.binaryPath, "-c", x.configPath)
 	x.command.Stderr = os.Stderr
 	x.command.Stdout = os.Stdout
@@ -101,7 +102,6 @@ func (x *Xray) runCore() {
 	}
 }
 
-// Restart closes and runs the Xray core.
 func (x *Xray) Restart() {
 	x.log.Info("xray: restarting the xray core...")
 	x.saveConfig()
@@ -109,13 +109,12 @@ func (x *Xray) Restart() {
 	x.Run()
 }
 
-// Shutdown closes Xray core process.
 func (x *Xray) Shutdown() {
 	x.log.Info("xray: shutting down the xray core...")
 	if x.connection != nil {
 		_ = x.connection.Close()
 	}
-	if x.command.Process != nil {
+	if x.command != nil && x.command.Process != nil {
 		if err := x.command.Process.Kill(); err != nil {
 			x.log.Error("xray: failed to shutdown the xray core", zap.Error(err))
 		} else {
@@ -126,7 +125,6 @@ func (x *Xray) Shutdown() {
 	}
 }
 
-// connectGrpc connects to the GRPC APIs provided by Xray core.
 func (x *Xray) connectGrpc() {
 	x.log.Info("xray: connecting to xray core grpc...")
 
@@ -141,7 +139,7 @@ func (x *Xray) connectGrpc() {
 	for i := 0; i < 5; i++ {
 		x.connection, err = grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			x.log.Debug("xray: cannot connect the xray core grpc", zap.Int("try", i))
+			x.log.Debug("xray: trying to connect to grpc", zap.Int("try", i))
 		} else {
 			return
 		}
@@ -159,7 +157,6 @@ func (x *Xray) Config() *Config {
 	return x.config
 }
 
-// QueryStats fetches the traffic stats from Xray core.
 func (x *Xray) QueryStats() []*stats.Stat {
 	client := stats.NewStatsServiceClient(x.connection)
 	qs, err := client.QueryStats(context.Background(), &stats.QueryStatsRequest{Reset_: true})
@@ -169,7 +166,6 @@ func (x *Xray) QueryStats() []*stats.Stat {
 	return qs.GetStat()
 }
 
-// New creates a new instance of Xray.
 func New(l *logger.Logger, configPath, binaryPath string) *Xray {
 	return &Xray{log: l, config: NewConfig(), binaryPath: binaryPath, configPath: configPath}
 }

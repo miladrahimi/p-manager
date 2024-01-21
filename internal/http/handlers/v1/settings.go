@@ -47,7 +47,13 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 
 func SettingsStatsShow(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, d.Data.Stats)
+		return c.JSON(http.StatusOK, struct {
+			*database.Stats
+			UsersCount int `json:"users_count"`
+		}{
+			Stats:      d.Data.Stats,
+			UsersCount: len(d.Data.Users),
+		})
 	}
 }
 

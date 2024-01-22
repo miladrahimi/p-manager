@@ -30,7 +30,7 @@ docker compose up -d
 ### Configuration
 
 ```shell
-vim configs/main.local.json
+configs/main.local.json
 ```
 
 ### Update

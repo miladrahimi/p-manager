@@ -39,6 +39,6 @@ configs/main.local.json
 make update
 ```
 
-## Link
+## Links
 
 * https://github.com/miladrahimi/xray-node

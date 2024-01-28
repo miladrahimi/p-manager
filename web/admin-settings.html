@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator_semanticui.min.css">
-    <link rel="icon" href="favicon.ico">
-    <link rel="apple-touch-icon" href="favicon.ico">
+    <link rel="icon" href="favicon.ico?h=347c30b2239a844cd052f0c0be38d806">
+    <link rel="apple-touch-icon" href="favicon.ico?h=347c30b2239a844cd052f0c0be38d806">
 </head>
 <body>
 
@@ -79,7 +79,7 @@
 <script src="assets/third_party/jquery-3.6.3.min.js"></script>
 <script src="assets/third_party/bootstrap-5.3.2/js/bootstrap.min.js"></script>
 <script src="assets/third_party/tabulator-5.5.2/dist/js/tabulator.min.js"></script>
-<script src="assets/js/scripts.js"></script>
+<script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     let tooltip = function (e, cell) {
         let el = document.createElement("div");
@@ -96,6 +96,9 @@
                 break;
             case "Host":
                 el.innerText = "Host to use in proxy links.";
+                break;
+            case "Shadowsocks Port":
+                el.innerText = "Shadowsocks Port to generate proxies.";
                 break;
         }
         return el;
@@ -126,12 +129,15 @@
             "Admin Password": "admin_password",
             "Traffic Ratio": "traffic_ratio",
             "Host": "host",
+            "Shadowsocks Port": "shadowsocks_port",
         }
 
         let body = {}
         table.getData().forEach(function (v) {
             if (["Traffic Ratio"].includes(v.key)) {
                 body[map[v.key]] = parseFloat(v.value)
+            } else if (["Shadowsocks Port"].includes(v.key)) {
+                body[map[v.key]] = parseInt(v.value)
             } else {
                 body[map[v.key]] = v.value
             }
@@ -174,6 +180,7 @@
             {"key": "Admin Password", "value": response["admin_password"]},
             {"key": "Traffic Ratio", "value": response["traffic_ratio"]},
             {"key": "Host", "value": response["host"]},
+            {"key": "Shadowsocks Port", "value": response["shadowsocks_port"]},
         ])
     }
 

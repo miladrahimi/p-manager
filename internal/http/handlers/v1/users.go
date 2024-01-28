@@ -71,7 +71,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 		d.Data.Users = append(d.Data.Users, user)
 		d.Save()
 
-		go coordinator.SyncRemoteConfigs()
+		go coordinator.SyncConfigs()
 
 		return c.JSON(http.StatusCreated, user)
 	}
@@ -115,7 +115,7 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 		user.Enabled = request.Enabled
 		d.Save()
 
-		go coordinator.SyncRemoteConfigs()
+		go coordinator.SyncConfigs()
 
 		return c.JSON(http.StatusOK, user)
 	}
@@ -147,7 +147,7 @@ func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) ech
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				d.Data.Users = slices.Delete(d.Data.Users, i, i+1)
 				d.Save()
-				go coordinator.SyncRemoteConfigs()
+				go coordinator.SyncConfigs()
 			}
 		}
 

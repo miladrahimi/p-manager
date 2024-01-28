@@ -6,17 +6,14 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
-	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"net/http"
 	"strconv"
 )
 
 type ServersStoreRequest struct {
-	Host         string `json:"host" validate:"required,max=64"`
-	HttpToken    string `json:"http_token" validate:"required"`
-	HttpPort     int    `json:"http_port" validate:"required,min=1,max=65536"`
-	SsRemotePort int    `json:"ss_remote_port" validate:"required,min=1,max=65536"`
-	SsLocalPort  int    `json:"ss_local_port" validate:"min=0,max=65536"`
+	Host      string `json:"host" validate:"required,max=64"`
+	HttpToken string `json:"http_token" validate:"required"`
+	HttpPort  int    `json:"http_port" validate:"required,min=1,max=65536"`
 }
 
 type ServersUpdateRequest struct {
@@ -44,12 +41,6 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
-		if r.SsLocalPort > 0 && !utils.PortFree(r.SsLocalPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("The port %d is already in use.", r.SsLocalPort),
-			})
-		}
-
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
@@ -60,13 +51,11 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		server.HttpToken = r.HttpToken
 		server.Host = r.Host
 		server.HttpPort = r.HttpPort
-		server.SsLocalPort = r.SsLocalPort
-		server.SsRemotePort = r.SsRemotePort
 
 		d.Data.Servers = append(d.Data.Servers, server)
 		d.Save()
 
-		go coordinator.SyncLocalConfigs()
+		go coordinator.SyncConfigs()
 		go coordinator.SyncStats()
 
 		return c.JSON(http.StatusCreated, server)
@@ -97,20 +86,12 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
 		}
 
-		if r.SsLocalPort > 0 && r.SsLocalPort != server.SsLocalPort && !utils.PortFree(r.SsLocalPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("The port %d is already in use.", r.SsLocalPort),
-			})
-		}
-
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
 		server.Host = r.Host
 		server.HttpToken = r.HttpToken
 		server.HttpPort = r.HttpPort
-		server.SsRemotePort = r.SsRemotePort
-		server.SsLocalPort = r.SsLocalPort
 		d.Save()
 
 		go coordinator.SyncConfigs()

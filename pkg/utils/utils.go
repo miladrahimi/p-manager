@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"github.com/google/uuid"
 	"math"
@@ -15,6 +17,15 @@ func FileExist(path string) bool {
 		return false
 	}
 	return true
+}
+
+func GenerateKey32() string {
+	key := make([]byte, 32)
+	_, err := rand.Read(key)
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(key)
 }
 
 // UUID generates UUID without - character.

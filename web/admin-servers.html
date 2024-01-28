@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator_semanticui.min.css">
-    <link rel="icon" href="favicon.ico">
-    <link rel="apple-touch-icon" href="favicon.ico">
+    <link rel="icon" href="favicon.ico?h=347c30b2239a844cd052f0c0be38d806">
+    <link rel="apple-touch-icon" href="favicon.ico?h=347c30b2239a844cd052f0c0be38d806">
 </head>
 <body>
 
@@ -42,7 +42,7 @@
 <script src="assets/third_party/jquery-3.6.3.min.js"></script>
 <script src="assets/third_party/bootstrap-5.3.2/js/bootstrap.min.js"></script>
 <script src="assets/third_party/tabulator-5.5.2/dist/js/tabulator.min.js"></script>
-<script src="assets/js/scripts.js"></script>
+<script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     let statusFormatter = function (cell) {
         switch (cell.getValue()) {
@@ -145,24 +145,6 @@
                 editable: true
             },
             {
-                title: "SS Remote Port",
-                field: "ss_remote_port",
-                visible: true,
-                editor: "number",
-                widthGrow: 1,
-                validator: ["required", "min:1", "max:65536"],
-                editable: true
-            },
-            {
-                title: "SS Local Port",
-                field: "ss_local_port",
-                visible: true,
-                editor: "number",
-                widthGrow: 1,
-                validator: ["required", "min:0", "max:65536"],
-                editable: true
-            },
-            {
                 title: "Traffic (GB)",
                 field: "traffic",
                 visible: true,
@@ -185,8 +167,7 @@
         if (
             !cell.getData()['host'] ||
             !cell.getData()['http_token'] ||
-            !cell.getData()['http_port'] ||
-            !cell.getData()['ss_remote_port']
+            !cell.getData()['http_port']
         ) {
             return
         }
@@ -230,8 +211,6 @@
             host: "",
             http_token: "",
             http_port: 8080,
-            ss_remote_port: 2929,
-            ss_local_port: 0,
             traffic: 0,
         })
     })

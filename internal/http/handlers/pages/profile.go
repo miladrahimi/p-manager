@@ -17,6 +17,10 @@ func Profile() echo.HandlerFunc {
 			return err
 		}
 
+		c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Response().Header().Set("Pragma", "no-cache")
+		c.Response().Header().Set("Expires", "0")
+
 		return c.HTML(http.StatusOK, string(content))
 	}
 }

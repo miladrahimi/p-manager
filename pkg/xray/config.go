@@ -3,8 +3,8 @@ package xray
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
-	"github.com/labstack/gommon/random"
 	"github.com/miladrahimi/xray-manager/internal/config"
+	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"slices"
 	"strconv"
 	"sync"
@@ -177,8 +177,10 @@ func (c *Config) UpdateShadowsocksInbound(clients []*Client, port int) {
 			Listen:   "0.0.0.0",
 			Port:     port,
 			Settings: &InboundSettings{
-				Clients: clients,
-				Network: "tcp,udp",
+				Clients:  clients,
+				Network:  "tcp,udp",
+				Password: utils.GenerateKey32(),
+				Method:   config.ShadowsocksMethod,
 			},
 		}
 		if index != -1 {
@@ -331,11 +333,11 @@ func NewPortalConfig() *Config {
 			Port:     2929,
 			Settings: &InboundSettings{
 				Method:   config.ShadowsocksMethod,
-				Password: random.String(32),
+				Password: utils.GenerateKey32(),
 				Network:  "tcp,udp",
 				Clients: []*Client{
 					{
-						Password: random.String(32),
+						Password: utils.GenerateKey32(),
 						Method:   config.ShadowsocksMethod,
 						Email:    "1",
 					},
@@ -348,8 +350,8 @@ func NewPortalConfig() *Config {
 			Listen:   "0.0.0.0",
 			Port:     2829,
 			Settings: &InboundSettings{
-				Method:   config.ShadowsocksMethod,
-				Password: random.String(32),
+				Method:   config.Shadowsocks2022Method,
+				Password: utils.GenerateKey32(),
 				Network:  "tcp,udp",
 			},
 		},
@@ -373,7 +375,7 @@ func NewBridgeConfig() *Config {
 			OutboundTag: "freedom",
 		},
 	}...)
-	c.Outbounds = append(c.Outbounds, []*Outbound{
+	c.Outbounds = []*Outbound{
 		{
 			Tag:      "reverse",
 			Protocol: "shadowsocks",
@@ -383,7 +385,7 @@ func NewBridgeConfig() *Config {
 						Address:  "127.0.0.1",
 						Port:     2929,
 						Method:   config.Shadowsocks2022Method,
-						Password: random.String(32),
+						Password: utils.GenerateKey32(),
 					},
 				},
 			},
@@ -391,7 +393,7 @@ func NewBridgeConfig() *Config {
 				Network: "tcp",
 			},
 		},
-	}...)
+	}
 	return c
 }
 
@@ -411,12 +413,6 @@ func NewConfig() *Config {
 					Address: "127.0.0.1",
 					Network: "tcp",
 				},
-			},
-		},
-		Outbounds: []*Outbound{
-			{
-				Tag:      "freedom",
-				Protocol: "freedom",
 			},
 		},
 		DNS: &DNS{

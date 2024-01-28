@@ -72,9 +72,6 @@ func (x *Xray) saveConfig() {
 }
 
 func (x *Xray) Run() {
-	x.locker.Lock()
-	defer x.locker.Unlock()
-
 	x.initConfig()
 	x.initApiPort()
 	go x.runCore()

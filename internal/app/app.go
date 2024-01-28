@@ -38,6 +38,8 @@ func New() (a *App, err error) {
 		return nil, err
 	}
 
+	a.log.Info("app: logger and config initialized")
+
 	a.database = database.New(a.log)
 	a.xray = xray.New(a.log, a.config.XrayConfigPath(), a.config.XrayBinaryPath())
 	a.fetcher = fetcher.New(a.config.HttpClient.Timeout)

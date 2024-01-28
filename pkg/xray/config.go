@@ -19,10 +19,12 @@ type Client struct {
 }
 
 type InboundSettings struct {
-	Address string    `json:"address,omitempty"`
-	Clients []*Client `json:"clients,omitempty" validate:"omitempty,dive"`
-	Network string    `json:"network,omitempty"`
-	Port    int       `json:"port,omitempty" validate:"omitempty,min=1,max=65536"`
+	Address  string    `json:"address,omitempty"`
+	Clients  []*Client `json:"clients,omitempty" validate:"omitempty,dive"`
+	Network  string    `json:"network,omitempty"`
+	Method   string    `json:"method,omitempty" validate:"omitempty"`
+	Password string    `json:"password,omitempty" validate:"omitempty"`
+	Port     int       `json:"port,omitempty" validate:"omitempty,min=1,max=65536"`
 }
 
 type Inbound struct {
@@ -33,9 +35,26 @@ type Inbound struct {
 	Tag      string           `json:"tag" validate:"required"`
 }
 
+type OutboundServer struct {
+	Address  string `json:"address" validate:"required"`
+	Port     int    `json:"port" validate:"required,min=1,max=65536"`
+	Method   string `json:"method" validate:"required,oneof=2022-blake3-aes-256-gcm"`
+	Password string `json:"password" validate:"required"`
+}
+
+type OutboundSettings struct {
+	Servers []*OutboundServer `json:"servers" validate:"omitempty,dive"`
+}
+
+type StreamSettings struct {
+	Network string `json:"network" validate:"required"`
+}
+
 type Outbound struct {
-	Protocol string `json:"protocol" validate:"required,oneof=freedom"`
-	Tag      string `json:"tag" validate:"required"`
+	Protocol       string            `json:"protocol" validate:"required,oneof=freedom shadowsocks"`
+	Tag            string            `json:"tag" validate:"required"`
+	Settings       *OutboundSettings `json:"settings,omitempty" validate:"omitempty"`
+	StreamSettings *StreamSettings   `json:"streamSettings,omitempty" validate:"omitempty"`
 }
 
 type DNS struct {
@@ -61,6 +80,7 @@ type Rule struct {
 	InboundTag  []string `json:"inboundTag" validate:"required"`
 	OutboundTag string   `json:"outboundTag" validate:"required"`
 	Type        string   `json:"type" validate:"required"`
+	Domain      []string `json:"domain,omitempty" validate:"omitempty"`
 }
 
 type RoutingSettings struct {
@@ -74,15 +94,26 @@ type Routing struct {
 	Settings       *RoutingSettings `json:"settings" validate:"required"`
 }
 
+type Reverse struct {
+	Bridges []*ReverseItem `json:"bridges,omitempty"  validate:"omitempty,dive"`
+	Portals []*ReverseItem `json:"portals,omitempty"  validate:"omitempty,dive"`
+}
+
+type ReverseItem struct {
+	Tag    string `json:"tag"  validate:"required"`
+	Domain string `json:"domain"  validate:"required"`
+}
+
 type Config struct {
 	Log       *Log                   `json:"log" validate:"required"`
 	Inbounds  []*Inbound             `json:"inbounds" validate:"required,dive"`
-	Outbounds []*Outbound            `json:"outbounds" validate:"required,dive"`
+	Outbounds []*Outbound            `json:"outbounds" validate:"dive"`
 	DNS       *DNS                   `json:"dns" validate:"required"`
 	Stats     map[string]interface{} `json:"stats" validate:"required"`
 	API       *API                   `json:"api" validate:"required"`
 	Policy    *Policy                `json:"policy" validate:"required"`
 	Routing   *Routing               `json:"routing" validate:"required"`
+	Reverse   *Reverse               `json:"reverse" validate:"omitempty"`
 	Locker    *sync.Mutex            `json:"-"`
 }
 
@@ -255,5 +286,6 @@ func NewConfig() *Config {
 				},
 			},
 		},
+		Reverse: &Reverse{},
 	}
 }

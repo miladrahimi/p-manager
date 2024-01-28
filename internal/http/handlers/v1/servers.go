@@ -55,8 +55,10 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 		d.Data.Servers = append(d.Data.Servers, server)
 		d.Save()
 
-		go coordinator.SyncConfigs()
-		go coordinator.SyncStats()
+		go func() {
+			coordinator.SyncConfigs()
+			coordinator.SyncStats()
+		}()
 
 		return c.JSON(http.StatusCreated, server)
 	}

@@ -106,9 +106,10 @@ func New(l *logger.Logger) *Database {
 		Locker: &sync.Mutex{},
 		Data: &Data{
 			Settings: &Settings{
-				AdminPassword: "password",
-				Host:          "127.0.0.1",
-				TrafficRatio:  1,
+				AdminPassword:   "password",
+				Host:            "127.0.0.1",
+				ShadowsocksPort: 2929,
+				TrafficRatio:    1,
 			},
 			Stats: &Stats{
 				Traffic:   0,

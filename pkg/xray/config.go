@@ -419,6 +419,7 @@ func NewConfig() *Config {
 				},
 			},
 		},
+		Outbounds: []*Outbound{},
 		DNS: &DNS{
 			Servers: []string{"8.8.8.8", "8.8.4.4", "localhost"},
 		},

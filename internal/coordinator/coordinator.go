@@ -26,6 +26,7 @@ type Coordinator struct {
 
 func (c *Coordinator) Run() {
 	c.log.Info("coordinator: running...")
+	go c.syncDatabase()
 	go c.SyncRemoteConfigs()
 	go func() {
 		for {
@@ -34,6 +35,13 @@ func (c *Coordinator) Run() {
 			time.Sleep(time.Duration(c.config.Worker.Interval) * time.Second)
 		}
 	}()
+}
+
+func (c *Coordinator) syncDatabase() {
+	c.database.Locker.Lock()
+	defer c.database.Locker.Unlock()
+	c.database.Data.Settings.ShadowsocksPort = c.xray.Config().ShadowsocksInbound().Port
+	c.database.Save()
 }
 
 func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
@@ -60,10 +68,13 @@ func (c *Coordinator) SyncConfigs() {
 func (c *Coordinator) SyncRemoteConfigs() {
 	c.log.Info("coordinator: syncing remote configs...")
 
-	shadowsocksClients := c.generateShadowsocksClients()
 	for _, s := range c.database.Data.Servers {
-		xc := xray.NewConfig()
-		xc.UpdateShadowsocksInbound(shadowsocksClients, s.SsRemotePort)
+		xc := xray.NewBridgeConfig()
+		xc.UpdateReverseOutbound(
+			c.database.Data.Settings.Host,
+			c.xray.Config().ReverseInbound().Port,
+			c.xray.Config().ReverseInbound().Settings.Password,
+		)
 		go c.updateRemoteConfigs(s, xc)
 	}
 
@@ -76,12 +87,10 @@ func (c *Coordinator) SyncLocalConfigs() {
 	c.xray.Config().Locker.Lock()
 	defer c.xray.Config().Locker.Unlock()
 
-	c.xray.Config().RemoveInbounds()
-	for _, s := range c.database.Data.Servers {
-		if s.SsLocalPort > 0 {
-			c.xray.Config().AddRelayInbound(s.Id, s.Host, s.SsLocalPort, s.SsRemotePort)
-		}
-	}
+	c.xray.Config().UpdateShadowsocksInbound(
+		c.generateShadowsocksClients(),
+		c.database.Data.Settings.ShadowsocksPort,
+	)
 
 	go c.xray.Restart()
 }
@@ -140,34 +149,11 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 		return
 	}
 
-	users := map[int]int64{}
 	for _, qs := range qss {
 		parts := strings.Split(qs.GetName(), ">>>")
-		if parts[0] == "user" {
-			id, err := strconv.Atoi(parts[1])
-			if err != nil {
-				continue
-			}
-			users[id] += qs.GetValue()
-		} else if parts[0] == "inbound" {
+		if parts[0] == "inbound" {
 			s.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
-	}
-
-	isSyncConfigsRequired := false
-	for _, u := range c.database.Data.Users {
-		if bytes, found := users[u.Id]; found {
-			u.UsedBytes += bytes
-			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
-			if u.Quota > 0 && u.Used > float64(u.Quota) {
-				u.Enabled = false
-				isSyncConfigsRequired = true
-			}
-		}
-	}
-
-	if isSyncConfigsRequired {
-		go c.SyncConfigs()
 	}
 }
 
@@ -198,11 +184,35 @@ func (c *Coordinator) syncLocalStats() {
 	c.database.Locker.Lock()
 	defer c.database.Locker.Unlock()
 
+	users := map[int]int64{}
+
 	for _, qs := range c.xray.QueryStats() {
 		parts := strings.Split(qs.GetName(), ">>>")
-		if parts[0] == "inbound" {
+		if parts[0] == "user" {
+			id, err := strconv.Atoi(parts[1])
+			if err != nil {
+				continue
+			}
+			users[id] += qs.GetValue()
+		} else if parts[0] == "inbound" {
 			c.database.Data.Stats.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
+	}
+
+	isSyncConfigsRequired := false
+	for _, u := range c.database.Data.Users {
+		if bytes, found := users[u.Id]; found {
+			u.UsedBytes += bytes
+			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
+			if u.Quota > 0 && u.Used > float64(u.Quota) {
+				u.Enabled = false
+				isSyncConfigsRequired = true
+			}
+		}
+	}
+
+	if isSyncConfigsRequired {
+		go c.SyncConfigs()
 	}
 
 	c.database.Save()

@@ -3,6 +3,8 @@ package xray
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/labstack/gommon/random"
+	"github.com/miladrahimi/xray-manager/internal/config"
 	"slices"
 	"strconv"
 	"sync"
@@ -117,21 +119,10 @@ type Config struct {
 	Locker    *sync.Mutex            `json:"-"`
 }
 
-// ApiInboundIndex finds the index of the api inbound.
 func (c *Config) ApiInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
 		if inbound.Tag == "api" {
-			index = i
-		}
-	}
-	return index
-}
-
-func (c *Config) ShadowsocksInboundIndex() int {
-	index := -1
-	for i, inbound := range c.Inbounds {
-		if inbound.Tag == "shadowsocks" {
 			index = i
 		}
 	}
@@ -158,6 +149,16 @@ func (c *Config) UpdateApiInbound(port int) {
 	} else {
 		c.Inbounds[index].Port = port
 	}
+}
+
+func (c *Config) ShadowsocksInboundIndex() int {
+	index := -1
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "shadowsocks" {
+			index = i
+		}
+	}
+	return index
 }
 
 func (c *Config) ShadowsocksInbound() *Inbound {
@@ -189,6 +190,87 @@ func (c *Config) UpdateShadowsocksInbound(clients []*Client, port int) {
 		if index != -1 {
 			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
 		}
+	}
+}
+
+func (c *Config) ReverseInboundIndex() int {
+	index := -1
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "reverse" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) ReverseInbound() *Inbound {
+	if c.ReverseInboundIndex() != -1 {
+		return c.Inbounds[c.ReverseInboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) UpdateReverseInbound(port int, password string) {
+	index := c.ReverseInboundIndex()
+	if index == -1 {
+		c.Inbounds = append(c.Inbounds, &Inbound{
+			Tag:      "reverse",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     port,
+			Settings: &InboundSettings{
+				Method:   config.Shadowsocks2022Method,
+				Password: password,
+				Network:  "tcp,udp",
+			},
+		})
+	} else {
+		c.Inbounds[index].Port = port
+		c.Inbounds[index].Settings.Password = password
+	}
+}
+
+func (c *Config) ReverseOutboundIndex() int {
+	index := -1
+	for i, outbound := range c.Outbounds {
+		if outbound.Tag == "reverse" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) ReverseOutbound() *Outbound {
+	if c.ReverseOutboundIndex() != -1 {
+		return c.Outbounds[c.ReverseOutboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) UpdateReverseOutbound(address string, port int, password string) {
+	index := c.ReverseOutboundIndex()
+	if index == -1 {
+		c.Outbounds = append(c.Outbounds, &Outbound{
+			Tag:      "reverse",
+			Protocol: "shadowsocks",
+			Settings: &OutboundSettings{
+				Servers: []*OutboundServer{
+					{
+						Address:  address,
+						Port:     port,
+						Method:   config.Shadowsocks2022Method,
+						Password: password,
+					},
+				},
+			},
+			StreamSettings: &StreamSettings{
+				Network: "tcp",
+			},
+		})
+	} else {
+		c.Outbounds[index].Settings.Servers[0].Address = address
+		c.Outbounds[index].Settings.Servers[0].Port = port
+		c.Outbounds[index].Settings.Servers[0].Password = password
 	}
 }
 
@@ -224,6 +306,93 @@ func newEmptyConfig() *Config {
 	return &Config{
 		Locker: &sync.Mutex{},
 	}
+}
+
+func NewPortalConfig() *Config {
+	c := NewConfig()
+	c.Reverse.Portals = []*ReverseItem{{Tag: "portal", Domain: "s1.google.com"}}
+	c.Routing.Settings.Rules = append(c.Routing.Settings.Rules, []*Rule{
+		{
+			Type:        "field",
+			InboundTag:  []string{"shadowsocks"},
+			OutboundTag: "portal",
+		},
+		{
+			Type:        "field",
+			InboundTag:  []string{"reverse"},
+			OutboundTag: "portal",
+		},
+	}...)
+	c.Inbounds = append(c.Inbounds, []*Inbound{
+		{
+			Tag:      "shadowsocks",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     2929,
+			Settings: &InboundSettings{
+				Method:   config.ShadowsocksMethod,
+				Password: random.String(32),
+				Network:  "tcp,udp",
+				Clients: []*Client{
+					{
+						Password: random.String(32),
+						Method:   config.ShadowsocksMethod,
+						Email:    "1",
+					},
+				},
+			},
+		},
+		{
+			Tag:      "reverse",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     2829,
+			Settings: &InboundSettings{
+				Method:   config.ShadowsocksMethod,
+				Password: random.String(32),
+				Network:  "tcp,udp",
+			},
+		},
+	}...)
+	return c
+}
+
+func NewBridgeConfig() *Config {
+	c := NewConfig()
+	c.Reverse.Bridges = []*ReverseItem{{Tag: "bridge", Domain: "s1.google.com"}}
+	c.Routing.Settings.Rules = append(c.Routing.Settings.Rules, []*Rule{
+		{
+			Type:        "field",
+			InboundTag:  []string{"bridge"},
+			Domain:      []string{"full:s1.google.com"},
+			OutboundTag: "reverse",
+		},
+		{
+			Type:        "field",
+			InboundTag:  []string{"bridge"},
+			OutboundTag: "freedom",
+		},
+	}...)
+	c.Outbounds = append(c.Outbounds, []*Outbound{
+		{
+			Tag:      "reverse",
+			Protocol: "shadowsocks",
+			Settings: &OutboundSettings{
+				Servers: []*OutboundServer{
+					{
+						Address:  "127.0.0.1",
+						Port:     2929,
+						Method:   config.Shadowsocks2022Method,
+						Password: random.String(32),
+					},
+				},
+			},
+			StreamSettings: &StreamSettings{
+				Network: "tcp",
+			},
+		},
+	}...)
+	return c
 }
 
 func NewConfig() *Config {

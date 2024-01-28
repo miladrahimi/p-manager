@@ -393,6 +393,10 @@ func NewBridgeConfig() *Config {
 				Network: "tcp",
 			},
 		},
+		{
+			Tag:      "freedom",
+			Protocol: "freedom",
+		},
 	}
 	return c
 }

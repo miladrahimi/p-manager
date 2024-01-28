@@ -38,13 +38,15 @@ func New() (a *App, err error) {
 		return nil, err
 	}
 
-	a.log.Info("app: logger and config initialized")
+	a.log.Info("app: logger and config initialized successfully")
 
 	a.database = database.New(a.log)
 	a.xray = xray.NewPortalXray(a.log, a.config.XrayConfigPath(), a.config.XrayBinaryPath())
 	a.fetcher = fetcher.New(a.config.HttpClient.Timeout)
 	a.coordinator = coordinator.New(a.config, a.fetcher, a.log, a.database, a.xray)
 	a.httpServer = server.New(a.config, a.log, a.coordinator, a.database)
+
+	a.log.Info("app: modules initialized successfully")
 
 	a.setupSignalListener()
 
@@ -56,6 +58,7 @@ func (a *App) Boot() {
 	a.xray.Run()
 	a.coordinator.Run()
 	a.httpServer.Run()
+	a.log.Info("app: modules ran successfully")
 }
 
 func (a *App) setupSignalListener() {
@@ -70,17 +73,6 @@ func (a *App) setupSignalListener() {
 		a.log.Info("app: system call", zap.String("signal", s.String()))
 
 		cancel()
-	}()
-
-	go func() {
-		signalChannel := make(chan os.Signal, 2)
-		signal.Notify(signalChannel, syscall.SIGHUP)
-
-		for {
-			s := <-signalChannel
-			a.log.Info("app: system call", zap.String("signal", s.String()))
-			a.xray.Restart()
-		}
 	}()
 }
 

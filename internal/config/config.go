@@ -11,7 +11,7 @@ import (
 const MainPath = "configs/main.json"
 const LocalPath = "configs/main.local.json"
 const AppName = "XrayManager"
-const AppVersion = "v2.0.0"
+const AppVersion = "v1.1.0"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
 
@@ -22,14 +22,14 @@ var xrayBinaryPaths = map[string]string{
 }
 
 type Config struct {
+	Report     bool `json:"report"`
 	HttpServer struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
 	} `json:"http_server"`
 
 	HttpClient struct {
-		Timeout int  `json:"timeout"`
-		Debug   bool `json:"debug"`
+		Timeout int `json:"timeout"`
 	} `json:"http_client"`
 
 	Logger struct {

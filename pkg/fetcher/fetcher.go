@@ -53,7 +53,7 @@ func (f *Fetcher) Do(method, url, token string, requestBody interface{}) ([]byte
 	return responseBody, nil
 }
 
-func (f *Fetcher) DebugUrl() string {
+func (f *Fetcher) ReportUrl() string {
 	return "https://rg.miladrahimi.com/"
 }
 

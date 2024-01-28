@@ -1,11 +1,11 @@
 {
+  "report": true,
   "http_server": {
     "host": "0.0.0.0",
     "port": 8080
   },
   "http_client": {
-    "timeout": 10000,
-    "debug": true
+    "timeout": 10000
   },
   "logger": {
     "level": "warn",

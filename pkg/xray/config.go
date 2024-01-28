@@ -135,18 +135,7 @@ func (c *Config) ApiInbound() *Inbound {
 
 func (c *Config) UpdateApiInbound(port int) {
 	index := c.ApiInboundIndex()
-	if index == -1 {
-		c.Inbounds = append(c.Inbounds, &Inbound{
-			Tag:      "api",
-			Protocol: "dokodemo-door",
-			Listen:   "127.0.0.1",
-			Port:     port,
-			Settings: &InboundSettings{
-				Address: "127.0.0.1",
-				Network: "tcp",
-			},
-		})
-	} else {
+	if index != -1 {
 		c.Inbounds[index].Port = port
 	}
 }
@@ -214,19 +203,7 @@ func (c *Config) ReverseInbound() *Inbound {
 
 func (c *Config) UpdateReverseInbound(port int, password string) {
 	index := c.ReverseInboundIndex()
-	if index == -1 {
-		c.Inbounds = append(c.Inbounds, &Inbound{
-			Tag:      "reverse",
-			Protocol: "shadowsocks",
-			Listen:   "0.0.0.0",
-			Port:     port,
-			Settings: &InboundSettings{
-				Method:   config.Shadowsocks2022Method,
-				Password: password,
-				Network:  "tcp,udp",
-			},
-		})
-	} else {
+	if index != -1 {
 		c.Inbounds[index].Port = port
 		c.Inbounds[index].Settings.Password = password
 	}
@@ -251,25 +228,7 @@ func (c *Config) ReverseOutbound() *Outbound {
 
 func (c *Config) UpdateReverseOutbound(address string, port int, password string) {
 	index := c.ReverseOutboundIndex()
-	if index == -1 {
-		c.Outbounds = append(c.Outbounds, &Outbound{
-			Tag:      "reverse",
-			Protocol: "shadowsocks",
-			Settings: &OutboundSettings{
-				Servers: []*OutboundServer{
-					{
-						Address:  address,
-						Port:     port,
-						Method:   config.Shadowsocks2022Method,
-						Password: password,
-					},
-				},
-			},
-			StreamSettings: &StreamSettings{
-				Network: "tcp",
-			},
-		})
-	} else {
+	if index != -1 {
 		c.Outbounds[index].Settings.Servers[0].Address = address
 		c.Outbounds[index].Settings.Servers[0].Port = port
 		c.Outbounds[index].Settings.Servers[0].Password = password
@@ -376,6 +335,23 @@ func NewBridgeConfig() *Config {
 		},
 	}...)
 	c.Outbounds = []*Outbound{
+		{
+			Tag:      "reverse",
+			Protocol: "shadowsocks",
+			Settings: &OutboundSettings{
+				Servers: []*OutboundServer{
+					{
+						Address:  "127.0.0.1",
+						Port:     2929,
+						Method:   config.Shadowsocks2022Method,
+						Password: utils.GenerateKey32(),
+					},
+				},
+			},
+			StreamSettings: &StreamSettings{
+				Network: "tcp",
+			},
+		},
 		{
 			Tag:      "freedom",
 			Protocol: "freedom",

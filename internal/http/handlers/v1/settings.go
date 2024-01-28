@@ -40,7 +40,7 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		d.Save()
 
 		go coordinator.SyncConfigs()
-		go coordinator.DebugSettings()
+		go coordinator.Report()
 
 		return c.JSON(http.StatusOK, settings)
 	}
@@ -97,7 +97,7 @@ func SettingsUsersZero(coordinator *coordinator.Coordinator, d *database.Databas
 		}
 		d.Save()
 
-		go coordinator.SyncRemoteConfigs()
+		go coordinator.SyncConfigs()
 
 		return c.NoContent(http.StatusNoContent)
 	}
@@ -111,7 +111,7 @@ func SettingsUsersDelete(coordinator *coordinator.Coordinator, d *database.Datab
 		d.Data.Users = []*database.User{}
 		d.Save()
 
-		go coordinator.SyncRemoteConfigs()
+		go coordinator.SyncConfigs()
 
 		return c.NoContent(http.StatusNoContent)
 	}
@@ -215,7 +215,7 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 
 		d.Save()
 
-		go coordinator.SyncRemoteConfigs()
+		go coordinator.SyncConfigs()
 
 		return c.JSON(http.StatusOK, map[string]string{
 			"message": "success",

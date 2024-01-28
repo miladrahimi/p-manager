@@ -117,7 +117,7 @@ func ServersDelete(coordinator *coordinator.Coordinator, d *database.Database) e
 			if s.Id == id {
 				d.Data.Servers = append(d.Data.Servers[:i], d.Data.Servers[i+1:]...)
 				d.Save()
-				go coordinator.SyncLocalConfigs()
+				go coordinator.SyncConfigs()
 			}
 		}
 

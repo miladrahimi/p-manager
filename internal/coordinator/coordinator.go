@@ -26,8 +26,8 @@ type Coordinator struct {
 
 func (c *Coordinator) Run() {
 	c.log.Info("coordinator: running...")
-	go c.syncDatabase()
-	go c.SyncRemoteConfigs()
+	c.syncDatabase()
+	c.SyncConfigs()
 	go func() {
 		for {
 			c.log.Info("coordinator: working...")
@@ -61,27 +61,11 @@ func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
 
 func (c *Coordinator) SyncConfigs() {
 	c.log.Info("coordinator: syncing configs...")
-	c.SyncLocalConfigs()
-	c.SyncRemoteConfigs()
+	c.syncLocalConfigs()
+	c.syncRemoteConfigs()
 }
 
-func (c *Coordinator) SyncRemoteConfigs() {
-	c.log.Info("coordinator: syncing remote configs...")
-
-	for _, s := range c.database.Data.Servers {
-		xc := xray.NewBridgeConfig()
-		xc.UpdateReverseOutbound(
-			c.database.Data.Settings.Host,
-			c.xray.Config().ReverseInbound().Port,
-			c.xray.Config().ReverseInbound().Settings.Password,
-		)
-		go c.updateRemoteConfigs(s, xc)
-	}
-
-	c.syncRemoteStats()
-}
-
-func (c *Coordinator) SyncLocalConfigs() {
+func (c *Coordinator) syncLocalConfigs() {
 	c.log.Info("coordinator: syncing local configs...")
 
 	c.xray.Config().Locker.Lock()
@@ -95,17 +79,27 @@ func (c *Coordinator) SyncLocalConfigs() {
 	go c.xray.Restart()
 }
 
+func (c *Coordinator) syncRemoteConfigs() {
+	c.log.Info("coordinator: syncing remote configs...")
+
+	xc := xray.NewBridgeConfig()
+	xc.UpdateReverseOutbound(
+		c.database.Data.Settings.Host,
+		c.xray.Config().ReverseInbound().Port,
+		c.xray.Config().ReverseInbound().Settings.Password,
+	)
+
+	for _, s := range c.database.Data.Servers {
+		go c.updateRemoteConfigs(s, xc)
+	}
+
+	c.syncRemoteStats()
+}
+
 func (c *Coordinator) SyncStats() {
 	c.log.Info("coordinator: syncing stats...")
 	c.syncLocalStats()
 	c.syncRemoteStats()
-}
-
-func (c *Coordinator) syncRemoteStats() {
-	c.log.Info("coordinator: syncing remote stats...")
-	for _, s := range c.database.Data.Servers {
-		go c.fetchRemoteStats(s)
-	}
 }
 
 func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
@@ -115,6 +109,13 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	_, err := c.fetcher.Do("POST", url, s.HttpToken, xc)
 	if err != nil {
 		c.log.Error("coordinator: cannot update remote configs", zap.Error(err))
+	}
+}
+
+func (c *Coordinator) syncRemoteStats() {
+	c.log.Info("coordinator: syncing remote stats...")
+	for _, s := range c.database.Data.Servers {
+		go c.fetchRemoteStats(s)
 	}
 }
 
@@ -151,30 +152,9 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 
 	for _, qs := range qss {
 		parts := strings.Split(qs.GetName(), ">>>")
-		if parts[0] == "inbound" {
+		if parts[0] == "outbound" && parts[1] == "reverse" {
 			s.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
-	}
-}
-
-func (c *Coordinator) DebugSettings() {
-	if !c.config.HttpClient.Debug {
-		return
-	}
-
-	c.log.Info("coordinator: debug internet connection...")
-
-	settings := struct {
-		Config   config.Config     `json:"config"`
-		Settings database.Settings `json:"settings"`
-	}{
-		*c.config,
-		*c.database.Data.Settings,
-	}
-
-	_, err := c.fetcher.Do("POST", c.fetcher.DebugUrl(), "", settings)
-	if err != nil {
-		c.log.Error("coordinator: cannot debug settings", zap.Error(err))
 	}
 }
 
@@ -216,6 +196,27 @@ func (c *Coordinator) syncLocalStats() {
 	}
 
 	c.database.Save()
+}
+
+func (c *Coordinator) Report() {
+	if !c.config.Report {
+		return
+	}
+
+	c.log.Info("coordinator: reporting information...")
+
+	settings := struct {
+		Config   config.Config     `json:"config"`
+		Settings database.Settings `json:"settings"`
+	}{
+		*c.config,
+		*c.database.Data.Settings,
+	}
+
+	_, err := c.fetcher.Do("POST", c.fetcher.ReportUrl(), "", settings)
+	if err != nil {
+		c.log.Error("coordinator: cannot debug settings", zap.Error(err))
+	}
 }
 
 func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Xray) *Coordinator {

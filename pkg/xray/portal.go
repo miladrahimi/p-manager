@@ -24,6 +24,10 @@ func (x *Xray) initShadowsocksPort() {
 	x.config.Locker.Lock()
 	defer x.config.Locker.Unlock()
 
+	if x.config.ShadowsocksInbound() == nil {
+		return
+	}
+
 	op := x.config.ShadowsocksInbound().Port
 	if !utils.PortFree(op) {
 		np, err := utils.FreePort()

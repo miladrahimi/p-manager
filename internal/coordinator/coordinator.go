@@ -40,8 +40,10 @@ func (c *Coordinator) Run() {
 func (c *Coordinator) syncDatabase() {
 	c.database.Locker.Lock()
 	defer c.database.Locker.Unlock()
-	c.database.Data.Settings.ShadowsocksPort = c.xray.Config().ShadowsocksInbound().Port
-	c.database.Save()
+	if c.xray.Config().ShadowsocksInbound() != nil {
+		c.database.Data.Settings.ShadowsocksPort = c.xray.Config().ShadowsocksInbound().Port
+		c.database.Save()
+	}
 }
 
 func (c *Coordinator) generateShadowsocksClients() []*xray.Client {

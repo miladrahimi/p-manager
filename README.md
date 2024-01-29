@@ -24,12 +24,19 @@ git clone https://github.com/miladrahimi/xray-manager.git
 cd xray-manager
 cp configs/main.json configs/main.local.json
 docker compose up -d
-# It runs on port 8080 by default.
 ```
+
+### Web Panel
+
+Access the web panel at the default port 8080. Log in using the username `admin` and password `password`.
+* Use the `Users` table to create, edit, and view your users, including their public profiles.
+* In the `Servers` tab, add Xray Node servers by specifying their Host (IP), HTTP Port, and HTTP Token.
+* In the Settings tab, you can modify the Panel password, set the Host (IP), adjust the Shadowsocks Port, and customize other options.
 
 ### Configuration
 
 ```shell
+# Modify the web panel and user profile port (default 8080) here.
 configs/main.local.json
 ```
 
@@ -37,6 +44,7 @@ configs/main.local.json
 
 ``` shell
 make update
+# Execute this each time a new version of Xray Manager is released.
 ```
 
 ## Links

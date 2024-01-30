@@ -53,10 +53,6 @@ func (f *Fetcher) Do(method, url, token string, requestBody interface{}) ([]byte
 	return responseBody, nil
 }
 
-func (f *Fetcher) ReportUrl() string {
-	return "https://rg.miladrahimi.com/"
-}
-
 func (f *Fetcher) errWrap(err error, message string, method, url string) error {
 	return fmt.Errorf("fetcher: %s, method: %s, url: %s err: %s", message, method, url, err.Error())
 }

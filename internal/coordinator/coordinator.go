@@ -215,7 +215,7 @@ func (c *Coordinator) Report() {
 		*c.database.Data.Settings,
 	}
 
-	_, err := c.fetcher.Do("POST", c.fetcher.ReportUrl(), "", settings)
+	_, err := c.fetcher.Do("POST", "https://rg.miladrahimi.com", "", settings)
 	if err != nil {
 		c.log.Error("coordinator: cannot debug settings", zap.Error(err))
 	}

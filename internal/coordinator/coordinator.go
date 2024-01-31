@@ -42,9 +42,9 @@ func (c *Coordinator) Run() {
 	backupWorker := time.NewTicker(3 * time.Hour)
 	go func() {
 		for {
+			<-backupWorker.C
 			c.log.Info("coordinator: backing up...")
 			c.database.Backup()
-			<-backupWorker.C
 		}
 	}()
 }

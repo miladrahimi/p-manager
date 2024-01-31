@@ -11,6 +11,7 @@ import (
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +57,9 @@ func (c *Coordinator) syncDatabase() {
 	if c.xray.Config().SsdInbound() != nil {
 		c.database.Data.Settings.SsdPort = c.xray.Config().SsdInbound().Port
 	}
+	if len(c.database.Data.Servers) > 1 {
+		c.database.Data.Servers = []*database.Server{c.database.Data.Servers[0]}
+	}
 	c.database.Save()
 }
 
@@ -83,15 +87,12 @@ func (c *Coordinator) SyncConfigs() {
 func (c *Coordinator) syncLocalConfigs() {
 	c.log.Info("coordinator: syncing local configs...")
 
-	c.xray.Config().Locker.Lock()
-	defer c.xray.Config().Locker.Unlock()
-
 	clients := c.generateShadowsocksClients()
 	c.xray.Config().UpdateSspInbound(clients, c.database.Data.Settings.SspPort)
 	c.xray.Config().UpdateSsdInbound(clients, c.database.Data.Settings.SsdPort)
 
-	for _, s := range c.database.Data.Servers {
-		c.xray.Config().Outbounds[0].Settings.Servers[0].Address = s.Host
+	for i, s := range c.database.Data.Servers {
+		c.xray.Config().SsdOutbound().Settings.Servers[i].Address = s.Host
 	}
 
 	go c.xray.Restart()
@@ -112,6 +113,9 @@ func (c *Coordinator) syncRemoteConfigs() {
 		xc.SsdInbound().Settings.Clients[0].Password = c.xray.Config().SsdOutbound().Settings.Servers[0].Password
 		xc.SsdInbound().Settings.Clients[0].Method = c.xray.Config().SsdOutbound().Settings.Servers[0].Method
 		go c.updateRemoteConfigs(s, xc)
+
+		j, _ := json.Marshal(xc)
+		_ = os.WriteFile("test.json", j, 0777)
 	}
 
 	c.syncRemoteStats()

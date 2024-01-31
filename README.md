@@ -29,9 +29,9 @@ docker compose up -d
 ### Web Panel
 
 Access the web panel at the default port 8080. Log in using the username `admin` and password `password`.
-* Use the `Users` table to create, edit, and view your users, including their public profiles.
+* In the `Users` tab, you can create, edit, and view your users, including their public profiles.
 * In the `Servers` tab, add Xray Node servers by specifying their Host (IP), HTTP Port, and HTTP Token.
-* In the Settings tab, you can modify the Panel password, set the Host (IP), adjust the Shadowsocks Port, and customize other options.
+* In the Settings tab, you can modify the Panel password, the Host (IP), the Shadowsocks Port, and other options.
 
 ### Configuration
 

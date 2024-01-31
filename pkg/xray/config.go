@@ -346,39 +346,6 @@ func NewPortalConfig() *Config {
 	}...)
 	c.Inbounds = append(c.Inbounds, []*Inbound{
 		{
-			Tag:      "ssd",
-			Protocol: "shadowsocks",
-			Listen:   "0.0.0.0",
-			Port:     2927,
-			Settings: &InboundSettings{
-				Clients: []*Client{
-					{
-						Password: utils.GenerateKey32(),
-						Method:   config.ShadowsocksMethod,
-						Email:    "1",
-					},
-				},
-			},
-		},
-		{
-			Tag:      "ssr",
-			Protocol: "shadowsocks",
-			Listen:   "0.0.0.0",
-			Port:     2929,
-			Settings: &InboundSettings{
-				Method:   config.ShadowsocksMethod,
-				Password: utils.GenerateKey32(),
-				Network:  "tcp,udp",
-				Clients: []*Client{
-					{
-						Password: utils.GenerateKey32(),
-						Method:   config.ShadowsocksMethod,
-						Email:    "1",
-					},
-				},
-			},
-		},
-		{
 			Tag:      "reverse",
 			Protocol: "shadowsocks",
 			Listen:   "0.0.0.0",

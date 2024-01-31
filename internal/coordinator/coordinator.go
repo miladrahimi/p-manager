@@ -50,11 +50,16 @@ func (c *Coordinator) Run() {
 }
 
 func (c *Coordinator) syncDatabase() {
-	if c.xray.Config().SsrInbound() != nil {
-		c.database.Data.Settings.SsrPort = c.xray.Config().SsrInbound().Port
+	var err error
+	if c.database.Data.Settings.SsrPort == 1 {
+		if c.database.Data.Settings.SsrPort, err = utils.FreePort(); err != nil {
+			c.log.Fatal("coordinator: cannot find port for ssr", zap.Error(err))
+		}
 	}
-	if c.xray.Config().SsdInbound() != nil {
-		c.database.Data.Settings.SsdPort = c.xray.Config().SsdInbound().Port
+	if c.database.Data.Settings.SsdPort == 1 {
+		if c.database.Data.Settings.SsdPort, err = utils.FreePort(); err != nil {
+			c.log.Fatal("coordinator: cannot find port for ssd", zap.Error(err))
+		}
 	}
 	if len(c.database.Data.Servers) > 1 {
 		c.database.Data.Servers = []*database.Server{c.database.Data.Servers[0]}
@@ -90,8 +95,9 @@ func (c *Coordinator) syncLocalConfigs() {
 	c.xray.Config().UpdateSsrInbound(clients, c.database.Data.Settings.SsrPort)
 	c.xray.Config().UpdateSsdInbound(clients, c.database.Data.Settings.SsdPort)
 
-	for i, s := range c.database.Data.Servers {
-		c.xray.Config().SsdOutbound().Settings.Servers[i].Address = s.Host
+	if len(c.database.Data.Servers) > 0 {
+		s := c.database.Data.Servers[0]
+		c.xray.Config().SsdOutbound().Settings.Servers[0].Address = s.Host
 	}
 
 	go c.xray.Restart()
@@ -99,18 +105,20 @@ func (c *Coordinator) syncLocalConfigs() {
 
 func (c *Coordinator) syncRemoteConfigs() {
 	c.log.Info("coordinator: syncing remote configs...")
+	if len(c.database.Data.Servers) > 0 {
+		s := c.database.Data.Servers[0]
 
-	xc := xray.NewBridgeConfig()
-	xc.UpdateReverseOutbound(
-		c.database.Data.Settings.Host,
-		c.xray.Config().ReverseInbound().Port,
-		c.xray.Config().ReverseInbound().Settings.Password,
-	)
+		xc := xray.NewBridgeConfig()
+		xc.UpdateReverseOutbound(
+			c.database.Data.Settings.Host,
+			c.xray.Config().ReverseInbound().Port,
+			c.xray.Config().ReverseInbound().Settings.Password,
+		)
 
-	for _, s := range c.database.Data.Servers {
 		xc.SsdInbound().Port = c.xray.Config().SsdOutbound().Settings.Servers[0].Port
 		xc.SsdInbound().Settings.Clients[0].Password = c.xray.Config().SsdOutbound().Settings.Servers[0].Password
 		xc.SsdInbound().Settings.Clients[0].Method = c.xray.Config().SsdOutbound().Settings.Servers[0].Method
+
 		go c.updateRemoteConfigs(s, xc)
 	}
 

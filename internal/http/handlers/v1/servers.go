@@ -41,9 +41,6 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		server := &database.Server{}
 		server.Id = d.GenerateServerId()
 		server.Status = database.ServerStatusProcessing
@@ -88,9 +85,6 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		server.Host = r.Host
 		server.HttpToken = r.HttpToken
 		server.HttpPort = r.HttpPort
@@ -111,9 +105,6 @@ func ServersDelete(coordinator *coordinator.Coordinator, d *database.Database) e
 				"message": "Cannot parse the id parameter.",
 			})
 		}
-
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
 
 		for i, s := range d.Data.Servers {
 			if s.Id == id {

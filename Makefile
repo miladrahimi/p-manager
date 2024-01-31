@@ -9,9 +9,13 @@ run:
 build:
 	go build main.go -o xray-manager
 
+recover:
+	docker compose down
+	./scripts/recovery.sh
+	docker compose up -d
+
 fresh:
-	rm storage/database.json
-	rm storage/xray.json
+	rm storage/*.json
 	docker compose restart
 
 update:

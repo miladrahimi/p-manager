@@ -33,9 +33,6 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 			})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		d.Data.Settings = &settings
 		d.Save()
 
@@ -60,22 +57,15 @@ func SettingsStatsShow(d *database.Database) echo.HandlerFunc {
 
 func SettingsStatsZero(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		d.Data.Stats.Traffic = 0
 		d.Data.Stats.UpdatedAt = time.Now().UnixMilli()
 		d.Save()
-
 		return c.JSON(http.StatusOK, d.Data.Stats)
 	}
 }
 
 func SettingsServersZero(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		for _, s := range d.Data.Servers {
 			s.Traffic = 0
 		}
@@ -87,9 +77,6 @@ func SettingsServersZero(d *database.Database) echo.HandlerFunc {
 
 func SettingsUsersZero(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		for _, u := range d.Data.Users {
 			u.Used = 0
 			u.UsedBytes = 0
@@ -105,9 +92,6 @@ func SettingsUsersZero(coordinator *coordinator.Coordinator, d *database.Databas
 
 func SettingsUsersDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		d.Data.Users = []*database.User{}
 		d.Save()
 
@@ -181,9 +165,6 @@ func SettingsImport(coordinator *coordinator.Coordinator, d *database.Database) 
 				"message": fmt.Sprintf("json.Unmarshal: %s", err.Error()),
 			})
 		}
-
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
 
 		for _, key := range Keys {
 			exist := false

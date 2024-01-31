@@ -56,9 +56,6 @@ func ProfileReset(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		user.ShadowsocksPassword = d.GenerateUserPassword()
 		d.Save()
 

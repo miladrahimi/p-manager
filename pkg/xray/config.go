@@ -364,7 +364,7 @@ func NewConfig() *Config {
 	return &Config{
 		Locker: &sync.Mutex{},
 		Log: &Log{
-			LogLevel: "warning",
+			LogLevel: "warn",
 		},
 		Inbounds: []*Inbound{
 			{

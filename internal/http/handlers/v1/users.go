@@ -53,9 +53,6 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 			}
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		user := &database.User{}
 		user.Id = d.GenerateUserId()
 		user.Identity = d.GenerateUserIdentity()
@@ -107,9 +104,6 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		user.Name = request.Name
 		user.Quota = request.Quota
 		user.Enabled = request.Enabled
@@ -123,9 +117,6 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 
 func KeysZero(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		for _, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				u.Used = 0
@@ -140,9 +131,6 @@ func KeysZero(d *database.Database) echo.HandlerFunc {
 
 func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		for i, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				d.Data.Users = slices.Delete(d.Data.Users, i, i+1)

@@ -26,20 +26,30 @@ type Coordinator struct {
 
 func (c *Coordinator) Run() {
 	c.log.Info("coordinator: running...")
+
 	c.syncDatabase()
 	c.SyncConfigs()
+
+	statsWorker := time.NewTicker(time.Duration(c.config.Worker.Interval) * time.Second)
 	go func() {
 		for {
 			c.log.Info("coordinator: working...")
 			c.SyncStats()
-			time.Sleep(time.Duration(c.config.Worker.Interval) * time.Second)
+			<-statsWorker.C
+		}
+	}()
+
+	backupWorker := time.NewTicker(3 * time.Hour)
+	go func() {
+		for {
+			c.log.Info("coordinator: backing up...")
+			c.database.Backup()
+			<-backupWorker.C
 		}
 	}()
 }
 
 func (c *Coordinator) syncDatabase() {
-	c.database.Locker.Lock()
-	defer c.database.Locker.Unlock()
 	if c.xray.Config().ShadowsocksInbound() != nil {
 		c.database.Data.Settings.ShadowsocksPort = c.xray.Config().ShadowsocksInbound().Port
 		c.database.Save()
@@ -125,11 +135,7 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 	url := fmt.Sprintf("%s://%s:%d/v1/stats", "http", s.Host, s.HttpPort)
 	c.log.Info("coordinator: fetching remote stats", zap.String("url", url))
 
-	c.database.Locker.Lock()
-	defer func() {
-		c.database.Save()
-		c.database.Locker.Unlock()
-	}()
+	defer c.database.Save()
 
 	s.Status = database.ServerStatusAvailable
 
@@ -162,9 +168,6 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 
 func (c *Coordinator) syncLocalStats() {
 	c.log.Info("coordinator: syncing local stats...")
-
-	c.database.Locker.Lock()
-	defer c.database.Locker.Unlock()
 
 	users := map[int]int64{}
 

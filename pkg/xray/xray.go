@@ -82,6 +82,10 @@ func (x *Xray) initApiPort() {
 	x.config.Locker.Lock()
 	defer x.config.Locker.Unlock()
 
+	if x.config.ApiInbound() == nil {
+		return
+	}
+
 	op := x.config.ApiInbound().Port
 	if !utils.PortFree(op) {
 		np, err := utils.FreePort()
@@ -89,7 +93,7 @@ func (x *Xray) initApiPort() {
 			x.log.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
 		}
 		x.log.Info("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
-		x.config.UpdateApiInbound(np)
+		x.config.ApiInbound().Port = np
 		x.saveConfig()
 	}
 }

@@ -133,13 +133,6 @@ func (c *Config) ApiInbound() *Inbound {
 	return c.Inbounds[c.ApiInboundIndex()]
 }
 
-func (c *Config) UpdateApiInbound(port int) {
-	index := c.ApiInboundIndex()
-	if index != -1 {
-		c.Inbounds[index].Port = port
-	}
-}
-
 func (c *Config) SspInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {

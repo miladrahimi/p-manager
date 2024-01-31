@@ -88,6 +88,7 @@ func (c *Coordinator) syncLocalConfigs() {
 	c.log.Info("coordinator: syncing local configs...")
 
 	clients := c.generateShadowsocksClients()
+	c.xray.Config().SspInbound()
 	c.xray.Config().UpdateSspInbound(clients, c.database.Data.Settings.SspPort)
 	c.xray.Config().UpdateSsdInbound(clients, c.database.Data.Settings.SsdPort)
 

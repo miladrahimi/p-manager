@@ -37,7 +37,7 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 
 		r.ShadowsocksLinks = append(
 			r.ShadowsocksLinks,
-			fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SspPort, user.Name+" 1"),
+			fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsrPort, user.Name+" 1"),
 			fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsdPort, user.Name+" 2"),
 		)
 

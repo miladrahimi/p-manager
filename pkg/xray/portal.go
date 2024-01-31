@@ -62,18 +62,18 @@ func (x *Xray) initSspPort() {
 	x.config.Locker.Lock()
 	defer x.config.Locker.Unlock()
 
-	if x.config.SspInbound() == nil {
+	if x.config.SsrInbound() == nil {
 		return
 	}
 
-	op := x.config.SspInbound().Port
+	op := x.config.SsrInbound().Port
 	if !utils.PortFree(op) {
 		np, err := utils.FreePort()
 		if err != nil {
-			x.log.Fatal("xray: cannot find free port for ssp inbound", zap.Error(err))
+			x.log.Fatal("xray: cannot find free port for ssr inbound", zap.Error(err))
 		}
-		x.log.Info("xray: updating ssp inbound port...", zap.Int("old", op), zap.Int("new", np))
-		x.config.UpdateSspInbound(x.config.SspInbound().Settings.Clients, np)
+		x.log.Info("xray: updating ssr inbound port...", zap.Int("old", op), zap.Int("new", np))
+		x.config.UpdateSsrInbound(x.config.SsrInbound().Settings.Clients, np)
 		x.saveConfig()
 	}
 }

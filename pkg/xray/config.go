@@ -119,6 +119,21 @@ type Config struct {
 	Locker    *sync.Mutex            `json:"-"`
 }
 
+func (c *Config) generateShadowsocksInbound(tag string, clients []*Client, port int) *Inbound {
+	return &Inbound{
+		Tag:      tag,
+		Protocol: "shadowsocks",
+		Listen:   "0.0.0.0",
+		Port:     port,
+		Settings: &InboundSettings{
+			Clients:  clients,
+			Network:  "tcp,udp",
+			Password: utils.GenerateKey32(),
+			Method:   config.ShadowsocksMethod,
+		},
+	}
+}
+
 func (c *Config) ApiInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
@@ -133,38 +148,27 @@ func (c *Config) ApiInbound() *Inbound {
 	return c.Inbounds[c.ApiInboundIndex()]
 }
 
-func (c *Config) SspInboundIndex() int {
+func (c *Config) SsrInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
-		if inbound.Tag == "ssp" {
+		if inbound.Tag == "ssr" {
 			index = i
 		}
 	}
 	return index
 }
 
-func (c *Config) SspInbound() *Inbound {
-	if c.SspInboundIndex() != -1 {
-		return c.Inbounds[c.SspInboundIndex()]
+func (c *Config) SsrInbound() *Inbound {
+	if c.SsrInboundIndex() != -1 {
+		return c.Inbounds[c.SsrInboundIndex()]
 	}
 	return nil
 }
 
-func (c *Config) UpdateSspInbound(clients []*Client, port int) {
-	index := c.SspInboundIndex()
+func (c *Config) UpdateSsrInbound(clients []*Client, port int) {
+	index := c.SsrInboundIndex()
 	if len(clients) > 0 {
-		inbound := &Inbound{
-			Tag:      "ssp",
-			Protocol: "shadowsocks",
-			Listen:   "0.0.0.0",
-			Port:     port,
-			Settings: &InboundSettings{
-				Clients:  clients,
-				Network:  "tcp,udp",
-				Password: utils.GenerateKey32(),
-				Method:   config.ShadowsocksMethod,
-			},
-		}
+		inbound := c.generateShadowsocksInbound("ssr", clients, port)
 		if index != -1 {
 			c.Inbounds[index] = inbound
 		} else {
@@ -197,18 +201,7 @@ func (c *Config) SsdInbound() *Inbound {
 func (c *Config) UpdateSsdInbound(clients []*Client, port int) {
 	index := c.SsdInboundIndex()
 	if len(clients) > 0 {
-		inbound := &Inbound{
-			Tag:      "ssd",
-			Protocol: "shadowsocks",
-			Listen:   "0.0.0.0",
-			Port:     port,
-			Settings: &InboundSettings{
-				Clients:  clients,
-				Network:  "tcp,udp",
-				Password: utils.GenerateKey32(),
-				Method:   config.ShadowsocksMethod,
-			},
-		}
+		inbound := c.generateShadowsocksInbound("ssd", clients, port)
 		if index != -1 {
 			c.Inbounds[index] = inbound
 		} else {
@@ -342,7 +335,7 @@ func NewPortalConfig() *Config {
 		},
 		{
 			Type:        "field",
-			InboundTag:  []string{"ssp"},
+			InboundTag:  []string{"ssr"},
 			OutboundTag: "portal",
 		},
 		{
@@ -368,7 +361,7 @@ func NewPortalConfig() *Config {
 			},
 		},
 		{
-			Tag:      "ssp",
+			Tag:      "ssr",
 			Protocol: "shadowsocks",
 			Listen:   "0.0.0.0",
 			Port:     2929,
@@ -406,7 +399,7 @@ func NewPortalConfig() *Config {
 					{
 						Address:  "1.2.3.4",
 						Port:     1234,
-						Method:   config.Shadowsocks2022Method,
+						Method:   config.ShadowsocksMethod,
 						Password: utils.GenerateKey32(),
 					},
 				},

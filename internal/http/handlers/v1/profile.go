@@ -35,8 +35,11 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 		s := d.Data.Settings
 		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
 
-		link := fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.ShadowsocksPort, user.Name)
-		r.ShadowsocksLinks = append(r.ShadowsocksLinks, link)
+		r.ShadowsocksLinks = append(
+			r.ShadowsocksLinks,
+			fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SspPort, user.Name+" 1"),
+			fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsdPort, user.Name+" 2"),
+		)
 
 		return c.JSON(http.StatusOK, r)
 	}

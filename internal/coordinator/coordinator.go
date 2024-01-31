@@ -21,7 +21,7 @@ type Coordinator struct {
 	database *database.Database
 	log      *logger.Logger
 	fetcher  *fetcher.Fetcher
-	xray     *xray.Xray
+	xray     *xray.Portal
 }
 
 func (c *Coordinator) Run() {
@@ -50,10 +50,13 @@ func (c *Coordinator) Run() {
 }
 
 func (c *Coordinator) syncDatabase() {
-	if c.xray.Config().ShadowsocksInbound() != nil {
-		c.database.Data.Settings.ShadowsocksPort = c.xray.Config().ShadowsocksInbound().Port
-		c.database.Save()
+	if c.xray.Config().SspInbound() != nil {
+		c.database.Data.Settings.SspPort = c.xray.Config().SspInbound().Port
 	}
+	if c.xray.Config().SsdInbound() != nil {
+		c.database.Data.Settings.SsdPort = c.xray.Config().SsdInbound().Port
+	}
+	c.database.Save()
 }
 
 func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
@@ -83,10 +86,13 @@ func (c *Coordinator) syncLocalConfigs() {
 	c.xray.Config().Locker.Lock()
 	defer c.xray.Config().Locker.Unlock()
 
-	c.xray.Config().UpdateShadowsocksInbound(
-		c.generateShadowsocksClients(),
-		c.database.Data.Settings.ShadowsocksPort,
-	)
+	clients := c.generateShadowsocksClients()
+	c.xray.Config().UpdateSspInbound(clients, c.database.Data.Settings.SspPort)
+	c.xray.Config().UpdateSsdInbound(clients, c.database.Data.Settings.SsdPort)
+
+	for _, s := range c.database.Data.Servers {
+		c.xray.Config().Outbounds[0].Settings.Servers[0].Address = s.Host
+	}
 
 	go c.xray.Restart()
 }
@@ -102,6 +108,9 @@ func (c *Coordinator) syncRemoteConfigs() {
 	)
 
 	for _, s := range c.database.Data.Servers {
+		xc.SsdInbound().Port = c.xray.Config().SsdOutbound().Settings.Servers[0].Port
+		xc.SsdInbound().Settings.Clients[0].Password = c.xray.Config().SsdOutbound().Settings.Servers[0].Password
+		xc.SsdInbound().Settings.Clients[0].Method = c.xray.Config().SsdOutbound().Settings.Servers[0].Method
 		go c.updateRemoteConfigs(s, xc)
 	}
 
@@ -224,6 +233,6 @@ func (c *Coordinator) Report() {
 	}
 }
 
-func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Xray) *Coordinator {
+func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Portal) *Coordinator {
 	return &Coordinator{config: c, log: l, database: d, xray: x, fetcher: f}
 }

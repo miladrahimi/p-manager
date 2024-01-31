@@ -14,28 +14,66 @@ type Portal struct {
 func (p *Portal) Run() {
 	p.initConfig()
 	p.initApiPort()
-	p.initShadowsocksPort()
+	p.initSsdOutboundPort()
+	p.initSsdInboundPort()
+	p.initSspPort()
 	p.initReversePort()
 	go p.runCore()
 	p.connectGrpc()
 }
 
-func (x *Xray) initShadowsocksPort() {
+func (x *Xray) initSsdOutboundPort() {
 	x.config.Locker.Lock()
 	defer x.config.Locker.Unlock()
 
-	if x.config.ShadowsocksInbound() == nil {
+	if x.config.SsdOutbound() == nil {
 		return
 	}
 
-	op := x.config.ShadowsocksInbound().Port
+	var err error
+	x.config.SsdOutbound().Settings.Servers[0].Port, err = utils.FreePort()
+	if err != nil {
+		x.log.Fatal("xray: portal cannot find free port for ssd", zap.Error(err))
+	}
+	x.saveConfig()
+}
+
+func (x *Xray) initSsdInboundPort() {
+	x.config.Locker.Lock()
+	defer x.config.Locker.Unlock()
+
+	if x.config.SsdInbound() == nil {
+		return
+	}
+
+	op := x.config.SsdInbound().Port
 	if !utils.PortFree(op) {
 		np, err := utils.FreePort()
 		if err != nil {
-			x.log.Fatal("xray: cannot find free port for shadowsocks inbound", zap.Error(err))
+			x.log.Fatal("xray: cannot find free port for ssd inbound", zap.Error(err))
 		}
-		x.log.Info("xray: updating shadowsocks inbound port...", zap.Int("old", op), zap.Int("new", np))
-		x.config.UpdateShadowsocksInbound(x.config.ShadowsocksInbound().Settings.Clients, np)
+		x.log.Info("xray: updating ssd inbound port...", zap.Int("old", op), zap.Int("new", np))
+		x.config.UpdateSsdInbound(x.config.SsdInbound().Settings.Clients, np)
+		x.saveConfig()
+	}
+}
+
+func (x *Xray) initSspPort() {
+	x.config.Locker.Lock()
+	defer x.config.Locker.Unlock()
+
+	if x.config.SspInbound() == nil {
+		return
+	}
+
+	op := x.config.SspInbound().Port
+	if !utils.PortFree(op) {
+		np, err := utils.FreePort()
+		if err != nil {
+			x.log.Fatal("xray: cannot find free port for ssp inbound", zap.Error(err))
+		}
+		x.log.Info("xray: updating ssp inbound port...", zap.Int("old", op), zap.Int("new", np))
+		x.config.UpdateSspInbound(x.config.SspInbound().Settings.Clients, np)
 		x.saveConfig()
 	}
 }
@@ -56,8 +94,10 @@ func (x *Xray) initReversePort() {
 	}
 }
 
-func NewPortalXray(l *logger.Logger, configPath, binaryPath string) *Xray {
-	return &Xray{
-		log: l, config: NewPortalConfig(), binaryPath: binaryPath, configPath: configPath, locker: &sync.Mutex{},
+func NewPortalXray(l *logger.Logger, configPath, binaryPath string) *Portal {
+	return &Portal{
+		Xray: Xray{
+			log: l, config: NewPortalConfig(), binaryPath: binaryPath, configPath: configPath, locker: &sync.Mutex{},
+		},
 	}
 }

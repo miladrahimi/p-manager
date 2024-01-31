@@ -140,28 +140,72 @@ func (c *Config) UpdateApiInbound(port int) {
 	}
 }
 
-func (c *Config) ShadowsocksInboundIndex() int {
+func (c *Config) SspInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
-		if inbound.Tag == "shadowsocks" {
+		if inbound.Tag == "ssp" {
 			index = i
 		}
 	}
 	return index
 }
 
-func (c *Config) ShadowsocksInbound() *Inbound {
-	if c.ShadowsocksInboundIndex() != -1 {
-		return c.Inbounds[c.ShadowsocksInboundIndex()]
+func (c *Config) SspInbound() *Inbound {
+	if c.SspInboundIndex() != -1 {
+		return c.Inbounds[c.SspInboundIndex()]
 	}
 	return nil
 }
 
-func (c *Config) UpdateShadowsocksInbound(clients []*Client, port int) {
-	index := c.ShadowsocksInboundIndex()
+func (c *Config) UpdateSspInbound(clients []*Client, port int) {
+	index := c.SspInboundIndex()
 	if len(clients) > 0 {
 		inbound := &Inbound{
-			Tag:      "shadowsocks",
+			Tag:      "ssp",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     port,
+			Settings: &InboundSettings{
+				Clients:  clients,
+				Network:  "tcp,udp",
+				Password: utils.GenerateKey32(),
+				Method:   config.ShadowsocksMethod,
+			},
+		}
+		if index != -1 {
+			c.Inbounds[index] = inbound
+		} else {
+			c.Inbounds = append(c.Inbounds, inbound)
+		}
+	} else {
+		if index != -1 {
+			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
+		}
+	}
+}
+
+func (c *Config) SsdInboundIndex() int {
+	index := -1
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "ssd" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) SsdInbound() *Inbound {
+	if c.SsdInboundIndex() != -1 {
+		return c.Inbounds[c.SsdInboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) UpdateSsdInbound(clients []*Client, port int) {
+	index := c.SsdInboundIndex()
+	if len(clients) > 0 {
+		inbound := &Inbound{
+			Tag:      "ssd",
 			Protocol: "shadowsocks",
 			Listen:   "0.0.0.0",
 			Port:     port,
@@ -235,6 +279,31 @@ func (c *Config) UpdateReverseOutbound(address string, port int, password string
 	}
 }
 
+func (c *Config) SsdOutboundIndex() int {
+	index := -1
+	for i, outbound := range c.Outbounds {
+		if outbound.Tag == "ssd" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) SsdOutbound() *Outbound {
+	if c.SsdOutboundIndex() != -1 {
+		return c.Outbounds[c.SsdOutboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) UpdateSsdOutbound(address string, port int) {
+	index := c.SsdOutboundIndex()
+	if index != -1 {
+		c.Outbounds[index].Settings.Servers[0].Address = address
+		c.Outbounds[index].Settings.Servers[0].Port = port
+	}
+}
+
 func (c *Config) RemoveInbounds() {
 	c.Inbounds = []*Inbound{c.ApiInbound()}
 }
@@ -275,18 +344,38 @@ func NewPortalConfig() *Config {
 	c.Routing.Settings.Rules = append(c.Routing.Settings.Rules, []*Rule{
 		{
 			Type:        "field",
-			InboundTag:  []string{"shadowsocks"},
+			InboundTag:  []string{"reverse"},
 			OutboundTag: "portal",
 		},
 		{
 			Type:        "field",
-			InboundTag:  []string{"reverse"},
+			InboundTag:  []string{"ssp"},
 			OutboundTag: "portal",
+		},
+		{
+			Type:        "field",
+			InboundTag:  []string{"ssd"},
+			OutboundTag: "ssd",
 		},
 	}...)
 	c.Inbounds = append(c.Inbounds, []*Inbound{
 		{
-			Tag:      "shadowsocks",
+			Tag:      "ssd",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     2927,
+			Settings: &InboundSettings{
+				Clients: []*Client{
+					{
+						Password: utils.GenerateKey32(),
+						Method:   config.ShadowsocksMethod,
+						Email:    "1",
+					},
+				},
+			},
+		},
+		{
+			Tag:      "ssp",
 			Protocol: "shadowsocks",
 			Listen:   "0.0.0.0",
 			Port:     2929,
@@ -315,6 +404,22 @@ func NewPortalConfig() *Config {
 			},
 		},
 	}...)
+	c.Outbounds = append(c.Outbounds, []*Outbound{
+		{
+			Tag:      "ssd",
+			Protocol: "shadowsocks",
+			Settings: &OutboundSettings{
+				Servers: []*OutboundServer{
+					{
+						Address:  "1.2.3.4",
+						Port:     1234,
+						Method:   config.Shadowsocks2022Method,
+						Password: utils.GenerateKey32(),
+					},
+				},
+			},
+		},
+	}...)
 	return c
 }
 
@@ -332,6 +437,28 @@ func NewBridgeConfig() *Config {
 			Type:        "field",
 			InboundTag:  []string{"bridge"},
 			OutboundTag: "freedom",
+		},
+		{
+			Type:        "field",
+			InboundTag:  []string{"ssd"},
+			OutboundTag: "freedom",
+		},
+	}...)
+	c.Inbounds = append(c.Inbounds, []*Inbound{
+		{
+			Tag:      "ssd",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     1234,
+			Settings: &InboundSettings{
+				Clients: []*Client{
+					{
+						Password: utils.GenerateKey32(),
+						Method:   config.Shadowsocks2022Method,
+						Email:    "1",
+					},
+				},
+			},
 		},
 	}...)
 	c.Outbounds = []*Outbound{

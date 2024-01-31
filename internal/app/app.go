@@ -23,7 +23,7 @@ type App struct {
 	httpServer  *server.Server
 	database    *database.Database
 	coordinator *coordinator.Coordinator
-	xray        *xray.Xray
+	xray        *xray.Portal
 }
 
 func New() (a *App, err error) {

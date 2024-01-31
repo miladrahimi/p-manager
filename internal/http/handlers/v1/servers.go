@@ -41,6 +41,12 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
+		if len(d.Data.Servers) > 0 {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"message": fmt.Sprintf("Cannot add more servers!"),
+			})
+		}
+
 		server := &database.Server{}
 		server.Id = d.GenerateServerId()
 		server.Status = database.ServerStatusProcessing

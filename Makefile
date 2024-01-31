@@ -22,4 +22,5 @@ update:
 	git pull
 	docker compose pull
 	docker compose down
+	rm ./storage/xray.json
 	docker compose up -d

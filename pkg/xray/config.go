@@ -11,13 +11,13 @@ import (
 )
 
 type Log struct {
-	LogLevel string `json:"loglevel" validate:"required,oneof=debug warning"`
+	LogLevel string `json:"loglevel" validate:"required"`
 }
 
 type Client struct {
 	Password string `json:"password" validate:"required,min=1,max=64"`
-	Method   string `json:"method" validate:"required,oneof=chacha20-ietf-poly1305 aes-128-gcm aes-256-gcm"`
-	Email    string `json:"email" validate:"required,number"`
+	Method   string `json:"method" validate:"required"`
+	Email    string `json:"email" validate:"required"`
 }
 
 type InboundSettings struct {
@@ -32,7 +32,7 @@ type InboundSettings struct {
 type Inbound struct {
 	Listen   string           `json:"listen" validate:"required,oneof=127.0.0.1 0.0.0.0"`
 	Port     int              `json:"port" validate:"required,min=1,max=65536"`
-	Protocol string           `json:"protocol" validate:"required,oneof=shadowsocks dokodemo-door"`
+	Protocol string           `json:"protocol" validate:"required"`
 	Settings *InboundSettings `json:"settings" validate:"required"`
 	Tag      string           `json:"tag" validate:"required"`
 }
@@ -40,7 +40,7 @@ type Inbound struct {
 type OutboundServer struct {
 	Address  string `json:"address" validate:"required"`
 	Port     int    `json:"port" validate:"required,min=1,max=65536"`
-	Method   string `json:"method" validate:"required,oneof=2022-blake3-aes-256-gcm"`
+	Method   string `json:"method" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -53,7 +53,7 @@ type StreamSettings struct {
 }
 
 type Outbound struct {
-	Protocol       string            `json:"protocol" validate:"required,oneof=freedom shadowsocks"`
+	Protocol       string            `json:"protocol" validate:"required"`
 	Tag            string            `json:"tag" validate:"required"`
 	Settings       *OutboundSettings `json:"settings,omitempty" validate:"omitempty"`
 	StreamSettings *StreamSettings   `json:"streamSettings,omitempty" validate:"omitempty"`

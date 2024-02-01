@@ -27,7 +27,7 @@ type Coordinator struct {
 func (c *Coordinator) Run() {
 	c.log.Info("coordinator: running...")
 
-	c.syncDatabase()
+	c.initDatabase()
 	c.SyncConfigs()
 
 	statsWorker := time.NewTicker(time.Duration(c.config.Worker.Interval) * time.Second)
@@ -49,7 +49,7 @@ func (c *Coordinator) Run() {
 	}()
 }
 
-func (c *Coordinator) syncDatabase() {
+func (c *Coordinator) initDatabase() {
 	var err error
 	if c.database.Data.Settings.SsrPort == 1 {
 		if c.database.Data.Settings.SsrPort, err = utils.FreePort(); err != nil {

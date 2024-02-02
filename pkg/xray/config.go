@@ -445,7 +445,7 @@ func NewBridgeConfig() *Config {
 		},
 		{
 			Type:        "field",
-			InboundTag:  []string{"relay"},
+			InboundTag:  []string{"direct"},
 			OutboundTag: "freedom",
 		},
 	}...)

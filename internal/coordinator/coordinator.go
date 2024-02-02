@@ -116,8 +116,8 @@ func (c *Coordinator) syncRemoteConfigs() {
 		)
 
 		xc.DirectInbound().Port = c.xray.Config().RelayOutbound().Settings.Servers[0].Port
-		xc.DirectInbound().Settings.Clients[0].Password = c.xray.Config().RelayOutbound().Settings.Servers[0].Password
-		xc.DirectInbound().Settings.Clients[0].Method = c.xray.Config().RelayOutbound().Settings.Servers[0].Method
+		xc.DirectInbound().Settings.Password = c.xray.Config().RelayOutbound().Settings.Servers[0].Password
+		xc.DirectInbound().Settings.Method = c.xray.Config().RelayOutbound().Settings.Servers[0].Method
 
 		go c.updateRemoteConfigs(s, xc)
 	}

@@ -365,7 +365,7 @@ func NewPortalConfig() *Config {
 					{
 						Address:  "1.2.3.4",
 						Port:     rand.Intn(64536) + 1000,
-						Method:   config.ShadowsocksMethod,
+						Method:   config.Shadowsocks2022Method,
 						Password: utils.Key32(),
 					},
 				},
@@ -402,13 +402,9 @@ func NewBridgeConfig() *Config {
 			Listen:   "0.0.0.0",
 			Port:     1234,
 			Settings: &InboundSettings{
-				Clients: []*Client{
-					{
-						Password: utils.Key32(),
-						Method:   config.Shadowsocks2022Method,
-						Email:    "1",
-					},
-				},
+				Clients:  []*Client{},
+				Password: utils.Key32(),
+				Method:   config.Shadowsocks2022Method,
 			},
 		},
 	}...)

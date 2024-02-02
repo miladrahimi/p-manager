@@ -17,8 +17,10 @@ type Fetcher struct {
 
 func (f *Fetcher) Do(method, url, token string, requestBody interface{}) ([]byte, error) {
 	var requestReader io.Reader
+	var jsonBody []byte
 	if requestBody != nil {
-		jsonBody, err := json.Marshal(requestBody)
+		var err error
+		jsonBody, err = json.Marshal(requestBody)
 		if err != nil {
 			return nil, f.errWrap(err, "cannot marshal body", method, url)
 		}
@@ -41,13 +43,18 @@ func (f *Fetcher) Do(method, url, token string, requestBody interface{}) ([]byte
 		_ = response.Body.Close()
 	}()
 
-	if response.StatusCode != http.StatusOK {
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusUnprocessableEntity {
 		return nil, f.errMake(fmt.Sprintf("bad response status: %d", response.StatusCode), method, url)
 	}
 
 	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, f.errWrap(err, "cannot read response body", method, url)
+	}
+
+	if response.StatusCode == http.StatusUnprocessableEntity {
+		message := fmt.Sprintf("bad request %s, response: %s", jsonBody, responseBody)
+		return nil, f.errMake(message, method, url)
 	}
 
 	return responseBody, nil

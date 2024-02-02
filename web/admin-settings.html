@@ -101,7 +101,7 @@
                 el.innerText = "Shadowsocks Revers Port.";
                 break;
             case "SSD Port":
-                el.innerText = "Shadowsocks Direct Port.";
+                el.innerText = "Shadowsocks Relay Port.";
                 break;
         }
         return el;
@@ -132,15 +132,15 @@
             "Admin Password": "admin_password",
             "Traffic Ratio": "traffic_ratio",
             "Host": "host",
-            "Shadowsocks Reverse Port": "ssr_port",
-            "Shadowsocks Direct Port": "ssd_port",
+            "Shadowsocks Reverse Port": "ss_reverse_port",
+            "Shadowsocks Relay Port": "ss_relay_port",
         }
 
         let body = {}
         table.getData().forEach(function (v) {
             if (["Traffic Ratio"].includes(v.key)) {
                 body[map[v.key]] = parseFloat(v.value)
-            } else if (["Shadowsocks Reverse Port", "Shadowsocks Direct Port"].includes(v.key)) {
+            } else if (["Shadowsocks Reverse Port", "Shadowsocks Relay Port"].includes(v.key)) {
                 body[map[v.key]] = parseInt(v.value)
             } else {
                 body[map[v.key]] = v.value
@@ -184,8 +184,8 @@
             {"key": "Admin Password", "value": response["admin_password"]},
             {"key": "Traffic Ratio", "value": response["traffic_ratio"]},
             {"key": "Host", "value": response["host"]},
-            {"key": "Shadowsocks Reverse Port", "value": response["ssr_port"]},
-            {"key": "Shadowsocks Direct Port", "value": response["ssd_port"]},
+            {"key": "Shadowsocks Reverse Port", "value": response["ss_reverse_port"]},
+            {"key": "Shadowsocks Relay Port", "value": response["ss_relay_port"]},
         ])
     }
 

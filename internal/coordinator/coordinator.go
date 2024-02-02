@@ -33,9 +33,9 @@ func (c *Coordinator) Run() {
 	statsWorker := time.NewTicker(time.Duration(c.config.Worker.Interval) * time.Second)
 	go func() {
 		for {
+			<-statsWorker.C
 			c.log.Info("coordinator: working...")
 			c.SyncStats()
-			<-statsWorker.C
 		}
 	}()
 
@@ -51,13 +51,13 @@ func (c *Coordinator) Run() {
 
 func (c *Coordinator) initDatabase() {
 	var err error
-	if c.database.Data.Settings.SsrPort == 1 {
-		if c.database.Data.Settings.SsrPort, err = utils.FreePort(); err != nil {
+	if c.database.Data.Settings.SsReversePort == 1 {
+		if c.database.Data.Settings.SsReversePort, err = utils.FreePort(); err != nil {
 			c.log.Fatal("coordinator: cannot find port for ssr", zap.Error(err))
 		}
 	}
-	if c.database.Data.Settings.SsdPort == 1 {
-		if c.database.Data.Settings.SsdPort, err = utils.FreePort(); err != nil {
+	if c.database.Data.Settings.SsRelayPort == 1 {
+		if c.database.Data.Settings.SsRelayPort, err = utils.FreePort(); err != nil {
 			c.log.Fatal("coordinator: cannot find port for ssd", zap.Error(err))
 		}
 	}
@@ -92,15 +92,15 @@ func (c *Coordinator) syncLocalConfigs() {
 	c.log.Info("coordinator: syncing local configs...")
 
 	clients := c.generateShadowsocksClients()
-	c.xray.Config().UpdateSsrInbound(clients, c.database.Data.Settings.SsrPort)
-	c.xray.Config().UpdateSsdInbound(clients, c.database.Data.Settings.SsdPort)
+	c.xray.Config().ReverseInboundUpdate(clients, c.database.Data.Settings.SsReversePort)
+	c.xray.Config().RelayInboundUpdate(clients, c.database.Data.Settings.SsRelayPort)
 
 	if len(c.database.Data.Servers) > 0 {
 		s := c.database.Data.Servers[0]
-		c.xray.Config().SsdOutbound().Settings.Servers[0].Address = s.Host
+		c.xray.Config().RelayOutbound().Settings.Servers[0].Address = s.Host
 	}
 
-	go c.xray.Restart()
+	c.xray.Restart()
 }
 
 func (c *Coordinator) syncRemoteConfigs() {
@@ -109,15 +109,15 @@ func (c *Coordinator) syncRemoteConfigs() {
 		s := c.database.Data.Servers[0]
 
 		xc := xray.NewBridgeConfig()
-		xc.UpdateReverseOutbound(
+		xc.ForeignOutboundUpdate(
 			c.database.Data.Settings.Host,
-			c.xray.Config().ReverseInbound().Port,
-			c.xray.Config().ReverseInbound().Settings.Password,
+			c.xray.Config().ForeignInbound().Port,
+			c.xray.Config().ForeignInbound().Settings.Password,
 		)
 
-		xc.SsdInbound().Port = c.xray.Config().SsdOutbound().Settings.Servers[0].Port
-		xc.SsdInbound().Settings.Clients[0].Password = c.xray.Config().SsdOutbound().Settings.Servers[0].Password
-		xc.SsdInbound().Settings.Clients[0].Method = c.xray.Config().SsdOutbound().Settings.Servers[0].Method
+		xc.DirectInbound().Port = c.xray.Config().RelayOutbound().Settings.Servers[0].Port
+		xc.DirectInbound().Settings.Clients[0].Password = c.xray.Config().RelayOutbound().Settings.Servers[0].Password
+		xc.DirectInbound().Settings.Clients[0].Method = c.xray.Config().RelayOutbound().Settings.Servers[0].Method
 
 		go c.updateRemoteConfigs(s, xc)
 	}

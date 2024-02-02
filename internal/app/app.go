@@ -55,7 +55,6 @@ func New() (a *App, err error) {
 
 func (a *App) Boot() {
 	a.database.Init()
-	a.xray.Run()
 	a.coordinator.Run()
 	a.httpServer.Run()
 	a.log.Info("app: modules ran successfully")

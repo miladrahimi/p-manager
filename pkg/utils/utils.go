@@ -19,7 +19,8 @@ func FileExist(path string) bool {
 	return true
 }
 
-func GenerateKey32() string {
+// Key32 generates 32-bit keys.
+func Key32() string {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
 	if err != nil {
@@ -50,10 +51,9 @@ func FreePort() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	defer func() {
-		err = listener.Close()
-	}()
+	if err = listener.Close(); err != nil {
+		return 0, err
+	}
 
 	return listener.Addr().(*net.TCPAddr).Port, err
 }

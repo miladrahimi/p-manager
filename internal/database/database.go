@@ -129,8 +129,8 @@ func New(l *logger.Logger) *Database {
 			Settings: &Settings{
 				AdminPassword: "password",
 				Host:          "127.0.0.1",
-				SsrPort:       1,
-				SsdPort:       1,
+				SsReversePort: 1,
+				SsRelayPort:   1,
 				TrafficRatio:  1,
 			},
 			Stats: &Stats{

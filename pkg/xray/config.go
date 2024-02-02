@@ -5,8 +5,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
+	"golang.org/x/exp/rand"
 	"slices"
-	"strconv"
 	"sync"
 )
 
@@ -24,13 +24,13 @@ type InboundSettings struct {
 	Address  string    `json:"address,omitempty"`
 	Clients  []*Client `json:"clients,omitempty" validate:"omitempty,dive"`
 	Network  string    `json:"network,omitempty"`
-	Method   string    `json:"method,omitempty" validate:"omitempty"`
-	Password string    `json:"password,omitempty" validate:"omitempty"`
+	Method   string    `json:"method,omitempty"`
+	Password string    `json:"password,omitempty"`
 	Port     int       `json:"port,omitempty" validate:"omitempty,min=1,max=65536"`
 }
 
 type Inbound struct {
-	Listen   string           `json:"listen" validate:"required,oneof=127.0.0.1 0.0.0.0"`
+	Listen   string           `json:"listen" validate:"required"`
 	Port     int              `json:"port" validate:"required,min=1,max=65536"`
 	Protocol string           `json:"protocol" validate:"required"`
 	Settings *InboundSettings `json:"settings" validate:"required"`
@@ -55,8 +55,8 @@ type StreamSettings struct {
 type Outbound struct {
 	Protocol       string            `json:"protocol" validate:"required"`
 	Tag            string            `json:"tag" validate:"required"`
-	Settings       *OutboundSettings `json:"settings,omitempty" validate:"omitempty"`
-	StreamSettings *StreamSettings   `json:"streamSettings,omitempty" validate:"omitempty"`
+	Settings       *OutboundSettings `json:"settings,omitempty"`
+	StreamSettings *StreamSettings   `json:"streamSettings,omitempty"`
 }
 
 type DNS struct {
@@ -82,7 +82,7 @@ type Rule struct {
 	InboundTag  []string `json:"inboundTag" validate:"required"`
 	OutboundTag string   `json:"outboundTag" validate:"required"`
 	Type        string   `json:"type" validate:"required"`
-	Domain      []string `json:"domain,omitempty" validate:"omitempty"`
+	Domain      []string `json:"domain,omitempty"`
 }
 
 type RoutingSettings struct {
@@ -115,7 +115,7 @@ type Config struct {
 	API       *API                   `json:"api" validate:"required"`
 	Policy    *Policy                `json:"policy" validate:"required"`
 	Routing   *Routing               `json:"routing" validate:"required"`
-	Reverse   *Reverse               `json:"reverse" validate:"omitempty"`
+	Reverse   *Reverse               `json:"reverse"`
 	Locker    *sync.Mutex            `json:"-"`
 }
 
@@ -128,13 +128,13 @@ func (c *Config) generateShadowsocksInbound(tag string, clients []*Client, port 
 		Settings: &InboundSettings{
 			Clients:  clients,
 			Network:  "tcp,udp",
-			Password: utils.GenerateKey32(),
+			Password: utils.Key32(),
 			Method:   config.ShadowsocksMethod,
 		},
 	}
 }
 
-func (c *Config) ApiInboundIndex() int {
+func (c *Config) apiInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
 		if inbound.Tag == "api" {
@@ -145,76 +145,10 @@ func (c *Config) ApiInboundIndex() int {
 }
 
 func (c *Config) ApiInbound() *Inbound {
-	return c.Inbounds[c.ApiInboundIndex()]
+	return c.Inbounds[c.apiInboundIndex()]
 }
 
-func (c *Config) SsrInboundIndex() int {
-	index := -1
-	for i, inbound := range c.Inbounds {
-		if inbound.Tag == "ssr" {
-			index = i
-		}
-	}
-	return index
-}
-
-func (c *Config) SsrInbound() *Inbound {
-	if c.SsrInboundIndex() != -1 {
-		return c.Inbounds[c.SsrInboundIndex()]
-	}
-	return nil
-}
-
-func (c *Config) UpdateSsrInbound(clients []*Client, port int) {
-	index := c.SsrInboundIndex()
-	if len(clients) > 0 {
-		inbound := c.generateShadowsocksInbound("ssr", clients, port)
-		if index != -1 {
-			c.Inbounds[index] = inbound
-		} else {
-			c.Inbounds = append(c.Inbounds, inbound)
-		}
-	} else {
-		if index != -1 {
-			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
-		}
-	}
-}
-
-func (c *Config) SsdInboundIndex() int {
-	index := -1
-	for i, inbound := range c.Inbounds {
-		if inbound.Tag == "ssd" {
-			index = i
-		}
-	}
-	return index
-}
-
-func (c *Config) SsdInbound() *Inbound {
-	if c.SsdInboundIndex() != -1 {
-		return c.Inbounds[c.SsdInboundIndex()]
-	}
-	return nil
-}
-
-func (c *Config) UpdateSsdInbound(clients []*Client, port int) {
-	index := c.SsdInboundIndex()
-	if len(clients) > 0 {
-		inbound := c.generateShadowsocksInbound("ssd", clients, port)
-		if index != -1 {
-			c.Inbounds[index] = inbound
-		} else {
-			c.Inbounds = append(c.Inbounds, inbound)
-		}
-	} else {
-		if index != -1 {
-			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
-		}
-	}
-}
-
-func (c *Config) ReverseInboundIndex() int {
+func (c *Config) reverseInboundIndex() int {
 	index := -1
 	for i, inbound := range c.Inbounds {
 		if inbound.Tag == "reverse" {
@@ -225,39 +159,163 @@ func (c *Config) ReverseInboundIndex() int {
 }
 
 func (c *Config) ReverseInbound() *Inbound {
-	if c.ReverseInboundIndex() != -1 {
-		return c.Inbounds[c.ReverseInboundIndex()]
+	if c.reverseInboundIndex() != -1 {
+		return c.Inbounds[c.reverseInboundIndex()]
 	}
 	return nil
 }
 
-func (c *Config) UpdateReverseInbound(port int, password string) {
-	index := c.ReverseInboundIndex()
-	if index != -1 {
-		c.Inbounds[index].Port = port
-		c.Inbounds[index].Settings.Password = password
+func (c *Config) ReverseInboundUpdate(clients []*Client, port int) {
+	index := c.reverseInboundIndex()
+	if len(clients) > 0 {
+		inbound := c.generateShadowsocksInbound("reverse", clients, port)
+		if index != -1 {
+			c.Inbounds[index] = inbound
+		} else {
+			c.Inbounds = append(c.Inbounds, inbound)
+		}
+	} else {
+		if index != -1 {
+			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
+		}
 	}
 }
 
-func (c *Config) ReverseOutboundIndex() int {
+func (c *Config) relayInboundIndex() int {
 	index := -1
-	for i, outbound := range c.Outbounds {
-		if outbound.Tag == "reverse" {
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "relay" {
 			index = i
 		}
 	}
 	return index
 }
 
-func (c *Config) ReverseOutbound() *Outbound {
-	if c.ReverseOutboundIndex() != -1 {
-		return c.Outbounds[c.ReverseOutboundIndex()]
+func (c *Config) RelayInbound() *Inbound {
+	if c.relayInboundIndex() != -1 {
+		return c.Inbounds[c.relayInboundIndex()]
 	}
 	return nil
 }
 
-func (c *Config) UpdateReverseOutbound(address string, port int, password string) {
-	index := c.ReverseOutboundIndex()
+func (c *Config) RelayInboundUpdate(clients []*Client, port int) {
+	index := c.relayInboundIndex()
+	if len(clients) > 0 {
+		inbound := c.generateShadowsocksInbound("relay", clients, port)
+		if index != -1 {
+			c.Inbounds[index] = inbound
+		} else {
+			c.Inbounds = append(c.Inbounds, inbound)
+		}
+	} else {
+		if index != -1 {
+			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
+		}
+	}
+}
+
+func (c *Config) directInboundIndex() int {
+	index := -1
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "direct" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) DirectInbound() *Inbound {
+	if c.directInboundIndex() != -1 {
+		return c.Inbounds[c.directInboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) DirectInboundUpdate(client *Client, port int) {
+	index := c.directInboundIndex()
+	if client != nil {
+		inbound := c.generateShadowsocksInbound("relay", []*Client{client}, port)
+		if index != -1 {
+			c.Inbounds[index] = inbound
+		} else {
+			c.Inbounds = append(c.Inbounds, inbound)
+		}
+	} else {
+		if index != -1 {
+			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
+		}
+	}
+}
+
+func (c *Config) foreignInboundIndex() int {
+	index := -1
+	for i, inbound := range c.Inbounds {
+		if inbound.Tag == "foreign" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) ForeignInbound() *Inbound {
+	if c.foreignInboundIndex() != -1 {
+		return c.Inbounds[c.foreignInboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) ForeignInboundUpdate(port int, password string) {
+	index := c.foreignInboundIndex()
+	if index != -1 {
+		c.Inbounds[index].Port = port
+		c.Inbounds[index].Settings.Password = password
+	}
+}
+
+func (c *Config) relayOutboundIndex() int {
+	index := -1
+	for i, outbound := range c.Outbounds {
+		if outbound.Tag == "relay" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) RelayOutbound() *Outbound {
+	if c.relayOutboundIndex() != -1 {
+		return c.Outbounds[c.relayOutboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) RelayOutboundUpdate(address string, port int) {
+	index := c.relayOutboundIndex()
+	if index != -1 {
+		c.Outbounds[index].Settings.Servers[0].Address = address
+		c.Outbounds[index].Settings.Servers[0].Port = port
+	}
+}
+
+func (c *Config) foreignOutboundIndex() int {
+	index := -1
+	for i, outbound := range c.Outbounds {
+		if outbound.Tag == "foreign" {
+			index = i
+		}
+	}
+	return index
+}
+
+func (c *Config) ForeignOutbound() *Outbound {
+	if c.foreignOutboundIndex() != -1 {
+		return c.Outbounds[c.foreignOutboundIndex()]
+	}
+	return nil
+}
+
+func (c *Config) ForeignOutboundUpdate(address string, port int, password string) {
+	index := c.foreignOutboundIndex()
 	if index != -1 {
 		c.Outbounds[index].Settings.Servers[0].Address = address
 		c.Outbounds[index].Settings.Servers[0].Port = port
@@ -265,54 +323,12 @@ func (c *Config) UpdateReverseOutbound(address string, port int, password string
 	}
 }
 
-func (c *Config) SsdOutboundIndex() int {
-	index := -1
-	for i, outbound := range c.Outbounds {
-		if outbound.Tag == "ssd" {
-			index = i
-		}
-	}
-	return index
-}
-
-func (c *Config) SsdOutbound() *Outbound {
-	if c.SsdOutboundIndex() != -1 {
-		return c.Outbounds[c.SsdOutboundIndex()]
-	}
-	return nil
-}
-
-func (c *Config) UpdateSsdOutbound(address string, port int) {
-	index := c.SsdOutboundIndex()
-	if index != -1 {
-		c.Outbounds[index].Settings.Servers[0].Address = address
-		c.Outbounds[index].Settings.Servers[0].Port = port
-	}
-}
-
-func (c *Config) RemoveInbounds() {
-	c.Inbounds = []*Inbound{c.ApiInbound()}
-}
-
-func (c *Config) AddRelayInbound(id int, host string, localPort, remotePort int) {
-	c.Inbounds = append(c.Inbounds, &Inbound{
-		Tag:      "relay-" + strconv.Itoa(id),
-		Protocol: "dokodemo-door",
-		Listen:   "0.0.0.0",
-		Port:     localPort,
-		Settings: &InboundSettings{
-			Address: host,
-			Port:    remotePort,
-		},
-	})
-}
-
 func (c *Config) Validate() error {
 	v := validator.New(validator.WithRequiredStructEnabled())
 	if err := v.Struct(c); err != nil {
 		return err
 	}
-	if c.ApiInboundIndex() == -1 {
+	if c.ApiInbound() == nil {
 		return fmt.Errorf("api inbound not found")
 	}
 	return nil
@@ -327,7 +343,41 @@ func newEmptyConfig() *Config {
 func NewPortalConfig() *Config {
 	c := NewConfig()
 	c.Reverse.Portals = []*ReverseItem{{Tag: "portal", Domain: "s1.google.com"}}
+	c.Inbounds = append(c.Inbounds, []*Inbound{
+		{
+			Tag:      "foreign",
+			Protocol: "shadowsocks",
+			Listen:   "0.0.0.0",
+			Port:     rand.Intn(64536) + 1000,
+			Settings: &InboundSettings{
+				Method:   config.Shadowsocks2022Method,
+				Password: utils.Key32(),
+				Network:  "tcp,udp",
+			},
+		},
+	}...)
+	c.Outbounds = append(c.Outbounds, []*Outbound{
+		{
+			Tag:      "relay",
+			Protocol: "shadowsocks",
+			Settings: &OutboundSettings{
+				Servers: []*OutboundServer{
+					{
+						Address:  "1.2.3.4",
+						Port:     rand.Intn(64536) + 1000,
+						Method:   config.ShadowsocksMethod,
+						Password: utils.Key32(),
+					},
+				},
+			},
+		},
+	}...)
 	c.Routing.Settings.Rules = append(c.Routing.Settings.Rules, []*Rule{
+		{
+			Type:        "field",
+			InboundTag:  []string{"foreign"},
+			OutboundTag: "portal",
+		},
 		{
 			Type:        "field",
 			InboundTag:  []string{"reverse"},
@@ -335,42 +385,8 @@ func NewPortalConfig() *Config {
 		},
 		{
 			Type:        "field",
-			InboundTag:  []string{"ssr"},
-			OutboundTag: "portal",
-		},
-		{
-			Type:        "field",
-			InboundTag:  []string{"ssd"},
-			OutboundTag: "ssd",
-		},
-	}...)
-	c.Inbounds = append(c.Inbounds, []*Inbound{
-		{
-			Tag:      "reverse",
-			Protocol: "shadowsocks",
-			Listen:   "0.0.0.0",
-			Port:     2829,
-			Settings: &InboundSettings{
-				Method:   config.Shadowsocks2022Method,
-				Password: utils.GenerateKey32(),
-				Network:  "tcp,udp",
-			},
-		},
-	}...)
-	c.Outbounds = append(c.Outbounds, []*Outbound{
-		{
-			Tag:      "ssd",
-			Protocol: "shadowsocks",
-			Settings: &OutboundSettings{
-				Servers: []*OutboundServer{
-					{
-						Address:  "1.2.3.4",
-						Port:     1234,
-						Method:   config.ShadowsocksMethod,
-						Password: utils.GenerateKey32(),
-					},
-				},
-			},
+			InboundTag:  []string{"relay"},
+			OutboundTag: "relay",
 		},
 	}...)
 	return c
@@ -379,34 +395,16 @@ func NewPortalConfig() *Config {
 func NewBridgeConfig() *Config {
 	c := NewConfig()
 	c.Reverse.Bridges = []*ReverseItem{{Tag: "bridge", Domain: "s1.google.com"}}
-	c.Routing.Settings.Rules = append(c.Routing.Settings.Rules, []*Rule{
-		{
-			Type:        "field",
-			InboundTag:  []string{"bridge"},
-			Domain:      []string{"full:s1.google.com"},
-			OutboundTag: "reverse",
-		},
-		{
-			Type:        "field",
-			InboundTag:  []string{"bridge"},
-			OutboundTag: "freedom",
-		},
-		{
-			Type:        "field",
-			InboundTag:  []string{"ssd"},
-			OutboundTag: "freedom",
-		},
-	}...)
 	c.Inbounds = append(c.Inbounds, []*Inbound{
 		{
-			Tag:      "ssd",
+			Tag:      "direct",
 			Protocol: "shadowsocks",
 			Listen:   "0.0.0.0",
 			Port:     1234,
 			Settings: &InboundSettings{
 				Clients: []*Client{
 					{
-						Password: utils.GenerateKey32(),
+						Password: utils.Key32(),
 						Method:   config.Shadowsocks2022Method,
 						Email:    "1",
 					},
@@ -414,9 +412,9 @@ func NewBridgeConfig() *Config {
 			},
 		},
 	}...)
-	c.Outbounds = []*Outbound{
+	c.Outbounds = append(c.Outbounds, []*Outbound{
 		{
-			Tag:      "reverse",
+			Tag:      "foreign",
 			Protocol: "shadowsocks",
 			Settings: &OutboundSettings{
 				Servers: []*OutboundServer{
@@ -424,7 +422,7 @@ func NewBridgeConfig() *Config {
 						Address:  "127.0.0.1",
 						Port:     2929,
 						Method:   config.Shadowsocks2022Method,
-						Password: utils.GenerateKey32(),
+						Password: utils.Key32(),
 					},
 				},
 			},
@@ -436,7 +434,25 @@ func NewBridgeConfig() *Config {
 			Tag:      "freedom",
 			Protocol: "freedom",
 		},
-	}
+	}...)
+	c.Routing.Settings.Rules = append(c.Routing.Settings.Rules, []*Rule{
+		{
+			Type:        "field",
+			InboundTag:  []string{"bridge"},
+			Domain:      []string{"full:s1.google.com"},
+			OutboundTag: "foreign",
+		},
+		{
+			Type:        "field",
+			InboundTag:  []string{"bridge"},
+			OutboundTag: "freedom",
+		},
+		{
+			Type:        "field",
+			InboundTag:  []string{"relay"},
+			OutboundTag: "freedom",
+		},
+	}...)
 	return c
 }
 

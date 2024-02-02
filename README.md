@@ -29,9 +29,9 @@ docker compose up -d
 ### Web Panel
 
 Access the web panel at the default port 8080. Log in using the username `admin` and password `password`.
-* In the `Users` tab, you can create, edit, and view your users (including their profile links).
-* In the `Servers` tab, add Xray Node servers by specifying their Host (IP), HTTP Port, and HTTP Token.
-* In the `Settings` tab, you can modify the Panel password, the Host (IP), the Shadowsocks Port, and other options.
+* In the `Users` tab, you can create, edit, and view users.
+* In the `Servers` tab, add Xray Nodes by specifying their Host (IP), HTTP Port, and HTTP Token.
+* In the `Settings` tab, you can modify the Panel password, the Host (IP), the Ports, etc.
 
 ### Configuration
 
@@ -44,7 +44,7 @@ configs/main.local.json
 
 ``` shell
 make update
-# Execute this each time a new version of Xray Manager is released.
+# Execute this each time a new version is released.
 ```
 
 ## Links

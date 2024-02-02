@@ -51,21 +51,11 @@
             </div>
         </div>
 
-        <div class="card bg-light-subtle mt-3 text-start">
-            <div class="card-header">Import users from old app</div>
-            <div class="card-body">
-                <input type="text" class="form-control form-control-sm mb-2" id="url"
-                       placeholder="URL (http://13.12.11.10:8080)" title="URL">
-                <input type="text" class="form-control form-control-sm mb-2" id="token"
-                       placeholder="Token (abc123xyz...)" title="URL">
-                <input type="button" class="btn btn-secondary btn-sm mt-1" id="import" value="Import">
-            </div>
-        </div>
-
         <div class="card bg-warning-subtle mt-3 text-start">
             <div class="card-header">DANGER ZONE</div>
             <div class="card-body">
                 <div class="d-flex flex-column mt-1">
+                    <button class="btn btn-danger btn-sm my-1" id="xray-restart">RESTART XRAY</button>
                     <button class="btn btn-danger btn-sm my-1" id="stats-zero">ZERO STATS</button>
                     <button class="btn btn-danger btn-sm my-1" id="servers-zero">ZERO SERVERS</button>
                     <button class="btn btn-danger btn-sm my-1" id="users-zero">ZERO USERS</button>
@@ -219,29 +209,25 @@
         url: "/v1/settings/stats"
     });
 
-    $('#import').click(function () {
+    $('#xray-restart').click(function () {
         let me = $(this)
-        me.attr('disabled', 'disabled').val('Importing...')
+        me.attr('disabled', 'disabled').val('RESTARTING...')
 
         $.ajax({
             type: 'POST',
-            url: `/v1/settings/import`,
+            url: `/v1/settings/xray/restart`,
             processData: true,
             dataType: 'json',
-            data: JSON.stringify({
-                url: $('#url').val(),
-                token: $('#token').val(),
-            }),
             success: function () {
-                me.html('Done!')
+                me.html('DONE!')
             },
             error: function (response) {
                 console.log(response)
-                me.val('Error!')
+                me.val('ERROR!')
             },
             complete: function () {
                 setTimeout(function () {
-                    me.val('Import').removeAttr('disabled')
+                    me.html('RESTART XRAY').removeAttr('disabled')
                 }, 2000)
             }
         })

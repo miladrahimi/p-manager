@@ -368,6 +368,7 @@ func NewPortalConfig() *Config {
 						Port:     rand.Intn(64536) + 1000,
 						Method:   config.Shadowsocks2022Method,
 						Password: utils.Key32(),
+						Uot:      true,
 					},
 				},
 			},

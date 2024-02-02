@@ -61,9 +61,6 @@ func (c *Coordinator) initDatabase() {
 			c.log.Fatal("coordinator: cannot find port for ssd", zap.Error(err))
 		}
 	}
-	if len(c.database.Data.Servers) > 1 {
-		c.database.Data.Servers = []*database.Server{c.database.Data.Servers[0]}
-	}
 	c.database.Save()
 }
 

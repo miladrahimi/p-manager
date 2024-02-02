@@ -26,6 +26,14 @@ type Xray struct {
 	locker     *sync.Mutex
 }
 
+func (x *Xray) initConfig() {
+	if !utils.FileExist(x.configPath) {
+		x.saveConfig()
+	} else {
+		x.loadConfig()
+	}
+}
+
 func (x *Xray) loadConfig() {
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
@@ -61,7 +69,7 @@ func (x *Xray) saveConfig() {
 }
 
 func (x *Xray) Run() {
-	x.saveConfig()
+	x.initConfig()
 	x.initApiInbound()
 	go x.runCore()
 	x.connectGrpc()

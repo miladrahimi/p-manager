@@ -290,11 +290,10 @@ func (c *Config) RelayOutbound() *Outbound {
 	return nil
 }
 
-func (c *Config) RelayOutboundUpdate(address string, port int) {
+func (c *Config) RelayOutboundUpdate(servers []*OutboundServer) {
 	index := c.relayOutboundIndex()
-	if index != -1 {
-		c.Outbounds[index].Settings.Servers[0].Address = address
-		c.Outbounds[index].Settings.Servers[0].Port = port
+	if c.relayOutboundIndex() != -1 {
+		c.Outbounds[index].Settings.Servers = servers
 	}
 }
 

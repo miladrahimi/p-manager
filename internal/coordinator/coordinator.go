@@ -11,6 +11,7 @@ import (
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
+	"golang.org/x/exp/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -92,30 +93,36 @@ func (c *Coordinator) syncLocalConfigs() {
 	c.xray.Config().ReverseInboundUpdate(clients, c.database.Data.Settings.SsReversePort)
 	c.xray.Config().RelayInboundUpdate(clients, c.database.Data.Settings.SsRelayPort)
 
-	if len(c.database.Data.Servers) > 0 {
-		s := c.database.Data.Servers[0]
-		c.xray.Config().RelayOutbound().Settings.Servers[0].Address = s.Host
+	password := utils.Key32()
+	var servers []*xray.OutboundServer
+	for _, s := range c.database.Data.Servers {
+		servers = append(servers, &xray.OutboundServer{
+			Address:  s.Host,
+			Port:     rand.Intn(64536) + 1000,
+			Password: password,
+			Method:   config.ShadowsocksMethod,
+			Uot:      true,
+		})
 	}
+	c.xray.Config().RelayOutboundUpdate(servers)
 
 	c.xray.Restart()
 }
 
 func (c *Coordinator) syncRemoteConfigs() {
 	c.log.Info("coordinator: syncing remote configs...")
-	if len(c.database.Data.Servers) > 0 {
-		s := c.database.Data.Servers[0]
 
-		xc := xray.NewBridgeConfig()
-		xc.ForeignOutboundUpdate(
-			c.database.Data.Settings.Host,
-			c.xray.Config().ForeignInbound().Port,
-			c.xray.Config().ForeignInbound().Settings.Password,
-		)
+	xc := xray.NewBridgeConfig()
+	xc.ForeignOutboundUpdate(
+		c.database.Data.Settings.Host,
+		c.xray.Config().ForeignInbound().Port,
+		c.xray.Config().ForeignInbound().Settings.Password,
+	)
 
-		xc.DirectInbound().Port = c.xray.Config().RelayOutbound().Settings.Servers[0].Port
-		xc.DirectInbound().Settings.Password = c.xray.Config().RelayOutbound().Settings.Servers[0].Password
-		xc.DirectInbound().Settings.Method = c.xray.Config().RelayOutbound().Settings.Servers[0].Method
-
+	for i, s := range c.database.Data.Servers {
+		xc.DirectInbound().Port = c.xray.Config().RelayOutbound().Settings.Servers[i].Port
+		xc.DirectInbound().Settings.Password = c.xray.Config().RelayOutbound().Settings.Servers[i].Password
+		xc.DirectInbound().Settings.Method = c.xray.Config().RelayOutbound().Settings.Servers[i].Method
 		go c.updateRemoteConfigs(s, xc)
 	}
 

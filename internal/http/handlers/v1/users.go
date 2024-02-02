@@ -124,7 +124,6 @@ func KeysZero(d *database.Database) echo.HandlerFunc {
 				return c.NoContent(http.StatusNoContent)
 			}
 		}
-
 		return c.NoContent(http.StatusNotFound)
 	}
 }
@@ -138,7 +137,6 @@ func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) ech
 				go coordinator.SyncConfigs()
 			}
 		}
-
 		return c.NoContent(http.StatusNoContent)
 	}
 }

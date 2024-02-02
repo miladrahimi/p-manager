@@ -26,17 +26,6 @@ type Xray struct {
 	locker     *sync.Mutex
 }
 
-func (x *Xray) initConfig() {
-	x.config.Locker.Lock()
-	defer x.config.Locker.Unlock()
-
-	if !utils.FileExist(x.configPath) {
-		x.saveConfig()
-	} else {
-		x.loadConfig()
-	}
-}
-
 func (x *Xray) loadConfig() {
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
@@ -72,16 +61,13 @@ func (x *Xray) saveConfig() {
 }
 
 func (x *Xray) Run() {
-	x.initConfig()
+	x.saveConfig()
 	x.initApiInbound()
 	go x.runCore()
 	x.connectGrpc()
 }
 
 func (x *Xray) initApiInbound() {
-	x.config.Locker.Lock()
-	defer x.config.Locker.Unlock()
-
 	if x.config.ApiInbound() == nil {
 		return
 	}
@@ -94,7 +80,6 @@ func (x *Xray) initApiInbound() {
 		}
 		x.l.Info("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
 		x.config.ApiInbound().Port = np
-		x.saveConfig()
 	}
 }
 

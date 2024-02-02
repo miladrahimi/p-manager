@@ -42,6 +42,7 @@ type OutboundServer struct {
 	Port     int    `json:"port" validate:"required,min=1,max=65536"`
 	Method   string `json:"method" validate:"required"`
 	Password string `json:"password" validate:"required"`
+	Uot      bool   `json:"uot"`
 }
 
 type OutboundSettings struct {
@@ -419,6 +420,7 @@ func NewBridgeConfig() *Config {
 						Port:     2929,
 						Method:   config.Shadowsocks2022Method,
 						Password: utils.Key32(),
+						Uot:      true,
 					},
 				},
 			},

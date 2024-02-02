@@ -11,11 +11,11 @@ type Portal struct {
 }
 
 func (p *Portal) Run() {
-	p.initConfig()
 	p.initApiInbound()
 	p.initRelayInbound()
 	p.initReverseInbound()
 	p.initForeignInbound()
+	p.saveConfig()
 	go p.runCore()
 	p.connectGrpc()
 }
@@ -33,7 +33,6 @@ func (x *Xray) initRelayInbound() {
 		}
 		x.l.Info("xray: updating relay inbound port...", zap.Int("old", op), zap.Int("new", np))
 		x.config.RelayInboundUpdate(x.config.RelayInbound().Settings.Clients, np)
-		x.saveConfig()
 	}
 }
 
@@ -50,7 +49,6 @@ func (x *Xray) initReverseInbound() {
 		}
 		x.l.Info("xray: updating reverse inbound port...", zap.Int("old", op), zap.Int("new", np))
 		x.config.ReverseInboundUpdate(x.config.ReverseInbound().Settings.Clients, np)
-		x.saveConfig()
 	}
 }
 
@@ -63,7 +61,6 @@ func (x *Xray) initForeignInbound() {
 		}
 		x.l.Info("xray: updating foreign inbound port...", zap.Int("old", op), zap.Int("new", np))
 		x.config.ForeignInboundUpdate(np, x.config.ForeignInbound().Settings.Password)
-		x.saveConfig()
 	}
 }
 

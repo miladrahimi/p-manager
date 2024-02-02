@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -23,7 +22,6 @@ type Xray struct {
 	command    *exec.Cmd
 	l          *logger.Logger
 	connection *grpc.ClientConn
-	locker     *sync.Mutex
 }
 
 func (x *Xray) initConfig() {
@@ -167,5 +165,5 @@ func (x *Xray) QueryStats() []*stats.Stat {
 }
 
 func New(l *logger.Logger, config *Config, configPath, binaryPath string) *Xray {
-	return &Xray{l: l, config: config, binaryPath: binaryPath, configPath: configPath, locker: &sync.Mutex{}}
+	return &Xray{l: l, config: config, binaryPath: binaryPath, configPath: configPath}
 }

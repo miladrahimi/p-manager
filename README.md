@@ -14,8 +14,9 @@ wget -O install-docker.sh https://get.docker.com
 chmod +x install-docker.sh && ./install-docker.sh
 
 # Install BBR
-wget -N --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh
-chmod +x bbr.sh && bash bbr.sh
+sudo sh -c 'echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf'
+sudo sh -c 'echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf'
+sudo sysctl -p
 ```
 
 ```shell

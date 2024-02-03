@@ -54,5 +54,5 @@ make update
 
 ## License
 
-This project is governed by the terms of the [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International](LICENSE.md) license.
+This project is governed by the terms of the [CC-BY-NC-ND-4.0](LICENSE.md) license.
 Feel free to utilize this for personal purposes; however, commercial use is expressly prohibited.

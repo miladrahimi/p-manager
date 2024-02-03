@@ -181,7 +181,7 @@ func (c *Coordinator) fetchRemoteStats(s *database.Server) {
 
 	for _, qs := range qss {
 		parts := strings.Split(qs.GetName(), ">>>")
-		if parts[0] == "outbound" && parts[1] == "reverse" {
+		if parts[0] == "inbound" {
 			s.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
 	}

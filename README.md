@@ -51,3 +51,8 @@ make update
 ## Links
 
 * https://github.com/miladrahimi/xray-node
+
+## License
+
+This project is governed by the terms of the [CC-BY-NC-ND-4.0](LICENSE.md) license.
+Feel free to use it for personal purposes, but remember, commercial use is not allowed.

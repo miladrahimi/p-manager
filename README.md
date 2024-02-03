@@ -12,6 +12,7 @@ apt-get -y install make wget curl vim git openssl
 # Install Docker
 wget -O install-docker.sh https://get.docker.com
 chmod +x install-docker.sh && ./install-docker.sh
+rm -f ./install-docker.sh
 
 # Install BBR
 sudo sh -c 'echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf'

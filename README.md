@@ -34,14 +34,14 @@ docker compose up -d
 ### Web Panel
 
 Access the web panel at the default port 8080. Log in using the username `admin` and password `password`.
-* In the `Users` tab, you can create, edit, and view users.
-* In the `Servers` tab, add Xray Nodes by specifying their Host (IP), HTTP Port, and HTTP Token.
-* In the `Settings` tab, you can modify the Panel password, the Host (IP), the Ports, etc.
+* In the `Users` tab, you can manage users and view their public profiles.
+* In the `Servers` tab, you can add Xray Nodes by specifying their Host (IP), HTTP Port, and Token.
+* In the `Settings` tab, you can modify the Admin password, the Host (IP), the Ports, etc.
 
 ### Configuration
 
 ```shell
-# Modify the web panel and user profile port (default 8080) here.
+# Modify web panel port and other configurations here:
 configs/main.local.json
 ```
 

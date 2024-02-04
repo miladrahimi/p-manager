@@ -8,11 +8,15 @@
 # Install the requirements
 apt-get -y update && apt-get -y upgrade
 apt-get -y install make wget curl vim git openssl
+```
 
+```shell
 # Install Docker
 wget -O install-docker.sh https://get.docker.com
 chmod +x install-docker.sh && ./install-docker.sh && rm install-docker.sh
+```
 
+```shell
 # Install BBR
 sudo sh -c 'echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf'
 sudo sh -c 'echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf'

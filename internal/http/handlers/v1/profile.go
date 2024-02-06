@@ -30,7 +30,7 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 
 		r := ProfileResponse{User: *user, ShadowsocksLinks: []string{}}
 		r.User.Used = r.User.Used * d.Data.Settings.TrafficRatio
-		r.User.Quota = int(float64(r.User.Quota) * d.Data.Settings.TrafficRatio)
+		r.User.Quota = r.User.Quota * d.Data.Settings.TrafficRatio
 
 		s := d.Data.Settings
 		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))

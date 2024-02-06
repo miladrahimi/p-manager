@@ -12,7 +12,7 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/http/handlers/pages"
 	"github.com/miladrahimi/xray-manager/internal/http/handlers/v1"
 	"github.com/miladrahimi/xray-manager/pkg/logger"
-	middleware2 "github.com/miladrahimi/xray-manager/pkg/routing/middleware"
+	mw "github.com/miladrahimi/xray-manager/pkg/routing/middleware"
 	"github.com/miladrahimi/xray-manager/pkg/routing/validator"
 	"go.uber.org/zap"
 	"net/http"
@@ -29,11 +29,10 @@ type Server struct {
 
 // Run defines the required HTTP routes and starts the HTTP Server.
 func (s *Server) Run() {
-	s.engine.Use(middleware2.Logger(s.log))
+	s.engine.Use(mw.Logger(s.log))
 	s.engine.Use(echoMiddleware.CORS())
 
 	s.engine.Static("/", "web")
-
 	s.engine.GET("/profile", pages.Profile())
 
 	g1 := s.engine.Group("/v1")
@@ -43,7 +42,7 @@ func (s *Server) Run() {
 	g1.POST("/profile/reset", v1.ProfileReset(s.coordinator, s.database))
 
 	g2 := s.engine.Group("/v1")
-	g2.Use(middleware2.Authorize(func() string {
+	g2.Use(mw.Authorize(func() string {
 		return s.database.Data.Settings.AdminPassword
 	}))
 

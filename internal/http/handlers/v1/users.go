@@ -15,8 +15,8 @@ import (
 
 type UsersStoreRequest struct {
 	Name    string  `json:"name" validate:"required,min=1,max=32"`
-	Quota   int     `json:"quota" validate:"min=0"`
 	Enabled bool    `json:"enabled"`
+	Quota   float64 `json:"quota" validate:"min=0"`
 	Used    float64 `json:"used"`
 }
 

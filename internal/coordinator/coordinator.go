@@ -213,7 +213,7 @@ func (c *Coordinator) syncLocalStats() {
 		if bytes, found := users[u.Id]; found {
 			u.UsedBytes += bytes
 			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
-			if u.Quota > 0 && u.Used > float64(u.Quota) {
+			if u.Quota > 0 && u.Used > u.Quota {
 				u.Enabled = false
 				isSyncConfigsRequired = true
 			}

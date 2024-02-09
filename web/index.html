@@ -64,6 +64,13 @@
                 }
             });
         })
+
+        $('#username, #password').keypress(function (e) {
+            const keyCode = e.keyCode ? e.keyCode : e.which;
+            if (keyCode === 13) {
+                $('#sign-in').click();
+            }
+        });
     })
 </script>
 </body>

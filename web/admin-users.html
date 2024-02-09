@@ -110,7 +110,7 @@
     }
 
     let profile = function (rowIndex) {
-        window.location.href = `/profile?u=${find(rowIndex, 'identity')}`
+        window.open(`/profile?u=${find(rowIndex, 'identity')}`, '_blank');
     }
 
     let actionsFormatter = function (cell) {

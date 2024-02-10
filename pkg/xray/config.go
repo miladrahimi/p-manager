@@ -5,8 +5,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
-	"golang.org/x/exp/rand"
-	"slices"
 	"sync"
 )
 
@@ -26,7 +24,6 @@ type InboundSettings struct {
 	Network  string    `json:"network,omitempty"`
 	Method   string    `json:"method,omitempty"`
 	Password string    `json:"password,omitempty"`
-	Port     int       `json:"port,omitempty" validate:"omitempty,min=1,max=65536"`
 }
 
 type Inbound struct {
@@ -81,7 +78,8 @@ type Policy struct {
 
 type Rule struct {
 	InboundTag  []string `json:"inboundTag" validate:"required"`
-	OutboundTag string   `json:"outboundTag" validate:"required"`
+	OutboundTag string   `json:"outboundTag,omitempty"`
+	BalancerTag string   `json:"balancerTag,omitempty"`
 	Type        string   `json:"type" validate:"required"`
 	Domain      []string `json:"domain,omitempty"`
 }
@@ -90,11 +88,17 @@ type RoutingSettings struct {
 	Rules []*Rule `json:"rules" validate:"required,dive"`
 }
 
+type Balancer struct {
+	Tag      string   `json:"tag" validate:"required"`
+	Selector []string `json:"selector"`
+}
+
 type Routing struct {
 	DomainStrategy string           `json:"domainStrategy" validate:"required"`
 	DomainMatcher  string           `json:"domainMatcher" validate:"required"`
 	Strategy       string           `json:"strategy" validate:"required"`
 	Settings       *RoutingSettings `json:"settings" validate:"required"`
+	Balancers      []*Balancer      `json:"balancers" validate:"omitempty,dive"`
 }
 
 type Reverse struct {
@@ -120,7 +124,7 @@ type Config struct {
 	Locker    *sync.Mutex            `json:"-"`
 }
 
-func (c *Config) generateShadowsocksInbound(tag string, clients []*Client, port int) *Inbound {
+func (c *Config) MakeShadowsocksInbound(tag, password, method string, port int, clients []*Client) *Inbound {
 	return &Inbound{
 		Tag:      tag,
 		Protocol: "shadowsocks",
@@ -128,11 +132,50 @@ func (c *Config) generateShadowsocksInbound(tag string, clients []*Client, port 
 		Port:     port,
 		Settings: &InboundSettings{
 			Clients:  clients,
+			Password: password,
+			Method:   method,
 			Network:  "tcp,udp",
-			Password: utils.Key32(),
-			Method:   config.ShadowsocksMethod,
 		},
 	}
+}
+
+func (c *Config) MakeShadowsocksOutbound(tag, host, password, method string, port int) *Outbound {
+	return &Outbound{
+		Tag:      tag,
+		Protocol: "shadowsocks",
+		Settings: &OutboundSettings{
+			Servers: []*OutboundServer{
+				{
+					Address:  host,
+					Port:     port,
+					Method:   method,
+					Password: password,
+					Uot:      true,
+				},
+			},
+		},
+		StreamSettings: &StreamSettings{
+			Network: "tcp",
+		},
+	}
+}
+
+func (c *Config) FindInbound(tag string) *Inbound {
+	for _, inbound := range c.Inbounds {
+		if inbound.Tag == tag {
+			return inbound
+		}
+	}
+	return nil
+}
+
+func (c *Config) FindOutbound(tag string) *Outbound {
+	for _, outbound := range c.Outbounds {
+		if outbound.Tag == tag {
+			return outbound
+		}
+	}
+	return nil
 }
 
 func (c *Config) apiInboundIndex() int {
@@ -147,72 +190,6 @@ func (c *Config) apiInboundIndex() int {
 
 func (c *Config) ApiInbound() *Inbound {
 	return c.Inbounds[c.apiInboundIndex()]
-}
-
-func (c *Config) reverseInboundIndex() int {
-	index := -1
-	for i, inbound := range c.Inbounds {
-		if inbound.Tag == "reverse" {
-			index = i
-		}
-	}
-	return index
-}
-
-func (c *Config) ReverseInbound() *Inbound {
-	if c.reverseInboundIndex() != -1 {
-		return c.Inbounds[c.reverseInboundIndex()]
-	}
-	return nil
-}
-
-func (c *Config) ReverseInboundUpdate(clients []*Client, port int) {
-	index := c.reverseInboundIndex()
-	if len(clients) > 0 {
-		inbound := c.generateShadowsocksInbound("reverse", clients, port)
-		if index != -1 {
-			c.Inbounds[index] = inbound
-		} else {
-			c.Inbounds = append(c.Inbounds, inbound)
-		}
-	} else {
-		if index != -1 {
-			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
-		}
-	}
-}
-
-func (c *Config) relayInboundIndex() int {
-	index := -1
-	for i, inbound := range c.Inbounds {
-		if inbound.Tag == "relay" {
-			index = i
-		}
-	}
-	return index
-}
-
-func (c *Config) RelayInbound() *Inbound {
-	if c.relayInboundIndex() != -1 {
-		return c.Inbounds[c.relayInboundIndex()]
-	}
-	return nil
-}
-
-func (c *Config) RelayInboundUpdate(clients []*Client, port int) {
-	index := c.relayInboundIndex()
-	if len(clients) > 0 {
-		inbound := c.generateShadowsocksInbound("relay", clients, port)
-		if index != -1 {
-			c.Inbounds[index] = inbound
-		} else {
-			c.Inbounds = append(c.Inbounds, inbound)
-		}
-	} else {
-		if index != -1 {
-			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
-		}
-	}
 }
 
 func (c *Config) directInboundIndex() int {
@@ -230,22 +207,6 @@ func (c *Config) DirectInbound() *Inbound {
 		return c.Inbounds[c.directInboundIndex()]
 	}
 	return nil
-}
-
-func (c *Config) DirectInboundUpdate(client *Client, port int) {
-	index := c.directInboundIndex()
-	if client != nil {
-		inbound := c.generateShadowsocksInbound("relay", []*Client{client}, port)
-		if index != -1 {
-			c.Inbounds[index] = inbound
-		} else {
-			c.Inbounds = append(c.Inbounds, inbound)
-		}
-	} else {
-		if index != -1 {
-			c.Inbounds = slices.Delete(c.Inbounds, index, index+1)
-		}
-	}
 }
 
 func (c *Config) foreignInboundIndex() int {
@@ -338,59 +299,6 @@ func newEmptyConfig() *Config {
 	return &Config{
 		Locker: &sync.Mutex{},
 	}
-}
-
-func NewPortalConfig() *Config {
-	c := NewConfig()
-	c.Reverse.Portals = []*ReverseItem{{Tag: "portal", Domain: "s1.google.com"}}
-	c.Inbounds = append(c.Inbounds, []*Inbound{
-		{
-			Tag:      "foreign",
-			Protocol: "shadowsocks",
-			Listen:   "0.0.0.0",
-			Port:     rand.Intn(64536) + 1000,
-			Settings: &InboundSettings{
-				Method:   config.Shadowsocks2022Method,
-				Password: utils.Key32(),
-				Network:  "tcp,udp",
-			},
-		},
-	}...)
-	c.Outbounds = append(c.Outbounds, []*Outbound{
-		{
-			Tag:      "relay",
-			Protocol: "shadowsocks",
-			Settings: &OutboundSettings{
-				Servers: []*OutboundServer{
-					{
-						Address:  "1.2.3.4",
-						Port:     rand.Intn(64536) + 1000,
-						Method:   config.Shadowsocks2022Method,
-						Password: utils.Key32(),
-						Uot:      true,
-					},
-				},
-			},
-		},
-	}...)
-	c.Routing.Settings.Rules = append(c.Routing.Settings.Rules, []*Rule{
-		{
-			Type:        "field",
-			InboundTag:  []string{"foreign"},
-			OutboundTag: "portal",
-		},
-		{
-			Type:        "field",
-			InboundTag:  []string{"reverse"},
-			OutboundTag: "portal",
-		},
-		{
-			Type:        "field",
-			InboundTag:  []string{"relay"},
-			OutboundTag: "relay",
-		},
-	}...)
-	return c
 }
 
 func NewBridgeConfig() *Config {
@@ -508,7 +416,11 @@ func NewConfig() *Config {
 					},
 				},
 			},
+			Balancers: []*Balancer{},
 		},
-		Reverse: &Reverse{},
+		Reverse: &Reverse{
+			Bridges: []*ReverseItem{},
+			Portals: []*ReverseItem{},
+		},
 	}
 }

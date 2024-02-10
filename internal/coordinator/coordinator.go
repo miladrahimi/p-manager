@@ -1,7 +1,6 @@
 package coordinator
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
@@ -9,9 +8,7 @@ import (
 	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
-	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
-	"golang.org/x/exp/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -20,13 +17,13 @@ import (
 type Coordinator struct {
 	config   *config.Config
 	database *database.Database
-	log      *logger.Logger
+	l        *logger.Logger
 	fetcher  *fetcher.Fetcher
 	xray     *xray.Portal
 }
 
 func (c *Coordinator) Run() {
-	c.log.Info("coordinator: running...")
+	c.l.Info("coordinator: running...")
 
 	c.initDatabase()
 	c.SyncConfigs()
@@ -35,7 +32,7 @@ func (c *Coordinator) Run() {
 	go func() {
 		for {
 			<-statsWorker.C
-			c.log.Info("coordinator: working...")
+			c.l.Info("coordinator: working...")
 			c.SyncStats()
 		}
 	}()
@@ -44,7 +41,7 @@ func (c *Coordinator) Run() {
 	go func() {
 		for {
 			<-backupWorker.C
-			c.log.Info("coordinator: backing up...")
+			c.l.Info("coordinator: backing up...")
 			c.database.Backup()
 		}
 	}()
@@ -54,12 +51,12 @@ func (c *Coordinator) initDatabase() {
 	var err error
 	if c.database.Data.Settings.SsReversePort == 1 {
 		if c.database.Data.Settings.SsReversePort, err = utils.FreePort(); err != nil {
-			c.log.Fatal("coordinator: cannot find port for ssr", zap.Error(err))
+			c.l.Fatal("coordinator: cannot find port for ssr", zap.Error(err))
 		}
 	}
 	if c.database.Data.Settings.SsRelayPort == 1 {
 		if c.database.Data.Settings.SsRelayPort, err = utils.FreePort(); err != nil {
-			c.log.Fatal("coordinator: cannot find port for ssd", zap.Error(err))
+			c.l.Fatal("coordinator: cannot find port for ssd", zap.Error(err))
 		}
 	}
 	c.database.Save()
@@ -81,136 +78,212 @@ func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
 }
 
 func (c *Coordinator) SyncConfigs() {
-	c.log.Info("coordinator: syncing configs...")
+	c.l.Info("coordinator: syncing configs...")
 	c.syncLocalConfigs()
 	c.syncRemoteConfigs()
 }
 
 func (c *Coordinator) syncLocalConfigs() {
-	c.log.Info("coordinator: syncing local configs...")
+	c.l.Info("coordinator: syncing local configs...")
 
 	clients := c.generateShadowsocksClients()
-	c.xray.Config().ReverseInboundUpdate(clients, c.database.Data.Settings.SsReversePort)
-	c.xray.Config().RelayInboundUpdate(clients, c.database.Data.Settings.SsRelayPort)
+	apiPort, err := utils.FreePort()
+	if err != nil {
+		c.l.Fatal("coordinator: cannot find free port for xray api", zap.Error(err))
+	}
 
-	password := utils.Key32()
-	var servers []*xray.OutboundServer
-	for _, s := range c.database.Data.Servers {
-		servers = append(servers, &xray.OutboundServer{
-			Address:  s.Host,
-			Port:     rand.Intn(64536) + 1000,
-			Password: password,
-			Method:   config.ShadowsocksMethod,
-			Uot:      true,
+	xc := xray.NewConfig()
+	c.xray.SetConfig(xc)
+
+	xc.ApiInbound().Port = apiPort
+
+	if len(clients) > 0 {
+		xc.Inbounds = append(
+			xc.Inbounds,
+			xc.MakeShadowsocksInbound(
+				"relay",
+				utils.Key32(),
+				config.ShadowsocksMethod,
+				c.database.Data.Settings.SsRelayPort,
+				clients,
+			),
+			xc.MakeShadowsocksInbound(
+				"reverse",
+				utils.Key32(),
+				config.ShadowsocksMethod,
+				c.database.Data.Settings.SsReversePort,
+				clients,
+			),
+		)
+		xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+			InboundTag:  []string{"relay"},
+			BalancerTag: "relay",
+			Type:        "field",
+		})
+		xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+			InboundTag:  []string{"reverse"},
+			BalancerTag: "portal",
+			Type:        "field",
 		})
 	}
-	c.xray.Config().RelayOutboundUpdate(servers)
+
+	if len(c.database.Data.Servers) > 0 {
+		xc.Routing.Balancers = []*xray.Balancer{
+			{Tag: "relay", Selector: []string{}},
+			{Tag: "portal", Selector: []string{}},
+		}
+	}
+
+	for _, s := range c.database.Data.Servers {
+		inboundPort, err := utils.FreePort()
+		if err != nil {
+			c.l.Fatal("coordinator: cannot find free port for foreign inbound", zap.Error(err))
+		}
+		xc.Inbounds = append(
+			xc.Inbounds,
+			xc.MakeShadowsocksInbound(
+				fmt.Sprintf("foreign-%d", s.Id),
+				utils.Key32(),
+				config.Shadowsocks2022Method,
+				inboundPort,
+				nil,
+			),
+		)
+		outboundPort, err := utils.FreePort()
+		if err != nil {
+			c.l.Fatal("coordinator: cannot find free port for relay outbound", zap.Error(err))
+		}
+		xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
+			fmt.Sprintf("relay-%d", s.Id),
+			s.Host,
+			utils.Key32(),
+			config.Shadowsocks2022Method,
+			outboundPort,
+		))
+		xc.Reverse.Portals = append(xc.Reverse.Portals, &xray.ReverseItem{
+			Tag:    fmt.Sprintf("portal-%d", s.Id),
+			Domain: fmt.Sprintf("s%d.google.com", s.Id),
+		})
+		xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+			InboundTag:  []string{fmt.Sprintf("foreign-%d", s.Id)},
+			OutboundTag: fmt.Sprintf("portal-%d", s.Id),
+			Type:        "field",
+		})
+		xc.Routing.Balancers[0].Selector = append(
+			xc.Routing.Balancers[0].Selector,
+			fmt.Sprintf("relay-%d", s.Id),
+		)
+		xc.Routing.Balancers[1].Selector = append(
+			xc.Routing.Balancers[1].Selector,
+			fmt.Sprintf("portal-%d", s.Id),
+		)
+	}
 
 	c.xray.Restart()
 }
 
 func (c *Coordinator) syncRemoteConfigs() {
-	c.log.Info("coordinator: syncing remote configs...")
+	c.l.Info("coordinator: syncing remote configs...")
 
-	xc := xray.NewBridgeConfig()
-	xc.ForeignOutboundUpdate(
-		c.database.Data.Settings.Host,
-		c.xray.Config().ForeignInbound().Port,
-		c.xray.Config().ForeignInbound().Settings.Password,
-	)
+	for _, s := range c.database.Data.Servers {
+		xc := xray.NewConfig()
 
-	for i, s := range c.database.Data.Servers {
-		xc.DirectInbound().Port = c.xray.Config().RelayOutbound().Settings.Servers[i].Port
-		xc.DirectInbound().Settings.Password = c.xray.Config().RelayOutbound().Settings.Servers[i].Password
-		xc.DirectInbound().Settings.Method = c.xray.Config().RelayOutbound().Settings.Servers[i].Method
+		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", s.Id))
+		xc.Inbounds = append(
+			xc.Inbounds,
+			xc.MakeShadowsocksInbound(
+				"direct",
+				relayOutbound.Settings.Servers[0].Password,
+				relayOutbound.Settings.Servers[0].Method,
+				relayOutbound.Settings.Servers[0].Port,
+				nil,
+			),
+		)
+
+		foreignOutbound := c.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
+		xc.Outbounds = append(
+			xc.Outbounds,
+			&xray.Outbound{Tag: "freedom", Protocol: "freedom"},
+			xc.MakeShadowsocksOutbound(
+				"foreign",
+				c.database.Data.Settings.Host,
+				foreignOutbound.Settings.Password,
+				foreignOutbound.Settings.Method,
+				foreignOutbound.Port,
+			),
+		)
+
+		xc.Reverse.Bridges = append(xc.Reverse.Bridges, &xray.ReverseItem{
+			Tag:    "bridge",
+			Domain: fmt.Sprintf("s%d.google.com", s.Id),
+		})
+
+		xc.Routing.Settings.Rules = append(
+			xc.Routing.Settings.Rules,
+			&xray.Rule{
+				Type:        "field",
+				InboundTag:  []string{"bridge"},
+				Domain:      []string{fmt.Sprintf("full:s%d.google.com", s.Id)},
+				OutboundTag: "foreign",
+			},
+			&xray.Rule{
+				Type:        "field",
+				InboundTag:  []string{"bridge"},
+				OutboundTag: "freedom",
+			},
+			&xray.Rule{
+				Type:        "field",
+				InboundTag:  []string{"direct"},
+				OutboundTag: "freedom",
+			},
+		)
+
 		go c.updateRemoteConfigs(s, xc)
 	}
-
-	c.syncRemoteStats()
-}
-
-func (c *Coordinator) SyncStats() {
-	c.log.Info("coordinator: syncing stats...")
-	c.syncLocalStats()
-	c.syncRemoteStats()
 }
 
 func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
-	c.log.Info("coordinator: updating remote configs...", zap.String("url", url))
+	c.l.Info("coordinator: updating remote configs...", zap.String("url", url))
 
 	_, err := c.fetcher.Do("POST", url, s.HttpToken, xc)
 	if err != nil {
-		c.log.Error("coordinator: cannot update remote configs", zap.Error(err))
-	}
-}
-
-func (c *Coordinator) syncRemoteStats() {
-	c.log.Info("coordinator: syncing remote stats...")
-	for _, s := range c.database.Data.Servers {
-		go c.fetchRemoteStats(s)
-	}
-}
-
-func (c *Coordinator) fetchRemoteStats(s *database.Server) {
-	url := fmt.Sprintf("%s://%s:%d/v1/stats", "http", s.Host, s.HttpPort)
-	c.log.Info("coordinator: fetching remote stats", zap.String("url", url))
-
-	defer c.database.Save()
-
-	s.Status = database.ServerStatusAvailable
-
-	responseBody, err := c.fetcher.Do("GET", url, s.HttpToken, nil)
-	if err != nil {
-		c.log.Info("coordinator: cannot fetch remote stats", zap.Error(err))
+		c.l.Error("coordinator: cannot update remote configs", zap.Error(err))
 		s.Status = database.ServerStatusUnavailable
-		return
-	}
-
-	var qss []*stats.Stat
-	if err = json.Unmarshal(responseBody, &qss); err != nil {
-		c.log.Error(
-			"coordinator: cannot unmarshall fetched query stats body",
-			zap.String("url", url),
-			zap.Error(err),
-			zap.ByteString("body", responseBody),
-		)
-		s.Status = database.ServerStatusUnavailable
-		return
-	}
-
-	for _, qs := range qss {
-		parts := strings.Split(qs.GetName(), ">>>")
-		if parts[0] == "outbound" && parts[1] == "foreign" {
-			s.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
-		}
-		if parts[0] == "inbound" && parts[1] == "direct" {
-			s.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
-		}
+	} else {
+		s.Status = database.ServerStatusAvailable
 	}
 }
 
-func (c *Coordinator) syncLocalStats() {
-	c.log.Info("coordinator: syncing local stats...")
+func (c *Coordinator) SyncStats() {
+	c.l.Info("coordinator: syncing stats...")
 
-	users := map[int]int64{}
+	servers := map[string]int64{}
+	users := map[string]int64{}
 
-	for _, qs := range c.xray.QueryStats() {
+	sts := c.xray.QueryStats()
+	for _, qs := range sts {
 		parts := strings.Split(qs.GetName(), ">>>")
 		if parts[0] == "user" {
-			id, err := strconv.Atoi(parts[1])
-			if err != nil {
-				continue
-			}
-			users[id] += qs.GetValue()
-		} else if parts[0] == "inbound" {
+			users[parts[1]] += qs.GetValue()
+		} else if parts[0] == "inbound" && strings.HasPrefix(parts[1], "foreign-") {
+			servers[parts[1][8:]] += qs.GetValue()
+		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
+			servers[parts[1][6:]] += qs.GetValue()
+		} else if parts[0] == "inbound" && (parts[1] == "reverse" || parts[1] == "relay") {
 			c.database.Data.Stats.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
+		}
+	}
+
+	for _, s := range c.database.Data.Servers {
+		if bytes, found := servers[strconv.Itoa(s.Id)]; found {
+			s.Traffic += utils.RoundFloat(float64(bytes)/1000/1000/1000, 2)
 		}
 	}
 
 	isSyncConfigsRequired := false
 	for _, u := range c.database.Data.Users {
-		if bytes, found := users[u.Id]; found {
+		if bytes, found := users[strconv.Itoa(u.Id)]; found {
 			u.UsedBytes += bytes
 			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
 			if u.Quota > 0 && u.Used > u.Quota {
@@ -232,7 +305,7 @@ func (c *Coordinator) Report() {
 		return
 	}
 
-	c.log.Info("coordinator: reporting information...")
+	c.l.Info("coordinator: reporting information...")
 
 	settings := struct {
 		Config   config.Config     `json:"config"`
@@ -244,10 +317,10 @@ func (c *Coordinator) Report() {
 
 	_, err := c.fetcher.Do("POST", "https://rg.miladrahimi.com", "", settings)
 	if err != nil {
-		c.log.Error("coordinator: cannot debug settings", zap.Error(err))
+		c.l.Error("coordinator: cannot debug settings", zap.Error(err))
 	}
 }
 
 func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Portal) *Coordinator {
-	return &Coordinator{config: c, log: l, database: d, xray: x, fetcher: f}
+	return &Coordinator{config: c, l: l, database: d, xray: x, fetcher: f}
 }

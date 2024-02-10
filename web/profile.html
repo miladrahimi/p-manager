@@ -63,7 +63,7 @@
                     r["shadowsocks_links"].forEach(function (v, i) {
                         $("#shadowsocks-links").append(`
                             <div class="input-group input-group-sm my-1">
-                                <input type="text" class="form-control" id="sl-${i}" value="${v}">
+                                <input type="text" class="form-control sl" id="sl-${i}" value="${v}">
                                 <input type="button" class="btn btn-primary copy" data-i="${i}" value="Copy">
                             </div>
                         `)
@@ -96,6 +96,10 @@
                 alert('Cannot load user data.')
             },
         });
+
+        $(document).on('focus', '.sl', function () {
+            $(this).select()
+        })
 
         $(document).on('click', '.copy', function () {
             const me = $(this);

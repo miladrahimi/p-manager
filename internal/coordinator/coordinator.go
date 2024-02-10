@@ -115,6 +115,9 @@ func (c *Coordinator) syncLocalConfigs() {
 				clients,
 			),
 		)
+	}
+
+	if len(clients) > 0 && len(c.database.Data.Servers) > 0 {
 		xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 			InboundTag:  []string{"relay"},
 			BalancerTag: "relay",
@@ -203,7 +206,6 @@ func (c *Coordinator) syncRemoteConfigs() {
 		foreignOutbound := c.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
 		xc.Outbounds = append(
 			xc.Outbounds,
-			&xray.Outbound{Tag: "freedom", Protocol: "freedom"},
 			xc.MakeShadowsocksOutbound(
 				"foreign",
 				c.database.Data.Settings.Host,

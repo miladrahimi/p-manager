@@ -63,7 +63,7 @@
                     r["shadowsocks_links"].forEach(function (v, i) {
                         $("#shadowsocks-links").append(`
                             <div class="input-group input-group-sm my-1">
-                                <input type="text" class="form-control sl" id="sl-${i}" value="${v}">
+                                <textarea type="text" class="form-control sl" id="sl-${i}" readonly>${v}</textarea>
                                 <input type="button" class="btn btn-primary copy" data-i="${i}" value="Copy">
                             </div>
                         `)
@@ -106,7 +106,12 @@
             const element = document.getElementById('sl-' + me.data('i'))
             element.select()
             element.setSelectionRange(0, 99999)
-            navigator.clipboard.writeText(element.value)
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(element.value)
+            } else {
+                // noinspection JSDeprecatedSymbols
+                element.execCommand('copy')
+            }
 
             me.val('Copied!')
             setTimeout(function () {

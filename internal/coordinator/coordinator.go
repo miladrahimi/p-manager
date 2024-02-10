@@ -19,7 +19,7 @@ type Coordinator struct {
 	database *database.Database
 	l        *logger.Logger
 	fetcher  *fetcher.Fetcher
-	xray     *xray.Portal
+	xray     *xray.Xray
 }
 
 func (c *Coordinator) Run() {
@@ -95,7 +95,7 @@ func (c *Coordinator) syncLocalConfigs() {
 	xc := xray.NewConfig()
 	c.xray.SetConfig(xc)
 
-	xc.ApiInbound().Port = apiPort
+	xc.FindInbound("api").Port = apiPort
 
 	if len(clients) > 0 {
 		xc.Inbounds = append(
@@ -321,6 +321,6 @@ func (c *Coordinator) Report() {
 	}
 }
 
-func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Portal) *Coordinator {
+func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Xray) *Coordinator {
 	return &Coordinator{config: c, l: l, database: d, xray: x, fetcher: f}
 }

@@ -23,7 +23,7 @@ type App struct {
 	httpServer  *server.Server
 	database    *database.Database
 	coordinator *coordinator.Coordinator
-	xray        *xray.Portal
+	xray        *xray.Xray
 }
 
 func New() (a *App, err error) {
@@ -41,7 +41,7 @@ func New() (a *App, err error) {
 	a.log.Info("app: logger and config initialized successfully")
 
 	a.database = database.New(a.log)
-	a.xray = xray.NewPortalXray(a.log, a.config.XrayConfigPath(), a.config.XrayBinaryPath())
+	a.xray = xray.New(a.log, a.config.XrayConfigPath(), a.config.XrayBinaryPath())
 	a.fetcher = fetcher.New(a.config.HttpClient.Timeout)
 	a.coordinator = coordinator.New(a.config, a.fetcher, a.log, a.database, a.xray)
 	a.httpServer = server.New(a.config, a.log, a.coordinator, a.database)

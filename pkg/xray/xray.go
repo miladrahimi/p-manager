@@ -24,22 +24,14 @@ type Xray struct {
 	connection *grpc.ClientConn
 }
 
-func (x *Xray) initConfig() {
-	if !utils.FileExist(x.configPath) {
-		x.saveConfig()
-	} else {
-		x.loadConfig()
-	}
-}
-
 func (x *Xray) loadConfig() {
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
 		x.l.Fatal("xray: cannot load Config file", zap.Error(err))
 	}
 
-	newConfig := newEmptyConfig()
-	err = json.Unmarshal(content, newConfig)
+	var newConfig Config
+	err = json.Unmarshal(content, &newConfig)
 	if err != nil {
 		x.l.Fatal("xray: cannot unmarshal Config file", zap.Error(err))
 	}
@@ -48,7 +40,7 @@ func (x *Xray) loadConfig() {
 		x.l.Fatal("xray: cannot validate Config file", zap.Error(err))
 	}
 
-	x.config = newConfig
+	x.config = &newConfig
 }
 
 func (x *Xray) saveConfig() {
@@ -67,25 +59,26 @@ func (x *Xray) saveConfig() {
 }
 
 func (x *Xray) Run() {
-	x.initConfig()
 	x.initApiInbound()
+	x.saveConfig()
 	go x.runCore()
 	x.connectGrpc()
 }
 
 func (x *Xray) initApiInbound() {
-	if x.config.ApiInbound() == nil {
+	inbound := x.config.FindInbound("api")
+	if inbound == nil {
 		return
 	}
 
-	op := x.config.ApiInbound().Port
+	op := inbound.Port
 	if !utils.PortFree(op) {
 		np, err := utils.FreePort()
 		if err != nil {
 			x.l.Fatal("xray: cannot find free port for api inbound", zap.Error(err))
 		}
 		x.l.Info("xray: updating api inbound port...", zap.Int("old", op), zap.Int("new", np))
-		x.config.ApiInbound().Port = np
+		inbound.Port = np
 	}
 }
 
@@ -127,7 +120,7 @@ func (x *Xray) Shutdown() {
 }
 
 func (x *Xray) connectGrpc() {
-	inbound := x.config.ApiInbound()
+	inbound := x.config.FindInbound("api")
 	if inbound == nil {
 		x.l.Fatal("xray: cannot find api inbound")
 	}
@@ -164,6 +157,6 @@ func (x *Xray) QueryStats() []*stats.Stat {
 	return qs.GetStat()
 }
 
-func New(l *logger.Logger, config *Config, configPath, binaryPath string) *Xray {
-	return &Xray{l: l, config: config, binaryPath: binaryPath, configPath: configPath}
+func New(l *logger.Logger, configPath, binaryPath string) *Xray {
+	return &Xray{l: l, config: NewConfig(), binaryPath: binaryPath, configPath: configPath}
 }

@@ -18,7 +18,7 @@
             <img src="favicon.ico" alt="icon" class="img-fluid" style="max-width: 64px">
         </div>
 
-        <ul class="nav nav-tabs mb-3">
+        <ul class="nav nav-tabs mb-3 small">
             <li class="nav-item">
                 <a class="nav-link" href="admin-users.html">Users</a>
             </li>
@@ -128,14 +128,6 @@
                 editable: true,
             },
             {
-                title: "Token",
-                field: "http_token",
-                editor: "input",
-                widthGrow: 2,
-                validator: ["required"],
-                editable: true,
-            },
-            {
                 title: "HTTP Port",
                 field: "http_port",
                 visible: true,
@@ -143,6 +135,14 @@
                 widthGrow: 1,
                 validator: ["required", "min:1", "max:65536"],
                 editable: true
+            },
+            {
+                title: "HTTP Token",
+                field: "http_token",
+                editor: "input",
+                widthGrow: 2,
+                validator: ["required"],
+                editable: true,
             },
             {
                 title: "Traffic (GB)",

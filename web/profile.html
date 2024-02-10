@@ -109,8 +109,13 @@
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(element.value)
             } else {
+                const ta = document.createElement('textarea')
+                ta.value = element.value
+                document.body.appendChild(ta)
+                ta.select()
                 // noinspection JSDeprecatedSymbols
-                element.execCommand('copy')
+                document.execCommand('copy')
+                document.body.removeChild(ta)
             }
 
             me.val('Copied!')

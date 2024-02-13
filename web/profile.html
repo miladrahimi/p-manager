@@ -131,9 +131,9 @@
             document.execCommand('copy')
             document.body.removeChild(ta)
 
-            me.removeClass('btn-outline-secondary').addClass('btn-dark')
+            me.removeClass('btn-outline-secondary').addClass('btn-success')
             setTimeout(function () {
-                me.removeClass('btn-dark').addClass('btn-outline-secondary')
+                me.removeClass('btn-success').addClass('btn-outline-secondary').blur()
             }, 1000)
         })
 

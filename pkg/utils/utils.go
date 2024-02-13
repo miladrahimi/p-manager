@@ -19,11 +19,6 @@ func FileExist(path string) bool {
 	return true
 }
 
-// FileDelete deletes file by path.
-func FileDelete(path string) error {
-	return os.Remove(path)
-}
-
 // Key32 generates 32-bit keys.
 func Key32() string {
 	key := make([]byte, 32)

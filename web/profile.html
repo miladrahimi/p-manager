@@ -7,6 +7,25 @@
     <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.2/css/bootstrap.min.css">
     <link rel="icon" href="favicon.ico?h=347c30b2239a844cd052f0c0be38d806">
     <link rel="apple-touch-icon" href="favicon.ico?h=347c30b2239a844cd052f0c0be38d806">
+    <style>
+        #shadowsocks-links div {
+            word-break: break-all;
+        }
+
+        #shadowsocks-links a {
+            border: solid rgb(210, 210, 210) 1px;
+            border-right: none;
+            border-radius: 5px 0 0 5px;
+            padding: 5px;
+            overflow: hidden;
+            text-decoration: none;
+        }
+
+        #shadowsocks-links input[type=button] {
+            border-radius: 0 5px 5px 0;
+            border-color: rgb(210, 210, 210) !important;
+        }
+    </style>
 </head>
 <body>
 
@@ -31,7 +50,7 @@
                 <div class="mt-2 text-start">
                     <div class="mt-3">
                         <small class="text-dark-emphasis">Shadowsocks Links:</small>
-                        <div id="shadowsocks-links" class="small"></div>
+                        <div id="shadowsocks-links" class="small overflow-scroll"></div>
                     </div>
                     <div class="mt-3 text-center text-secondary">
                         <small>Registered @</small>
@@ -60,11 +79,11 @@
                 $("#created_at").html(ts2string(r['user']['created_at']))
 
                 if (r["shadowsocks_links"].length > 0) {
-                    r["shadowsocks_links"].forEach(function (v, i) {
+                    r["shadowsocks_links"].forEach(function (v) {
                         $("#shadowsocks-links").append(`
-                            <div class="input-group input-group-sm my-1">
-                                <textarea type="text" class="form-control sl" id="sl-${i}" readonly>${v}</textarea>
-                                <input type="button" class="btn btn-primary copy" data-i="${i}" value="Copy">
+                            <div class="d-flex my-1">
+                                <a type="text" href="${v}">${v}</a>
+                                <input type="button" class="btn btn-outline-secondary copy" data-v="${v}" value="Copy">
                             </div>
                         `)
                     })
@@ -103,25 +122,19 @@
 
         $(document).on('click', '.copy', function () {
             const me = $(this);
-            const element = document.getElementById('sl-' + me.data('i'))
-            element.select()
-            element.setSelectionRange(0, 99999)
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(element.value)
-            } else {
-                const ta = document.createElement('textarea')
-                ta.value = element.value
-                document.body.appendChild(ta)
-                ta.select()
-                // noinspection JSDeprecatedSymbols
-                document.execCommand('copy')
-                document.body.removeChild(ta)
-            }
 
-            me.val('Copied!')
+            const ta = document.createElement('textarea')
+            ta.value = $(this).data('v')
+            document.body.appendChild(ta)
+            ta.select()
+            // noinspection JSDeprecatedSymbols
+            document.execCommand('copy')
+            document.body.removeChild(ta)
+
+            me.removeClass('btn-outline-secondary').addClass('btn-dark')
             setTimeout(function () {
-                me.val('Copy')
-            }, 1500)
+                me.removeClass('btn-dark').addClass('btn-outline-secondary')
+            }, 1000)
         })
 
         $('#reset').click(function () {

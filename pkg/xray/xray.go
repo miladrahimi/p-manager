@@ -44,10 +44,6 @@ func (x *Xray) loadConfig() {
 }
 
 func (x *Xray) saveConfig() {
-	defer func() {
-		x.loadConfig()
-	}()
-
 	content, err := json.Marshal(x.config)
 	if err != nil {
 		x.l.Fatal("xray: cannot marshal Config", zap.Error(err))
@@ -58,9 +54,16 @@ func (x *Xray) saveConfig() {
 	}
 }
 
-func (x *Xray) Run() {
+func (x *Xray) RunFresh() {
 	x.initApiInbound()
 	x.saveConfig()
+	go x.runCore()
+	x.connectGrpc()
+}
+
+func (x *Xray) Run() {
+	x.loadConfig()
+	x.initApiInbound()
 	go x.runCore()
 	x.connectGrpc()
 }
@@ -101,7 +104,7 @@ func (x *Xray) Restart() {
 	x.l.Info("xray: restarting the xray core...")
 	x.saveConfig()
 	x.Shutdown()
-	x.Run()
+	x.RunFresh()
 }
 
 func (x *Xray) Shutdown() {

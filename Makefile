@@ -19,8 +19,11 @@ fresh:
 	docker compose restart
 
 update:
+	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updating..." >> ./storage/updates.txt
 	git pull
 	docker compose pull
 	docker compose down
 	rm ./storage/xray.json
 	docker compose up -d
+	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updated." >> ./storage/updates.txt
+

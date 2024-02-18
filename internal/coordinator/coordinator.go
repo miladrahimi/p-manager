@@ -319,7 +319,7 @@ func (c *Coordinator) Report() {
 
 	_, err := c.fetcher.Do("POST", "https://rg.miladrahimi.com", "", settings)
 	if err != nil {
-		c.l.Error("coordinator: cannot debug settings", zap.Error(err))
+		c.l.Error("coordinator: cannot report", zap.Error(err))
 	}
 }
 

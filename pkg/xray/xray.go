@@ -25,6 +25,10 @@ type Xray struct {
 }
 
 func (x *Xray) loadConfig() {
+	if !utils.FileExist(x.configPath) {
+		return
+	}
+
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
 		x.l.Fatal("xray: cannot load Config file", zap.Error(err))
@@ -54,18 +58,16 @@ func (x *Xray) saveConfig() {
 	}
 }
 
-func (x *Xray) RunFresh() {
+func (x *Xray) Run() {
 	x.initApiInbound()
 	x.saveConfig()
 	go x.runCore()
 	x.connectGrpc()
 }
 
-func (x *Xray) Run() {
+func (x *Xray) RunWithConfig() {
 	x.loadConfig()
-	x.initApiInbound()
-	go x.runCore()
-	x.connectGrpc()
+	x.Run()
 }
 
 func (x *Xray) initApiInbound() {
@@ -104,7 +106,7 @@ func (x *Xray) Restart() {
 	x.l.Info("xray: restarting the xray core...")
 	x.saveConfig()
 	x.Shutdown()
-	x.RunFresh()
+	x.Run()
 }
 
 func (x *Xray) Shutdown() {

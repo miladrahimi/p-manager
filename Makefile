@@ -1,4 +1,4 @@
-.PHONY: setup run build setup-auto-update recover fresh update
+.PHONY: setup run build setup-updater recover fresh update
 
 setup:
 	./third_party/install-xray-mac.sh
@@ -9,8 +9,8 @@ run:
 build:
 	go build main.go -o xray-manager
 
-setup-auto-update:
-	./scripts/setup-auto-update.sh
+setup-updater:
+	./scripts/setup-updater.sh
 
 recover:
 	docker compose down

@@ -1,16 +1,13 @@
-.PHONY: setup run build setup-updater recover fresh update
+.PHONY: prepare setup recover fresh update
 
-setup:
+prepare:
 	./third_party/install-xray-mac.sh
 
-run:
-	go run main.go start
-
-build:
-	go build main.go -o xray-manager
-
-setup-updater:
+setup:
 	./scripts/setup-updater.sh
+	@if [ ! -f ./configs/main.local.json ]; then \
+		cp ./configs/main.json ./configs/main.local.json; \
+	fi
 
 recover:
 	docker compose down
@@ -21,7 +18,7 @@ fresh:
 	rm storage/*.json
 	docker compose restart
 
-update:
+update: setup
 	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updating..." >> ./storage/updates.txt
 	git pull
 	docker compose pull

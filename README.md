@@ -27,7 +27,7 @@ sudo sysctl -p
 # Install Xray Manager
 git clone https://github.com/miladrahimi/xray-manager.git
 cd xray-manager
-cp configs/main.json configs/main.local.json
+make setup
 docker compose up -d
 ```
 

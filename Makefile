@@ -29,4 +29,4 @@ update: setup
 
 
 version:
-	docker compose exec app ./xray-manager version
+	@docker compose exec app ./xray-manager version

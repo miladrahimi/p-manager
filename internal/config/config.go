@@ -11,7 +11,7 @@ import (
 const MainPath = "configs/main.json"
 const LocalPath = "configs/main.local.json"
 const AppName = "XrayManager"
-const AppVersion = "v1.1.0"
+const AppVersion = "v1.2.0"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
 

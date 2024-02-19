@@ -1,4 +1,4 @@
-.PHONY: prepare setup recover fresh update
+.PHONY: prepare setup recover fresh update version
 
 prepare:
 	./third_party/install-xray-mac.sh
@@ -27,3 +27,6 @@ update: setup
 	docker compose up -d
 	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updated." >> ./storage/updates.txt
 
+
+version:
+	docker compose exec app ./xray-manager version

@@ -41,7 +41,8 @@ Access the web panel at the default port 8080. Log in using the username `admin`
 ### Configuration
 
 ```shell
-# Modify web panel port and other configurations here:
+# Modify web panel port and other configurations.
+# It requires `docker compose restart` to apply changes.
 configs/main.local.json
 ```
 

@@ -27,7 +27,7 @@ update: setup
 	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updated." >> ./storage/updates.txt
 
 license:
-	@echo "$(v)" > ./storage/lisence.txt
+	@echo "$(v)" > ./storage/license.txt
 	@echo "License updated."
 
 version:

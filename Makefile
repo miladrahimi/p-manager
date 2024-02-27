@@ -1,4 +1,4 @@
-.PHONY: prepare setup recover fresh update version
+.PHONY: prepare setup recover fresh update license version
 
 prepare:
 	./third_party/install-xray-mac.sh
@@ -23,10 +23,12 @@ update: setup
 	git pull
 	docker compose pull
 	docker compose down
-	rm ./storage/xray.json
 	docker compose up -d
 	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updated." >> ./storage/updates.txt
 
+license:
+	@echo "$(v)" > ./storage/lisence.txt
+	@echo "License updated."
 
 version:
 	@docker compose exec app ./xray-manager version

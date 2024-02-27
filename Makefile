@@ -1,7 +1,7 @@
 .PHONY: prepare setup recover fresh update license version
 
 prepare:
-	./third_party/install-xray-mac.sh
+	@./third_party/install-xray-mac.sh
 
 setup:
 	./scripts/setup-updater.sh
@@ -11,7 +11,7 @@ setup:
 
 recover:
 	docker compose down
-	./scripts/recovery.sh
+	@./scripts/recovery.sh
 	docker compose up -d
 
 fresh:
@@ -27,13 +27,7 @@ update: setup
 	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updated." >> ./storage/updates.txt
 
 license:
-    ifeq ($(strip $(v)),)
-		@echo "License:"
-		@cat ./storage/license.txt
-    else
-		@echo "$(v)" > ./storage/license.txt
-		@echo "License updated."
-    endif
+	@./scripts/license.sh "$(v)"
 
 version:
 	@docker compose exec app ./xray-manager version

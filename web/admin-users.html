@@ -199,8 +199,11 @@
             error: function (response) {
                 console.log(response)
                 checkAuth(response)
-                if (response.status === 400 || response.status === 403) {
+                if (response.status === 400) {
                     table.alert(response["responseJSON"]["message"], "error");
+                } else if (response.status === 403) {
+                    table.alert(response["responseJSON"]["message"], "error");
+                    alert(response["responseJSON"]["message"])
                 } else {
                     table.alert("Cannot save the item.", "error");
                 }

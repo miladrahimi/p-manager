@@ -199,14 +199,14 @@
             error: function (response) {
                 console.log(response)
                 checkAuth(response)
-                if (response.status === 400) {
+                if (response.status === 400 || response.status === 403) {
                     table.alert(response["responseJSON"]["message"], "error");
                 } else {
                     table.alert("Cannot save the item.", "error");
                 }
                 setTimeout(function () {
                     table.clearAlert()
-                }, 1000)
+                }, 2000)
             },
             processData: true,
             type: cell.getData().id === 0 ? "POST" : "PUT",

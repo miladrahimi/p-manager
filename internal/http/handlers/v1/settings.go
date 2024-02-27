@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"net/http"
@@ -34,7 +35,6 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		d.Save()
 
 		go coordinator.SyncConfigs()
-		go coordinator.Report()
 
 		return c.JSON(http.StatusOK, settings)
 	}
@@ -47,14 +47,18 @@ func SettingsRestartXray(coordinator *coordinator.Coordinator) echo.HandlerFunc 
 	}
 }
 
-func SettingsStatsShow(d *database.Database) echo.HandlerFunc {
+func SettingsStatsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			*database.Stats
-			UsersCount int `json:"users_count"`
+			UsersCount int    `json:"users_count"`
+			AppVersion string `json:"app_version"`
+			Licensed   bool   `json:"licensed"`
 		}{
 			Stats:      d.Data.Stats,
 			UsersCount: len(d.Data.Users),
+			AppVersion: config.AppVersion,
+			Licensed:   coordinator.Licensed(),
 		})
 	}
 }

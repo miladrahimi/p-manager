@@ -11,18 +11,21 @@ import (
 const MainPath = "configs/main.json"
 const LocalPath = "configs/main.local.json"
 const AppName = "XrayManager"
-const AppVersion = "v1.2.0"
+const AppVersion = "v1.2.1"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
 
-var xrayConfigPath = "storage/xray.json"
+const LimitedUsersCount = 20
+const LicensePath = "storage/license.txt"
+const EnigmaKeyPath = "assets/ed25519_public_key.txt"
+const XrayConfigPath = "storage/xray.json"
+
 var xrayBinaryPaths = map[string]string{
 	"darwin": "third_party/xray-macos-arm64/xray",
 	"linux":  "third_party/xray-linux-64/xray",
 }
 
 type Config struct {
-	Report     bool `json:"report"`
 	HttpServer struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
@@ -44,11 +47,15 @@ type Config struct {
 
 func (c *Config) Init() (err error) {
 	var content []byte
+	var path string
+
 	if utils.FileExist(LocalPath) {
-		content, err = os.ReadFile(LocalPath)
+		path = LocalPath
 	} else {
-		content, err = os.ReadFile(MainPath)
+		path = MainPath
 	}
+
+	content, err = os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("config: cannot load file, err: %v", err)
 	}
@@ -56,6 +63,18 @@ func (c *Config) Init() (err error) {
 	err = json.Unmarshal(content, &c)
 	if err != nil {
 		return fmt.Errorf("config: cannot validate file, err: %v", err)
+	}
+
+	if path == LocalPath {
+		marshalled, err := json.MarshalIndent(c, "", "  ")
+		if err != nil {
+			return fmt.Errorf("config: cannot marshall config, err: %v", err)
+		}
+
+		err = os.WriteFile(path, marshalled, 0755)
+		if err != nil {
+			return fmt.Errorf("config: cannot save file, err: %v", err)
+		}
 	}
 
 	return nil
@@ -66,10 +85,6 @@ func (c *Config) XrayBinaryPath() string {
 		return path
 	}
 	return xrayBinaryPaths["linux"]
-}
-
-func (c *Config) XrayConfigPath() string {
-	return xrayConfigPath
 }
 
 func New() *Config {

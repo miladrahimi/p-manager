@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/xray-manager/pkg/enigma"
 	"github.com/miladrahimi/xray-manager/pkg/fetcher"
 	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	"go.uber.org/zap"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -20,12 +22,15 @@ type Coordinator struct {
 	l        *logger.Logger
 	fetcher  *fetcher.Fetcher
 	xray     *xray.Xray
+	enigma   *enigma.Enigma
+	licensed bool
 }
 
 func (c *Coordinator) Run() {
 	c.l.Info("coordinator: running...")
 
 	c.initDatabase()
+	c.initLicense()
 	c.SyncConfigs()
 
 	statsWorker := time.NewTicker(time.Duration(c.config.Worker.Interval) * time.Second)
@@ -302,27 +307,34 @@ func (c *Coordinator) SyncStats() {
 	c.database.Save()
 }
 
-func (c *Coordinator) Report() {
-	if !c.config.Report {
-		return
-	}
-
-	c.l.Info("coordinator: reporting information...")
-
-	settings := struct {
-		Config   config.Config     `json:"config"`
-		Settings database.Settings `json:"settings"`
-	}{
-		*c.config,
-		*c.database.Data.Settings,
-	}
-
-	_, err := c.fetcher.Do("POST", "https://rg.miladrahimi.com", "", settings)
-	if err != nil {
-		c.l.Error("coordinator: cannot report", zap.Error(err))
+func (c *Coordinator) initLicense() {
+	if !utils.FileExist(config.LicensePath) {
+		c.licensed = false
+	} else {
+		if err := c.enigma.Init(); err != nil {
+			c.l.Error("coordinator: cannot init enigma", zap.Error(err))
+		}
+		licenseFile, err := os.ReadFile(config.LicensePath)
+		if err != nil {
+			c.l.Error("coordinator: cannot open license file", zap.Error(err))
+		} else {
+			c.licensed = c.enigma.Verify([]byte(c.database.Data.Settings.Host), licenseFile)
+			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.licensed))
+		}
 	}
 }
 
-func New(c *config.Config, f *fetcher.Fetcher, l *logger.Logger, d *database.Database, x *xray.Xray) *Coordinator {
-	return &Coordinator{config: c, l: l, database: d, xray: x, fetcher: f}
+func (c *Coordinator) Licensed() bool {
+	return c.licensed
+}
+
+func New(
+	c *config.Config,
+	f *fetcher.Fetcher,
+	l *logger.Logger,
+	d *database.Database,
+	x *xray.Xray,
+	e *enigma.Enigma,
+) *Coordinator {
+	return &Coordinator{config: c, l: l, database: d, xray: x, fetcher: f, enigma: e}
 }

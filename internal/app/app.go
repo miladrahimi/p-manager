@@ -6,6 +6,7 @@ import (
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/internal/http/server"
+	"github.com/miladrahimi/xray-manager/pkg/enigma"
 	"github.com/miladrahimi/xray-manager/pkg/fetcher"
 	"github.com/miladrahimi/xray-manager/pkg/logger"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
@@ -24,6 +25,7 @@ type App struct {
 	database    *database.Database
 	coordinator *coordinator.Coordinator
 	xray        *xray.Xray
+	enigma      *enigma.Enigma
 }
 
 func New() (a *App, err error) {
@@ -41,9 +43,10 @@ func New() (a *App, err error) {
 	a.log.Info("app: logger and config initialized successfully")
 
 	a.database = database.New(a.log)
-	a.xray = xray.New(a.log, a.config.XrayConfigPath(), a.config.XrayBinaryPath())
+	a.xray = xray.New(a.log, config.XrayConfigPath, a.config.XrayBinaryPath())
+	a.enigma = enigma.New(config.EnigmaKeyPath)
 	a.fetcher = fetcher.New(a.config.HttpClient.Timeout)
-	a.coordinator = coordinator.New(a.config, a.fetcher, a.log, a.database, a.xray)
+	a.coordinator = coordinator.New(a.config, a.fetcher, a.log, a.database, a.xray, a.enigma)
 	a.httpServer = server.New(a.config, a.log, a.coordinator, a.database)
 
 	a.log.Info("app: modules initialized successfully")

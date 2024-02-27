@@ -45,6 +45,12 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 			})
 		}
 
+		if len(d.Data.Users) >= config.LimitedUsersCount && !coordinator.Licensed() {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"message": "You cannot add more users without premium license.",
+			})
+		}
+
 		for _, u := range d.Data.Users {
 			if u.Name == request.Name {
 				return c.JSON(http.StatusBadRequest, map[string]string{

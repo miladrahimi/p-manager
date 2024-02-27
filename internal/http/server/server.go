@@ -59,7 +59,7 @@ func (s *Server) Run() {
 
 	g2.GET("/settings", v1.SettingsShow(s.database))
 	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))
-	g2.GET("/settings/stats", v1.SettingsStatsShow(s.database))
+	g2.GET("/settings/stats", v1.SettingsStatsShow(s.coordinator, s.database))
 	g2.POST("/settings/stats/zero", v1.SettingsStatsZero(s.database))
 	g2.POST("/settings/servers/zero", v1.SettingsServersZero(s.database))
 	g2.POST("/settings/users/zero", v1.SettingsUsersZero(s.coordinator, s.database))
@@ -91,6 +91,5 @@ func New(config *config.Config, l *logger.Logger, c *coordinator.Coordinator, d 
 	e := echo.New()
 	e.HideBanner = true
 	e.Validator = validator.New()
-
 	return &Server{engine: e, config: config, log: l, coordinator: c, database: d}
 }

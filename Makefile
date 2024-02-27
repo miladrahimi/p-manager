@@ -27,8 +27,13 @@ update: setup
 	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updated." >> ./storage/updates.txt
 
 license:
-	@echo "$(v)" > ./storage/license.txt
-	@echo "License updated."
+    ifeq ($(strip $(v)),)
+		@echo "License:"
+		@cat ./storage/license.txt
+    else
+		@echo "$(v)" > ./storage/license.txt
+		@echo "License updated."
+    endif
 
 version:
 	@docker compose exec app ./xray-manager version

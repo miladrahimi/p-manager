@@ -53,6 +53,12 @@ configs/main.local.json
 make update
 ```
 
+### System Requirements
+
+ * Operating system: Debian or Ubuntu
+ * RAM: 1 GB
+ * CPU: 1 Core
+
 ## Links
 
 * https://github.com/miladrahimi/xray-node

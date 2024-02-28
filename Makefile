@@ -1,7 +1,13 @@
-.PHONY: prepare setup recover fresh update license version
+.PHONY: dev_setup dev_fresh setup recover fresh update license version
 
-prepare:
+dev_setup:
 	@./scripts/install-xray-mac.sh
+
+dev_run:
+	go run main.go start
+
+dev_fresh:
+	rm storage/*.json
 
 setup:
 	./scripts/setup-updater.sh

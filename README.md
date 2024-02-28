@@ -53,7 +53,7 @@ configs/main.local.json
 make update
 ```
 
-### System Requirements
+### Requirements
 
  * Operating system: Debian or Ubuntu
  * RAM: 1 GB

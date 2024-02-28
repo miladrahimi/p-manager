@@ -1,6 +1,6 @@
-echo "Running 'install-xray-mac.sh' script..."
+#!/bin/bash
 
-BASE=$( dirname -- "$0"; )
+BASE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../third_party"
 DIR="${BASE}/xray-macos-arm64"
 FILE="${DIR}.zip"
 rm -rf "$DIR";
@@ -9,4 +9,3 @@ wget -qNc https://github.com/XTLS/Xray-core/releases/download/v1.8.7/Xray-macos-
 unzip "$FILE" -d "$DIR"
 echo "${FILE}"
 rm -rf "${FILE}"
-

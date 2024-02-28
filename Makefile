@@ -1,7 +1,7 @@
 .PHONY: prepare setup recover fresh update license version
 
 prepare:
-	@./third_party/install-xray-mac.sh
+	@./scripts/install-xray-mac.sh
 
 setup:
 	./scripts/setup-updater.sh

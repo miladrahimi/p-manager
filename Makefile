@@ -8,6 +8,7 @@ dev_run:
 
 dev_fresh:
 	rm storage/*.json
+	rm storage/*.txt
 
 setup:
 	./scripts/setup-updater.sh
@@ -22,6 +23,7 @@ recover:
 
 fresh:
 	rm storage/*.json
+	rm storage/*.txt
 	docker compose restart
 
 update: setup

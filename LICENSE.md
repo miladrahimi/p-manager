@@ -1,15 +1,14 @@
-# Xray Manager Project License
+# Xray Manager License
 
-This license applies to the Xray Manager project ("Project"). The Project is licensed under the following terms:
+This license applies to the Xray Manager ("Project"). The Project is licensed under the following terms:
 
 ## User Rights and Restrictions
 
-1. **Usage:** Users are only allowed to use the Project with explicit permission from the creator.
-2. **Forking:** Users are permitted to fork the Project and modify it for their own use without restriction. However, they must rename the forked project to a name other than "Xray Manager" and replace the existing icon with a new one of their own creation.
+Users are only allowed to use the Project with explicit permission from the creator.
 
 ## Creator Rights
 
-1. **Permission:** The creator of the Project reserves the right to grant or deny permission for the usage of the Project.
+The creator of the Project reserves the right to grant or deny permission for the usage of the Project.
 
 ## Disclaimer
 

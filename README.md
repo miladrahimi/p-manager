@@ -58,7 +58,7 @@ make update
  * Operating system: Linux (Debian or Ubuntu)
  * RAM: 1 GB
  * CPU: 1 Core
- * Valid license for more than 5 users
+ * License for more than 5 users
 
 ## Links
 

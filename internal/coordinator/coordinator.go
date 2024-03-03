@@ -318,7 +318,11 @@ func (c *Coordinator) initLicense() {
 		if err != nil {
 			c.l.Error("coordinator: cannot open license file", zap.Error(err))
 		} else {
-			c.licensed = c.enigma.Verify([]byte(c.database.Data.Settings.Host), licenseFile)
+			key := c.database.Data.Settings.Host
+			if c.config.HttpServer.Port != 80 {
+				key = fmt.Sprintf("%s:%d", key, c.config.HttpServer.Port)
+			}
+			c.licensed = c.enigma.Verify([]byte(key), licenseFile)
 			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.licensed))
 		}
 	}

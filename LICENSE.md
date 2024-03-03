@@ -8,7 +8,7 @@ Users are only allowed to use the Project with explicit permission from the crea
 
 ## Creator Rights
 
-The creator of the Project reserves the right to grant or deny permission for the usage of the Project.
+The creator of the Project reserves the right to grant or deny permission for the usage of the Project, as well as the right to collect any data from users as deemed necessary.
 
 ## Disclaimer
 

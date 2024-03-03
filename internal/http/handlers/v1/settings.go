@@ -49,16 +49,25 @@ func SettingsRestartXray(coordinator *coordinator.Coordinator) echo.HandlerFunc 
 
 func SettingsStatsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		UsersCount := len(d.Data.Users)
+		ActiveUsersCount := UsersCount
+		for _, u := range d.Data.Users {
+			if !u.Enabled {
+				ActiveUsersCount--
+			}
+		}
 		return c.JSON(http.StatusOK, struct {
 			*database.Stats
-			UsersCount int    `json:"users_count"`
-			AppVersion string `json:"app_version"`
-			Licensed   bool   `json:"licensed"`
+			UsersCount       int    `json:"users_count"`
+			ActiveUsersCount int    `json:"active_users_count"`
+			AppVersion       string `json:"app_version"`
+			Licensed         bool   `json:"licensed"`
 		}{
-			Stats:      d.Data.Stats,
-			UsersCount: len(d.Data.Users),
-			AppVersion: config.AppVersion,
-			Licensed:   coordinator.Licensed(),
+			Stats:            d.Data.Stats,
+			UsersCount:       UsersCount,
+			ActiveUsersCount: ActiveUsersCount,
+			AppVersion:       config.AppVersion,
+			Licensed:         coordinator.Licensed(),
 		})
 	}
 }

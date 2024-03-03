@@ -49,6 +49,10 @@
                     <span id="stats-users-count" class="text-muted"></span>
                 </div>
                 <div class="my-1">
+                    <span>Total active users:</span>
+                    <span id="stats-active-users-count" class="text-muted"></span>
+                </div>
+                <div class="my-1">
                     <span>Xray Manager Version:</span>
                     <span id="stats-app-version" class="text-muted"></span>
                 </div>
@@ -207,6 +211,7 @@
             $("#stats-traffic").html(parseFloat(response['traffic']).toFixed(2))
             $("#stats-updated-at").html(ts2string(response['updated_at']))
             $("#stats-users-count").html(response['users_count'])
+            $("#stats-active-users-count").html(response['active_users_count'])
             $("#stats-app-version").html(response['app_version'])
             $("#stats-license").html(response['licensed'] ? 'Premium' : 'Free')
         },

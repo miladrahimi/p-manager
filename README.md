@@ -65,5 +65,5 @@ make update
 
 ## License
 
-This project is governed by the terms of the [CC-BY-NC-ND-4.0](LICENSE.md) license.
-Feel free to use it for personal purposes, but remember, commercial use is not allowed.
+This project is governed by the terms of the [LICENSE](LICENSE.md) license.
+Users are only allowed to use the Project with explicit permission from the creator.

@@ -57,8 +57,8 @@ make update
 ### Requirements
 
  * Operating system: Linux (Debian or Ubuntu)
- * RAM: 1 GB
- * CPU: 1 Core
+ * RAM: 1 GB or more
+ * CPU: 1 Core or more
 
 ## Links
 

@@ -55,9 +55,10 @@ make update
 
 ### Requirements
 
- * Operating system: Debian or Ubuntu
+ * Operating system: Linux (Debian or Ubuntu)
  * RAM: 1 GB
  * CPU: 1 Core
+ * Valid license for more than 5 users
 
 ## Links
 

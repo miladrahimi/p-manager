@@ -60,13 +60,13 @@ func SettingsStatsShow(coordinator *coordinator.Coordinator, d *database.Databas
 			*database.Stats
 			UsersCount       int    `json:"users_count"`
 			ActiveUsersCount int    `json:"active_users_count"`
-			AppVersion       string `json:"app_version"`
+			Version          string `json:"version"`
 			Licensed         bool   `json:"licensed"`
 		}{
 			Stats:            d.Data.Stats,
 			UsersCount:       UsersCount,
 			ActiveUsersCount: ActiveUsersCount,
-			AppVersion:       config.AppVersion,
+			Version:          config.AppVersion,
 			Licensed:         coordinator.Licensed(),
 		})
 	}

@@ -47,7 +47,7 @@ func New() (a *App, err error) {
 	a.enigma = enigma.New(config.EnigmaKeyPath)
 	a.fetcher = fetcher.New(a.config.HttpClient.Timeout)
 	a.coordinator = coordinator.New(a.config, a.fetcher, a.log, a.database, a.xray, a.enigma)
-	a.httpServer = server.New(a.config, a.log, a.coordinator, a.database)
+	a.httpServer = server.New(a.config, a.log, a.coordinator, a.database, a.enigma)
 
 	a.log.Info("app: modules initialized successfully")
 

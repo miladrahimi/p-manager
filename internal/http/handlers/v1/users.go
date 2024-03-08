@@ -126,6 +126,7 @@ func KeysZero(d *database.Database) echo.HandlerFunc {
 		for _, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				u.Used = 0
+				u.Enabled = true
 				d.Save()
 				return c.NoContent(http.StatusNoContent)
 			}

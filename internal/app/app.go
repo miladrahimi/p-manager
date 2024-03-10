@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/coordinator"
 	"github.com/miladrahimi/xray-manager/internal/database"
@@ -33,11 +34,11 @@ func New() (a *App, err error) {
 
 	a.config = config.New()
 	if err = a.config.Init(); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	a.log = logger.New(a.config.Logger.Level, a.config.Logger.Format, a.ShutdownModules)
 	if err = a.log.Init(); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	a.log.Info("app: logger and config initialized successfully")
@@ -70,10 +71,8 @@ func (a *App) setupSignalListener() {
 	go func() {
 		signalChannel := make(chan os.Signal, 2)
 		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
-
 		s := <-signalChannel
 		a.log.Info("app: system call", zap.String("signal", s.String()))
-
 		cancel()
 	}()
 }

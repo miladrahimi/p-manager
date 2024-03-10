@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
 	"github.com/miladrahimi/xray-manager/pkg/enigma"
@@ -254,9 +255,10 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	c.l.Info("coordinator: updating remote configs...", zap.String("url", url))
 
 	_, err := c.fetcher.Do("POST", url, xc, map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", s.HttpToken),
-		"X-App-Name":    "Xray Manager",
-		"X-App-Version": config.AppVersion,
+		echo.HeaderContentType:   echo.MIMEApplicationJSON,
+		echo.HeaderAuthorization: fmt.Sprintf("Bearer %s", s.HttpToken),
+		"X-App-Name":             config.AppName,
+		"X-App-Version":          config.AppVersion,
 	})
 	if err != nil {
 		c.l.Error("coordinator: cannot update remote configs", zap.Error(err))

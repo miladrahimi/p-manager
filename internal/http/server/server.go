@@ -52,7 +52,7 @@ func (s *Server) Run() {
 	g2.POST("/users", v1.UsersStore(s.coordinator, s.database))
 	g2.PUT("/users", v1.UsersUpdate(s.coordinator, s.database))
 	g2.DELETE("/users/:id", v1.UsersDelete(s.coordinator, s.database))
-	g2.PATCH("/users/:id/zero", v1.KeysZero(s.database))
+	g2.PATCH("/users/:id/zero", v1.UsersZero(s.coordinator, s.database))
 
 	g2.GET("/servers", v1.ServersIndex(s.database))
 	g2.POST("/servers", v1.ServersStore(s.coordinator, s.database))

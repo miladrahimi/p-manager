@@ -121,13 +121,14 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 	}
 }
 
-func KeysZero(d *database.Database) echo.HandlerFunc {
+func UsersZero(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		for _, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				u.Used = 0
 				u.Enabled = true
 				d.Save()
+				go coordinator.SyncConfigs()
 				return c.NoContent(http.StatusNoContent)
 			}
 		}

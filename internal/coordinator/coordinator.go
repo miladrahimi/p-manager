@@ -253,7 +253,11 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
 	c.l.Info("coordinator: updating remote configs...", zap.String("url", url))
 
-	_, err := c.fetcher.Do("POST", url, s.HttpToken, xc)
+	_, err := c.fetcher.Do("POST", url, xc, map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", s.HttpToken),
+		"X-App-Name":    "Xray Manager",
+		"X-App-Version": config.AppVersion,
+	})
 	if err != nil {
 		c.l.Error("coordinator: cannot update remote configs", zap.Error(err))
 		s.Status = database.ServerStatusUnavailable

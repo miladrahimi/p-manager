@@ -15,12 +15,12 @@ type Fetcher struct {
 	Engine *http.Client
 }
 
-func (f *Fetcher) Do(method, url, token string, requestBody interface{}) ([]byte, error) {
+func (f *Fetcher) Do(method, url string, body interface{}, headers map[string]string) ([]byte, error) {
 	var requestReader io.Reader
 	var jsonBody []byte
-	if requestBody != nil {
+	if body != nil {
 		var err error
-		jsonBody, err = json.Marshal(requestBody)
+		jsonBody, err = json.Marshal(body)
 		if err != nil {
 			return nil, f.errWrap(err, "cannot marshal body", method, url)
 		}
@@ -33,7 +33,9 @@ func (f *Fetcher) Do(method, url, token string, requestBody interface{}) ([]byte
 	}
 
 	request.Header.Add(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	request.Header.Add(echo.HeaderAuthorization, "Bearer "+token)
+	for key, value := range headers {
+		request.Header.Add(key, value)
+	}
 
 	response, err := f.Engine.Do(request)
 	if err != nil {

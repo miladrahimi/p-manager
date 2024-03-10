@@ -19,49 +19,47 @@ import (
 
 type App struct {
 	context     context.Context
-	config      *config.Config
-	log         *logger.Logger
-	fetcher     *fetcher.Fetcher
-	httpServer  *server.Server
-	database    *database.Database
-	coordinator *coordinator.Coordinator
-	xray        *xray.Xray
-	enigma      *enigma.Enigma
+	Config      *config.Config
+	Log         *logger.Logger
+	Fetcher     *fetcher.Fetcher
+	HttpServer  *server.Server
+	Database    *database.Database
+	Coordinator *coordinator.Coordinator
+	Xray        *xray.Xray
+	Enigma      *enigma.Enigma
 }
 
 func New() (a *App, err error) {
 	a = &App{}
 
-	a.config = config.New()
-	if err = a.config.Init(); err != nil {
+	a.Config = config.New()
+	if err = a.Config.Init(); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	a.log = logger.New(a.config.Logger.Level, a.config.Logger.Format, a.ShutdownModules)
-	if err = a.log.Init(); err != nil {
+	a.Log = logger.New(a.Config.Logger.Level, a.Config.Logger.Format, a.ShutdownModules)
+	if err = a.Log.Init(); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	a.log.Info("app: logger and config initialized successfully")
+	a.Log.Info("app: logger and Config initialized successfully")
 
-	a.database = database.New(a.log)
-	a.xray = xray.New(a.log, config.XrayConfigPath, a.config.XrayBinaryPath())
-	a.enigma = enigma.New(config.EnigmaKeyPath)
-	a.fetcher = fetcher.New(a.config.HttpClient.Timeout)
-	a.coordinator = coordinator.New(a.config, a.fetcher, a.log, a.database, a.xray, a.enigma)
-	a.httpServer = server.New(a.config, a.log, a.coordinator, a.database, a.enigma)
+	a.Database = database.New(a.Log)
+	a.Xray = xray.New(a.Log, config.XrayConfigPath, a.Config.XrayBinaryPath())
+	a.Enigma = enigma.New(config.EnigmaKeyPath)
+	a.Fetcher = fetcher.New(a.Config.HttpClient.Timeout)
+	a.Coordinator = coordinator.New(a.Config, a.Fetcher, a.Log, a.Database, a.Xray, a.Enigma)
+	a.HttpServer = server.New(a.Config, a.Log, a.Coordinator, a.Database, a.Enigma)
 
-	a.log.Info("app: modules initialized successfully")
+	a.Log.Info("app: modules initialized successfully")
 
 	a.setupSignalListener()
 
 	return a, nil
 }
 
-func (a *App) Boot() {
-	a.database.Init()
-	a.coordinator.Run()
-	a.httpServer.Run()
-	a.log.Info("app: modules ran successfully")
+func (a *App) Init() error {
+	err := a.Database.Init()
+	return errors.WithStack(err)
 }
 
 func (a *App) setupSignalListener() {
@@ -72,7 +70,7 @@ func (a *App) setupSignalListener() {
 		signalChannel := make(chan os.Signal, 2)
 		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 		s := <-signalChannel
-		a.log.Info("app: system call", zap.String("signal", s.String()))
+		a.Log.Info("app: system call", zap.String("signal", s.String()))
 		cancel()
 	}()
 }
@@ -82,19 +80,19 @@ func (a *App) Wait() {
 }
 
 func (a *App) ShutdownModules() {
-	a.log.Info("app: shutting down modules...")
-	if a.httpServer != nil {
-		a.httpServer.Shutdown()
+	a.Log.Info("app: shutting down modules...")
+	if a.HttpServer != nil {
+		a.HttpServer.Shutdown()
 	}
-	if a.xray != nil {
-		a.xray.Shutdown()
+	if a.Xray != nil {
+		a.Xray.Shutdown()
 	}
 }
 
 func (a *App) Shutdown() {
-	a.log.Info("app: shutting down...")
+	a.Log.Info("app: shutting down...")
 	a.ShutdownModules()
-	if a.log != nil {
-		a.log.Shutdown()
+	if a.Log != nil {
+		a.Log.Shutdown()
 	}
 }

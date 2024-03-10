@@ -66,5 +66,5 @@ make update
 
 ## License
 
-This project is governed by the terms of the [LICENSE](LICENSE.md) license.
+This project is governed by the terms of the [LICENSE](LICENSE.md).
 Users are only allowed to use this project with explicit permission from the creator.

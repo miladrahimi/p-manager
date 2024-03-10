@@ -3,6 +3,7 @@ package database
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator"
 	"github.com/labstack/gommon/random"
 	"github.com/miladrahimi/xray-manager/pkg/logger"
@@ -30,47 +31,40 @@ type Database struct {
 	log    *logger.Logger
 }
 
-func (d *Database) Init() {
+func (d *Database) Init() error {
 	if !utils.FileExist(Path) {
-		d.Save()
+		return errors.WithStack(d.Save())
 	}
-	d.Load()
+	return errors.WithStack(d.Load())
 }
 
-func (d *Database) Load() {
+func (d *Database) Load() error {
 	d.locker.Lock()
 	defer d.locker.Unlock()
 
 	content, err := os.ReadFile(Path)
 	if err != nil {
-		d.log.Fatal("database: cannot load file", zap.String("file", Path), zap.Error(err))
+		return errors.WithStack(err)
 	}
 
 	err = json.Unmarshal(content, d.Data)
 	if err != nil {
-		d.log.Fatal("database: cannot unmarshall data", zap.Error(err))
+		return errors.WithStack(err)
 	}
 
-	if err = validator.New().Struct(d); err != nil {
-		d.log.Fatal("database: cannot validate data", zap.Error(err))
-	}
+	return errors.WithStack(validator.New().Struct(d))
 }
 
-func (d *Database) Save() {
-	defer func() {
-		d.locker.Unlock()
-		d.Load()
-	}()
+func (d *Database) Save() error {
 	d.locker.Lock()
+	defer d.locker.Unlock()
 
 	content, err := json.Marshal(d.Data)
 	if err != nil {
-		d.log.Fatal("database: cannot marshal data", zap.Error(err))
+		return errors.WithStack(err)
 	}
 
-	if err = os.WriteFile(Path, content, 0755); err != nil {
-		d.log.Fatal("database: cannot save file", zap.String("file", Path), zap.Error(err))
-	}
+	return errors.WithStack(os.WriteFile(Path, content, 0755))
 }
 
 func (d *Database) Backup() {

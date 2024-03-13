@@ -1,7 +1,7 @@
 #!/bin/bash
 
 script_dir=$(dirname "$(realpath "$0")")
-license_path="$script_dir/../storage/license.txt"
+license_path="$script_dir/../storage/app/license.txt"
 
 if [ -z "$1" ]; then
     if [ -e "$license_path" ]; then

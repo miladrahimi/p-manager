@@ -17,9 +17,7 @@ setup:
 	fi
 
 recover:
-	docker compose down
-	@./scripts/recovery.sh
-	docker compose up -d
+	@./scripts/recover.sh
 
 fresh:
 	rm storage/app/*.json
@@ -29,14 +27,7 @@ fresh:
 	docker compose restart
 
 update: setup
-	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updating..." >> ./storage/app/updates.txt
-	git pull
-	docker compose pull
-	docker compose down
-	rm ./storage/logs/*.log
-	mv ./storage/database.json ./storage/database/app.json
-	docker compose up -d
-	@echo "$(shell date '+%Y-%m-%d %H:%M:%S') Updated." >> ./storage/app/updates.txt
+	@./scripts/update.sh
 
 license:
 	@./scripts/license.sh "$(v)"

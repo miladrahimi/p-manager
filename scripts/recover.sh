@@ -1,5 +1,7 @@
 #!/bin/bash
 
+docker compose down
+
 script_dir=$(dirname "$(realpath "$0")")
 latest_backup=$(ls -t "$script_dir/../storage/database/backup-"* 2>/dev/null | head -n 1)
 if [ -n "$latest_backup" ]; then
@@ -8,3 +10,5 @@ if [ -n "$latest_backup" ]; then
 else
     echo "No backup files found."
 fi
+
+docker compose up -d

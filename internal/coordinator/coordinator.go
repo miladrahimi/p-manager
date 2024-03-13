@@ -12,6 +12,7 @@ import (
 	"github.com/miladrahimi/xray-manager/pkg/utils"
 	"github.com/miladrahimi/xray-manager/pkg/xray"
 	"go.uber.org/zap"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -32,7 +33,6 @@ func (c *Coordinator) Run() {
 	c.l.Info("coordinator: running...")
 
 	c.initDatabase()
-	c.initLicense()
 	c.SyncConfigs()
 
 	statsWorker := time.NewTicker(time.Duration(c.config.Worker.Interval) * time.Second)
@@ -52,6 +52,8 @@ func (c *Coordinator) Run() {
 			c.database.Backup()
 		}
 	}()
+
+	go c.validateLicense()
 }
 
 func (c *Coordinator) initDatabase() {
@@ -255,7 +257,7 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
 	c.l.Info("coordinator: updating remote configs...", zap.String("url", url))
 
-	_, err := c.fetcher.Do("POST", url, xc, map[string]string{
+	_, err := c.fetcher.Do(http.MethodPost, url, xc, map[string]string{
 		echo.HeaderContentType:   echo.MIMEApplicationJSON,
 		echo.HeaderAuthorization: fmt.Sprintf("Bearer %s", s.HttpToken),
 		"X-App-Name":             config.AppName,
@@ -314,7 +316,7 @@ func (c *Coordinator) SyncStats() {
 	c.database.Save()
 }
 
-func (c *Coordinator) initLicense() {
+func (c *Coordinator) validateLicense() {
 	if !utils.FileExist(config.LicensePath) {
 		c.licensed = false
 	} else {
@@ -329,6 +331,22 @@ func (c *Coordinator) initLicense() {
 			c.licensed = c.enigma.Verify([]byte(key), licenseFile)
 			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.licensed))
 		}
+	}
+
+	url := "https://x.miladrahimi.com/xray-manager/v1/servers"
+	body := map[string]interface{}{
+		"host": c.database.Data.Settings.Host,
+		"port": c.config.HttpServer.Port,
+	}
+	headers := map[string]string{
+		echo.HeaderContentType: echo.MIMEApplicationJSON,
+		"X-App-Name":           config.AppName,
+		"X-App-Version":        config.AppVersion,
+	}
+	if r, err := c.fetcher.Do(http.MethodPost, url, body, headers); err != nil {
+		c.l.Error("coordinator: remote license failed", zap.Error(err))
+	} else {
+		c.l.Info("coordinator: remote license fetched", zap.ByteString("response", r))
 	}
 }
 

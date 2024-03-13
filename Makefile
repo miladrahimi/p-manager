@@ -7,8 +7,10 @@ dev_run:
 	go run main.go start
 
 dev_fresh:
-	rm storage/*.json
-	rm storage/*.txt
+	rm -f storage/app/*.json
+	rm -f storage/app/*.txt
+	rm -f storage/database/*.json
+	rm -f storage/logs/*.log
 
 setup:
 	./scripts/setup-updater.sh
@@ -20,10 +22,10 @@ recover:
 	@./scripts/recover.sh
 
 fresh:
-	rm storage/app/*.json
-	rm storage/app/*.txt
-	rm storage/database/*.json
-	rm storage/logs/*.log
+	rm -f storage/app/*.json
+	rm -f storage/app/*.txt
+	rm -f storage/database/*.json
+	rm -f storage/logs/*.log
 	docker compose restart
 
 update: setup

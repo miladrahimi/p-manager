@@ -17,9 +17,7 @@ func startFunc(_ *cobra.Command, _ []string) {
 	if err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
 	}
-	if err = a.Init(); err != nil {
-		panic(fmt.Sprintf("%+v\n", err))
-	}
+	a.Init()
 	a.Coordinator.Run()
 	a.HttpServer.Run()
 	a.Wait()

@@ -7,6 +7,8 @@ import (
 
 type Log struct {
 	LogLevel string `json:"loglevel" validate:"required"`
+	Access   string `json:"access" validate:"required"`
+	Error    string `json:"error" validate:"required"`
 }
 
 type Client struct {
@@ -189,6 +191,8 @@ func NewConfig() *Config {
 	return &Config{
 		Log: &Log{
 			LogLevel: "warning",
+			Access:   "./storage/logs/xray-access.log",
+			Error:    "./storage/logs/xray-error.log",
 		},
 		Inbounds: []*Inbound{
 			{

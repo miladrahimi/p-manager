@@ -15,10 +15,10 @@ const AppVersion = "v1.2.2"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
 
-const LimitedUsersCount = 100
+const LimitedUsersCount = 200
 const LicensePath = "storage/license.txt"
 const EnigmaKeyPath = "assets/ed25519_public_key.txt"
-const XrayConfigPath = "storage/xray.json"
+const XrayConfigPath = "storage/app/xray.json"
 
 var xrayBinaryPaths = map[string]string{
 	"darwin": "third_party/xray-macos-arm64/xray",

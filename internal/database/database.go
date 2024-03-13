@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-const Path = "storage/database.json"
-const BackupPath = "storage/backup-%s.json"
+const Path = "storage/database/app.json"
+const BackupPath = "storage/database/backup-%s.json"
 
 type Data struct {
 	Settings *Settings `json:"settings"`
@@ -31,40 +31,44 @@ type Database struct {
 	log    *logger.Logger
 }
 
-func (d *Database) Init() error {
+func (d *Database) Init() {
 	if !utils.FileExist(Path) {
-		return errors.WithStack(d.Save())
+		d.Save()
+	} else {
+		d.Load()
 	}
-	return errors.WithStack(d.Load())
 }
 
-func (d *Database) Load() error {
+func (d *Database) Load() {
 	d.locker.Lock()
 	defer d.locker.Unlock()
 
 	content, err := os.ReadFile(Path)
 	if err != nil {
-		return errors.WithStack(err)
+		d.log.Exit("database: cannot read file", zap.Error(errors.WithStack(err)))
 	}
 
 	err = json.Unmarshal(content, d.Data)
 	if err != nil {
-		return errors.WithStack(err)
+		d.log.Exit("database: cannot unmarshal data", zap.Error(errors.WithStack(err)))
 	}
 
-	return errors.WithStack(validator.New().Struct(d))
+	if err = validator.New().Struct(d); err != nil {
+		d.log.Exit("database: cannot validate data", zap.Error(errors.WithStack(err)))
+	}
 }
 
-func (d *Database) Save() error {
+func (d *Database) Save() {
 	d.locker.Lock()
 	defer d.locker.Unlock()
 
 	content, err := json.Marshal(d.Data)
 	if err != nil {
-		return errors.WithStack(err)
 	}
 
-	return errors.WithStack(os.WriteFile(Path, content, 0755))
+	if err = os.WriteFile(Path, content, 0755); err != nil {
+		d.log.Exit("database: cannot save data", zap.Error(errors.WithStack(err)))
+	}
 }
 
 func (d *Database) Backup() {
@@ -75,7 +79,7 @@ func (d *Database) Backup() {
 
 	path := strings.ToLower(fmt.Sprintf(BackupPath, time.Now().Format("Mon-15")))
 	if err = os.WriteFile(path, content, 0755); err != nil {
-		d.log.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(err))
+		d.log.Exit("database: cannot save backup file", zap.String("file", path), zap.Error(err))
 	}
 }
 

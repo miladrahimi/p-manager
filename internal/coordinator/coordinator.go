@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/xray-manager/internal/config"
 	"github.com/miladrahimi/xray-manager/internal/database"
@@ -57,12 +58,12 @@ func (c *Coordinator) initDatabase() {
 	var err error
 	if c.database.Data.Settings.SsReversePort == 1 {
 		if c.database.Data.Settings.SsReversePort, err = utils.FreePort(); err != nil {
-			c.l.Fatal("coordinator: cannot find port for ssr", zap.Error(err))
+			c.l.Exit("coordinator: cannot find port for ssr", zap.Error(errors.WithStack(err)))
 		}
 	}
 	if c.database.Data.Settings.SsRelayPort == 1 {
 		if c.database.Data.Settings.SsRelayPort, err = utils.FreePort(); err != nil {
-			c.l.Fatal("coordinator: cannot find port for ssd", zap.Error(err))
+			c.l.Exit("coordinator: cannot find port for ssd", zap.Error(errors.WithStack(err)))
 		}
 	}
 	c.database.Save()
@@ -95,7 +96,7 @@ func (c *Coordinator) syncLocalConfigs() {
 	clients := c.generateShadowsocksClients()
 	apiPort, err := utils.FreePort()
 	if err != nil {
-		c.l.Fatal("coordinator: cannot find free port for xray api", zap.Error(err))
+		c.l.Exit("coordinator: cannot find free port for xray api", zap.Error(err))
 	}
 
 	xc := xray.NewConfig()
@@ -146,7 +147,7 @@ func (c *Coordinator) syncLocalConfigs() {
 	for _, s := range c.database.Data.Servers {
 		inboundPort, err := utils.FreePort()
 		if err != nil {
-			c.l.Fatal("coordinator: cannot find free port for foreign inbound", zap.Error(err))
+			c.l.Exit("coordinator: cannot find free port for foreign inbound", zap.Error(err))
 		}
 		xc.Inbounds = append(
 			xc.Inbounds,
@@ -160,7 +161,7 @@ func (c *Coordinator) syncLocalConfigs() {
 		)
 		outboundPort, err := utils.FreePort()
 		if err != nil {
-			c.l.Fatal("coordinator: cannot find free port for relay outbound", zap.Error(err))
+			c.l.Exit("coordinator: cannot find free port for relay outbound", zap.Error(err))
 		}
 		xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 			fmt.Sprintf("relay-%d", s.Id),
@@ -324,10 +325,7 @@ func (c *Coordinator) initLicense() {
 		if err != nil {
 			c.l.Error("coordinator: cannot open license file", zap.Error(err))
 		} else {
-			key := c.database.Data.Settings.Host
-			if c.config.HttpServer.Port != 80 {
-				key = fmt.Sprintf("%s:%d", key, c.config.HttpServer.Port)
-			}
+			key := fmt.Sprintf("%s:%d", c.database.Data.Settings.Host, c.config.HttpServer.Port)
 			c.licensed = c.enigma.Verify([]byte(key), licenseFile)
 			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.licensed))
 		}

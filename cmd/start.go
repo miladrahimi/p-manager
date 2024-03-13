@@ -14,7 +14,6 @@ var startCmd = &cobra.Command{
 }
 
 func startFunc(_ *cobra.Command, _ []string) {
-	// TODO: Remove this
 	if utils.FileExist("./storage/database.json") {
 		_ = os.Rename("./storage/database.json", "./storage/database/app.json")
 	}

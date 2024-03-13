@@ -27,7 +27,7 @@ fresh:
 	docker compose restart
 
 update: setup
-	git pull
+	@git pull
 	@./scripts/update.sh
 
 license:

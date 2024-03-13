@@ -1,4 +1,3 @@
-git pull
 docker compose pull
 docker compose down
 rm ./storage/logs/*.log

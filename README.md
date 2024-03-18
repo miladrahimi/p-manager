@@ -7,13 +7,13 @@
 ```shell
 # Install the requirements
 apt-get -y update && apt-get -y upgrade
-apt-get -y install make wget curl vim git openssl
+apt-get -y install make wget curl vim git openssl cron
 ```
 
 ```shell
 # Install Docker
 wget -O install-docker.sh https://get.docker.com
-chmod +x install-docker.sh && ./install-docker.sh && rm install-docker.sh
+chmod +x install-docker.sh && ./install-docker.sh && rm -f install-docker.sh
 ```
 
 ```shell

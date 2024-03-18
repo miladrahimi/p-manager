@@ -10,8 +10,9 @@ import (
 )
 
 type ProfileResponse struct {
-	User             database.User `json:"user"`
-	ShadowsocksLinks []string      `json:"shadowsocks_links"`
+	User      database.User `json:"user"`
+	SsReverse string        `json:"ss_reverse"`
+	SsRelay   string        `json:"ss_relay"`
 }
 
 func ProfileShow(d *database.Database) echo.HandlerFunc {
@@ -28,18 +29,20 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 			})
 		}
 
-		r := ProfileResponse{User: *user, ShadowsocksLinks: []string{}}
+		r := ProfileResponse{User: *user}
 		r.User.Used = r.User.Used * d.Data.Settings.TrafficRatio
 		r.User.Quota = r.User.Quota * d.Data.Settings.TrafficRatio
 
 		s := d.Data.Settings
 		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
 
-		r.ShadowsocksLinks = append(
-			r.ShadowsocksLinks,
-			fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsReversePort, "ss1"),
-			fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsRelayPort, "ss2"),
-		)
+		if s.SsReversePort > 0 {
+			r.SsReverse = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsReversePort, "reverse")
+		}
+
+		if s.SsRelayPort > 0 {
+			r.SsRelay = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsRelayPort, "relay")
+		}
 
 		return c.JSON(http.StatusOK, r)
 	}

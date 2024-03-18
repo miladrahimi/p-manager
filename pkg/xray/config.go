@@ -176,6 +176,15 @@ func (c *Config) FindOutbound(tag string) *Outbound {
 	return nil
 }
 
+func (c *Config) FindBalancer(tag string) *Balancer {
+	for _, balancer := range c.Routing.Balancers {
+		if balancer.Tag == tag {
+			return balancer
+		}
+	}
+	return nil
+}
+
 func (c *Config) Validate() error {
 	v := validator.New(validator.WithRequiredStructEnabled())
 	if err := v.Struct(c); err != nil {

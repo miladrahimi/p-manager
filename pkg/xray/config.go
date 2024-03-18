@@ -7,8 +7,8 @@ import (
 
 type Log struct {
 	LogLevel string `json:"loglevel" validate:"required"`
-	Access   string `json:"access" validate:"required"`
-	Error    string `json:"error" validate:"required"`
+	Access   string `json:"access,omitempty"`
+	Error    string `json:"error,omitempty"`
 }
 
 type Client struct {
@@ -97,7 +97,7 @@ type Routing struct {
 	DomainMatcher  string           `json:"domainMatcher" validate:"required"`
 	Strategy       string           `json:"strategy" validate:"required"`
 	Settings       *RoutingSettings `json:"settings" validate:"required"`
-	Balancers      []*Balancer      `json:"balancers" validate:"omitempty,dive"`
+	Balancers      []*Balancer      `json:"balancers,omitempty" validate:"omitempty,dive"`
 }
 
 type Reverse struct {
@@ -119,7 +119,7 @@ type Config struct {
 	API       *API                   `json:"api" validate:"required"`
 	Policy    *Policy                `json:"policy" validate:"required"`
 	Routing   *Routing               `json:"routing" validate:"required"`
-	Reverse   *Reverse               `json:"reverse"`
+	Reverse   *Reverse               `json:"reverse.omitempty"`
 }
 
 func (c *Config) MakeShadowsocksInbound(tag, password, method string, port int, clients []*Client) *Inbound {

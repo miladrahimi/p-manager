@@ -13,7 +13,7 @@ apt-get -y install make wget curl vim git openssl
 ```shell
 # Install Docker
 wget -O install-docker.sh https://get.docker.com
-chmod +x install-docker.sh && ./install-docker.sh && rm install-docker.sh
+chmod +x install-docker.sh && ./install-docker.sh && rm -f install-docker.sh
 ```
 
 ```shell

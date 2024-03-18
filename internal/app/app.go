@@ -61,6 +61,7 @@ func New() (a *App, err error) {
 
 func (a *App) Init() {
 	a.Database.Init()
+	a.Logger.Info("app: initialized successfully")
 }
 
 func (a *App) setupSignalListener() {

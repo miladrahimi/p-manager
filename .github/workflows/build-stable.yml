@@ -1,6 +1,6 @@
 name: Build Stable
 
-on: workflow_call
+on: workflow_run
 
 env:
   REGISTRY: ghcr.io

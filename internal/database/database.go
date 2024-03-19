@@ -45,16 +45,16 @@ func (d *Database) Load() {
 
 	content, err := os.ReadFile(Path)
 	if err != nil {
-		d.log.Exit("database: cannot read file", zap.Error(errors.WithStack(err)))
+		d.log.Fatal("database: cannot read file", zap.Error(errors.WithStack(err)))
 	}
 
 	err = json.Unmarshal(content, d.Data)
 	if err != nil {
-		d.log.Exit("database: cannot unmarshal data", zap.Error(errors.WithStack(err)))
+		d.log.Fatal("database: cannot unmarshal data", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = validator.New().Struct(d); err != nil {
-		d.log.Exit("database: cannot validate data", zap.Error(errors.WithStack(err)))
+		d.log.Fatal("database: cannot validate data", zap.Error(errors.WithStack(err)))
 	}
 }
 
@@ -67,7 +67,7 @@ func (d *Database) Save() {
 	}
 
 	if err = os.WriteFile(Path, content, 0755); err != nil {
-		d.log.Exit("database: cannot save data", zap.Error(errors.WithStack(err)))
+		d.log.Fatal("database: cannot save data", zap.Error(errors.WithStack(err)))
 	}
 }
 
@@ -79,7 +79,7 @@ func (d *Database) Backup() {
 
 	path := strings.ToLower(fmt.Sprintf(BackupPath, time.Now().Format("Mon-15")))
 	if err = os.WriteFile(path, content, 0755); err != nil {
-		d.log.Exit("database: cannot save backup file", zap.String("file", path), zap.Error(err))
+		d.log.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(err))
 	}
 }
 

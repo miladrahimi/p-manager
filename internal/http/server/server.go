@@ -71,7 +71,7 @@ func (s *Server) Run() {
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)
 		if err := s.engine.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.l.Exit("http server: failed to start", zap.String("address", address), zap.Error(err))
+			s.l.Fatal("http server: failed to start", zap.String("address", address), zap.Error(err))
 		}
 	}()
 }

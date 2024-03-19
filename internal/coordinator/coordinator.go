@@ -81,7 +81,7 @@ func (c *Coordinator) syncLocalConfigs() {
 	clients := c.generateShadowsocksClients()
 	apiPort, err := utils.FreePort()
 	if err != nil {
-		c.l.Exit("coordinator: cannot find free port for xray api", zap.Error(err))
+		c.l.Fatal("coordinator: cannot find free port for xray api", zap.Error(err))
 	}
 
 	xc := xray.NewConfig()
@@ -139,7 +139,7 @@ func (c *Coordinator) syncLocalConfigs() {
 	for _, s := range c.database.Data.Servers {
 		inboundPort, err := utils.FreePort()
 		if err != nil {
-			c.l.Exit("coordinator: cannot find free port for foreign inbound", zap.Error(err))
+			c.l.Fatal("coordinator: cannot find free port for foreign inbound", zap.Error(err))
 		}
 
 		if c.database.Data.Settings.SsReversePort > 0 {
@@ -168,7 +168,7 @@ func (c *Coordinator) syncLocalConfigs() {
 		if c.database.Data.Settings.SsRelayPort > 0 {
 			outboundRelayPort, err := utils.FreePort()
 			if err != nil {
-				c.l.Exit("coordinator: cannot find free port for relay outbound", zap.Error(err))
+				c.l.Fatal("coordinator: cannot find free port for relay outbound", zap.Error(err))
 			}
 			xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 				fmt.Sprintf("relay-%d", s.Id),

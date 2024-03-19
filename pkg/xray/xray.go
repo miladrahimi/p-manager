@@ -31,17 +31,17 @@ func (x *Xray) loadConfig() {
 
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
-		x.l.Exit("xray: cannot load Config file", zap.Error(err))
+		x.l.Fatal("xray: cannot load Config file", zap.Error(err))
 	}
 
 	var newConfig Config
 	err = json.Unmarshal(content, &newConfig)
 	if err != nil {
-		x.l.Exit("xray: cannot unmarshal Config file", zap.Error(err))
+		x.l.Fatal("xray: cannot unmarshal Config file", zap.Error(err))
 	}
 
 	if err = newConfig.Validate(); err != nil {
-		x.l.Exit("xray: cannot validate Config file", zap.Error(err))
+		x.l.Fatal("xray: cannot validate Config file", zap.Error(err))
 	}
 
 	x.config = &newConfig
@@ -50,11 +50,11 @@ func (x *Xray) loadConfig() {
 func (x *Xray) saveConfig() {
 	content, err := json.Marshal(x.config)
 	if err != nil {
-		x.l.Exit("xray: cannot marshal Config", zap.Error(err))
+		x.l.Fatal("xray: cannot marshal Config", zap.Error(err))
 	}
 
 	if err = os.WriteFile(x.configPath, content, 0755); err != nil {
-		x.l.Exit("xray: cannot save Config", zap.String("file", x.configPath), zap.Error(err))
+		x.l.Fatal("xray: cannot save Config", zap.String("file", x.configPath), zap.Error(err))
 	}
 }
 
@@ -71,7 +71,7 @@ func (x *Xray) RunWithConfig() {
 
 func (x *Xray) runCore() {
 	if !utils.FileExist(x.binaryPath) {
-		x.l.Exit("xray: core binary file not found", zap.String("path", x.binaryPath))
+		x.l.Fatal("xray: core binary file not found", zap.String("path", x.binaryPath))
 	}
 
 	x.command = exec.Command(x.binaryPath, "-c", x.configPath)
@@ -80,7 +80,7 @@ func (x *Xray) runCore() {
 
 	x.l.Info("xray: starting the xray core...")
 	if err := x.command.Run(); err != nil && err.Error() != "signal: killed" {
-		x.l.Exit("xray: cannot start the xray core", zap.Error(err))
+		x.l.Fatal("xray: cannot start the xray core", zap.Error(err))
 	}
 }
 
@@ -109,7 +109,7 @@ func (x *Xray) Shutdown() {
 func (x *Xray) connect() {
 	inbound := x.config.FindInbound("api")
 	if inbound == nil {
-		x.l.Exit("xray: cannot find api inbound")
+		x.l.Fatal("xray: cannot find api inbound")
 	}
 
 	address := "127.0.0.1:" + strconv.Itoa(inbound.Port)
@@ -124,7 +124,7 @@ func (x *Xray) connect() {
 		}
 	}
 
-	x.l.Exit("xray: cannot connect the xray core grpc", zap.Error(err))
+	x.l.Fatal("xray: cannot connect the xray core grpc", zap.Error(err))
 }
 
 func (x *Xray) SetConfig(config *Config) {

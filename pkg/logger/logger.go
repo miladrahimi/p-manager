@@ -64,9 +64,9 @@ func (l *Logger) Error(msg string, fields ...zap.Field) {
 	l.engine.Error(msg, fields...)
 }
 
-func (l *Logger) Exit(msg string, fields ...zap.Field) {
+func (l *Logger) Fatal(msg string, fields ...zap.Field) {
 	l.engine.Error(msg, fields...)
-	close(l.shutdown)
+	l.shutdown <- struct{}{}
 }
 
 func (l *Logger) With(fields ...zap.Field) *zap.Logger {

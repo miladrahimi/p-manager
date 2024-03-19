@@ -119,7 +119,7 @@ type Config struct {
 	API       *API                   `json:"api" validate:"required"`
 	Policy    *Policy                `json:"policy" validate:"required"`
 	Routing   *Routing               `json:"routing" validate:"required"`
-	Reverse   *Reverse               `json:"reverse.omitempty"`
+	Reverse   *Reverse               `json:"reverse,omitempty"`
 }
 
 func (c *Config) MakeShadowsocksInbound(tag, password, method string, port int, clients []*Client) *Inbound {

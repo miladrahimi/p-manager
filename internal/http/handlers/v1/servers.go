@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/xray-manager/internal/coordinator"
-	"github.com/miladrahimi/xray-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/coordinator"
+	"github.com/miladrahimi/p-manager/internal/database"
 	"net/http"
 	"strconv"
 )

@@ -3,8 +3,8 @@ package v1
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/xray-manager/internal/database"
-	"github.com/miladrahimi/xray-manager/pkg/enigma"
+	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/pkg/enigma"
 	"net/http"
 	"time"
 )

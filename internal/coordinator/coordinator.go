@@ -3,13 +3,13 @@ package coordinator
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/xray-manager/internal/config"
-	"github.com/miladrahimi/xray-manager/internal/database"
-	"github.com/miladrahimi/xray-manager/pkg/enigma"
-	"github.com/miladrahimi/xray-manager/pkg/fetcher"
-	"github.com/miladrahimi/xray-manager/pkg/logger"
-	"github.com/miladrahimi/xray-manager/pkg/utils"
-	"github.com/miladrahimi/xray-manager/pkg/xray"
+	"github.com/miladrahimi/p-manager/internal/config"
+	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/pkg/enigma"
+	"github.com/miladrahimi/p-manager/pkg/fetcher"
+	"github.com/miladrahimi/p-manager/pkg/logger"
+	"github.com/miladrahimi/p-manager/pkg/utils"
+	"github.com/miladrahimi/p-manager/pkg/xray"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -326,7 +326,7 @@ func (c *Coordinator) validateLicense() {
 		}
 	}
 
-	url := "https://x.miladrahimi.com/xray-manager/v1/servers"
+	url := "https://x.miladrahimi.com/p-manager/v1/servers"
 	body := map[string]interface{}{
 		"host": c.database.Data.Settings.Host,
 		"port": c.config.HttpServer.Port,

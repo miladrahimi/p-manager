@@ -3,7 +3,7 @@ package middleware
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/xray-manager/pkg/logger"
+	"github.com/miladrahimi/p-manager/pkg/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"time"

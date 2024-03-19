@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/miladrahimi/xray-manager/cmd"
+	"github.com/miladrahimi/p-manager/cmd"
 	"os"
 )
 

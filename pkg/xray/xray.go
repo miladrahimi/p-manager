@@ -3,8 +3,8 @@ package xray
 import (
 	"context"
 	"encoding/json"
-	"github.com/miladrahimi/xray-manager/pkg/logger"
-	"github.com/miladrahimi/xray-manager/pkg/utils"
+	"github.com/miladrahimi/p-manager/pkg/logger"
+	"github.com/miladrahimi/p-manager/pkg/utils"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/miladrahimi/xray-manager/internal/app"
-	"github.com/miladrahimi/xray-manager/pkg/utils"
+	"github.com/miladrahimi/p-manager/internal/app"
+	"github.com/miladrahimi/p-manager/pkg/utils"
 	"github.com/spf13/cobra"
 	"os"
 )

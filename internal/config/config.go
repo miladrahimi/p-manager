@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/miladrahimi/xray-manager/pkg/utils"
+	"github.com/miladrahimi/p-manager/pkg/utils"
 	"os"
 	"runtime"
 )

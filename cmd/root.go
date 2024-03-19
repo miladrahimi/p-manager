@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/miladrahimi/xray-manager/internal/config"
+	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use: "xray-manager",
+	Use: "p-manager",
 }
 
 func init() {

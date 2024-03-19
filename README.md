@@ -1,4 +1,4 @@
-# Xray Manager
+# P-Manager
 
 ## Documentation
 
@@ -24,9 +24,9 @@ sudo sysctl -p
 ```
 
 ```shell
-# Install Xray Manager
-git clone https://github.com/miladrahimi/xray-manager.git
-cd xray-manager
+# Install P-Manager
+git clone https://github.com/miladrahimi/p-manager.git
+cd p-manager
 make setup
 docker compose up -d
 ```
@@ -36,7 +36,7 @@ docker compose up -d
 Access the web panel at the default port `8080`.
 Sign in using the username `admin` and password `password`.
 * In the `Users` tab, you can manage users and view their public profiles.
-* In the `Servers` tab, you can add any number of [Xray Nodes](https://github.com/miladrahimi/xray-node).
+* In the `Servers` tab, you can add any number of [P-Nodes](https://github.com/miladrahimi/p-node).
 * In the `Settings` tab, you can modify the general settings.
 
 ### Configuration
@@ -62,9 +62,8 @@ make update
 
 ## Links
 
-* https://github.com/miladrahimi/xray-node
+* https://github.com/miladrahimi/p-node
 
 ## License
 
 This project is governed by the terms of the [LICENSE](LICENSE.md).
-Users are only allowed to use this project with explicit permission from the creator.

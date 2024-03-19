@@ -12,7 +12,6 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	cobra.OnInitialize(func() { fmt.Println(config.AppName) })
-
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(versionCmd)
 }

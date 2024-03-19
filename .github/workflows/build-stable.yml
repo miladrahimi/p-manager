@@ -1,4 +1,4 @@
-name: Build
+name: Build Stable
 
 on: workflow_call
 

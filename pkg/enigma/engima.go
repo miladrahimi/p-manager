@@ -3,36 +3,37 @@ package enigma
 import (
 	"crypto/ed25519"
 	"encoding/hex"
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"os"
 )
 
 type Enigma struct {
-	PublicKeyPath string
-	PublicKey     ed25519.PublicKey
+	publicKeyPath string
+	publicKey     ed25519.PublicKey
 }
 
 func (e *Enigma) Init() error {
-	publicKeyData, err := os.ReadFile(e.PublicKeyPath)
+	publicKeyData, err := os.ReadFile(e.publicKeyPath)
 	if err != nil {
-		return fmt.Errorf("enigma: Init: cannot load public key file, err: %v", err)
+		return errors.WithStack(err)
 	}
-
-	e.PublicKey, err = hex.DecodeString(string(publicKeyData))
+	e.publicKey, err = hex.DecodeString(string(publicKeyData))
 	if err != nil {
-		return fmt.Errorf("enigma: Init: cannot decode public key, err: %v", err)
+		return errors.WithStack(err)
 	}
-
 	return nil
 }
 
-func (e *Enigma) Verify(plain, signature []byte) bool {
-	s, _ := hex.DecodeString(string(signature))
-	return ed25519.Verify(e.PublicKey, plain, s)
+func (e *Enigma) Verify(plain, signature string) bool {
+	s, err := hex.DecodeString(signature)
+	if err != nil {
+		return false
+	}
+	return ed25519.Verify(e.publicKey, []byte(plain), s)
 }
 
 func New(publicKeyPath string) *Enigma {
 	return &Enigma{
-		PublicKeyPath: publicKeyPath,
+		publicKeyPath: publicKeyPath,
 	}
 }

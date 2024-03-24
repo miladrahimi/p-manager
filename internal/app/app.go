@@ -59,9 +59,13 @@ func New() (a *App, err error) {
 	return a, nil
 }
 
-func (a *App) Init() {
+func (a *App) Init() error {
 	a.Database.Init()
+	if err := a.Enigma.Init(); err != nil {
+		return errors.WithStack(err)
+	}
 	a.Logger.Info("app: initialized successfully")
+	return nil
 }
 
 func (a *App) setupSignalListener() {

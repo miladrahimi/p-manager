@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/config"
@@ -309,23 +310,6 @@ func (c *Coordinator) SyncStats() {
 }
 
 func (c *Coordinator) validateLicense() {
-	if !utils.FileExist(config.LicensePath) {
-		c.licensed = false
-		c.l.Info("coordinator: no license file found")
-	} else {
-		if err := c.enigma.Init(); err != nil {
-			c.l.Error("coordinator: cannot init enigma", zap.Error(err))
-		}
-		licenseFile, err := os.ReadFile(config.LicensePath)
-		if err != nil {
-			c.l.Error("coordinator: cannot open license file", zap.Error(err))
-		} else {
-			key := fmt.Sprintf("%s:%d", c.database.Data.Settings.Host, c.config.HttpServer.Port)
-			c.licensed = c.enigma.Verify([]byte(key), licenseFile)
-			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.licensed))
-		}
-	}
-
 	url := "https://x.miladrahimi.com/p-manager/v1/servers"
 	body := map[string]interface{}{
 		"host": c.database.Data.Settings.Host,
@@ -337,9 +321,36 @@ func (c *Coordinator) validateLicense() {
 		"X-App-Version":        config.AppVersion,
 	}
 	if r, err := c.fetcher.Do(http.MethodPost, url, body, headers); err != nil {
-		c.l.Error("coordinator: remote license failed", zap.Error(err))
+		c.l.Warn("coordinator: remote license failed", zap.Error(err))
 	} else {
-		c.l.Info("coordinator: remote license fetched", zap.ByteString("response", r))
+		var response map[string]string
+		if err = json.Unmarshal(r, &response); err != nil {
+			c.l.Warn("coordinator: cannot unmarshall license response", zap.Error(err))
+		}
+		if license, found := response["license"]; found && license != "" {
+			if err = os.WriteFile(config.LicensePath, []byte(license), 0755); err != nil {
+				c.l.Warn("coordinator: cannot write license file", zap.Error(err))
+			}
+		} else {
+			c.l.Warn("coordinator: no remote license found")
+		}
+	}
+
+	if !utils.FileExist(config.LicensePath) {
+		c.licensed = false
+		c.l.Info("coordinator: no license file found")
+	} else {
+		if err := c.enigma.Init(); err != nil {
+			c.l.Warn("coordinator: cannot init enigma", zap.Error(err))
+		}
+		licenseFile, err := os.ReadFile(config.LicensePath)
+		if err != nil {
+			c.l.Warn("coordinator: cannot open license file", zap.Error(err))
+		} else {
+			key := fmt.Sprintf("%s:%d", c.database.Data.Settings.Host, c.config.HttpServer.Port)
+			c.licensed = c.enigma.Verify(key, string(licenseFile))
+			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.licensed))
+		}
 	}
 }
 

@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/pkg/enigma"
@@ -33,8 +32,7 @@ func SignIn(d *database.Database, e *enigma.Enigma) echo.HandlerFunc {
 			})
 		}
 
-		plain := fmt.Sprintf("%s:%d", d.Data.Settings.Host, 0)
-		if r.Username == "admin" && e.Verify([]byte(plain), []byte(r.Password)) {
+		if r.Username == "admin" && e.Verify(d.Data.Settings.Host, r.Password) {
 			return c.JSON(http.StatusOK, map[string]string{
 				"token": d.Data.Settings.AdminPassword,
 			})

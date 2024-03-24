@@ -12,6 +12,9 @@ dev_fresh:
 	rm -f storage/database/*.json
 	rm -f storage/logs/*.log
 
+dev_clean_logs:
+	rm -f storage/logs/*.log
+
 setup:
 	@./scripts/setup-updater.sh
 	@if [ ! -f ./configs/main.local.json ]; then \

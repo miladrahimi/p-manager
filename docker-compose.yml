@@ -2,8 +2,6 @@ version: '3'
 
 services:
   app:
-    build:
-      context: .
     image: ghcr.io/miladrahimi/p-manager:${TAG:-stable}
     restart: always
     network_mode: host

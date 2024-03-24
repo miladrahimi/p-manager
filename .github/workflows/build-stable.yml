@@ -1,6 +1,8 @@
 name: Build Stable
 
-on: workflow_dispatch
+on:
+  push:
+    branches: [ master ]
 
 env:
   REGISTRY: ghcr.io

@@ -38,7 +38,10 @@
         <div class="card mt-5">
             <div class="card-body text-center">
                 <div>
-                    <p><strong id="name">Loading...</strong></p>
+                    <p>
+                        <strong id="name">Loading...</strong>
+                        <span class="badge bg-danger d-none" id="disabled-badge">Disabled</span>
+                    </p>
                 </div>
                 <div class="progress" role="progressbar" aria-label="Traffic used"
                      aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
@@ -49,7 +52,7 @@
                 </p>
                 <div class="mt-2 pt-3 text-start">
                     <div id="ss-relay" class="d-none">
-                        <small class="text-dark-emphasis">Shadowsocks Relay:</small>
+                        <small class="text-dark-emphasis">Shadowsocks (Relay):</small>
                         <div class="small overflow-scroll link">
                             <div class="d-flex my-1">
                                 <a type="text" href="#" id="ss-relay-link">---</a>
@@ -58,7 +61,7 @@
                         </div>
                     </div>
                     <div id="ss-reverse" class="d-none">
-                        <small class="text-dark-emphasis">Shadowsocks Reverse:</small>
+                        <small class="text-dark-emphasis">Shadowsocks (Reverse):</small>
                         <div class="small overflow-scroll link">
                             <div class="d-flex my-1">
                                 <a type="text" href="#" id="ss-reverse-link">---</a>
@@ -91,6 +94,10 @@
                 $("#name").html(r['user']['name'])
                 $("#used").html(r['user']['used'])
                 $("#created_at").html(ts2string(r['user']['created_at']))
+
+                if (r['user']["enabled"] === false) {
+                    $("#disabled-badge").removeClass('d-none')
+                }
 
                 if (r["ss_relay"]) {
                     $("#ss-relay").removeClass('d-none')

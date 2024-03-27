@@ -15,7 +15,7 @@ const AppVersion = "v1.2.3"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
 
-const LimitedUsersCount = 200
+const LimitedUsersCount = 15
 const LicensePath = "storage/app/license.txt"
 const EnigmaKeyPath = "assets/ed25519_public_key.txt"
 const XrayConfigPath = "storage/app/xray.json"

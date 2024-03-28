@@ -327,7 +327,7 @@ func (c *Coordinator) validateLicense() {
 		if err = json.Unmarshal(r, &response); err != nil {
 			c.l.Warn("coordinator: cannot unmarshall license response", zap.Error(err))
 		}
-		if license, found := response["license"]; found && license != "" {
+		if license, found := response["license"]; found {
 			if err = os.WriteFile(config.LicensePath, []byte(license), 0755); err != nil {
 				c.l.Warn("coordinator: cannot write license file", zap.Error(err))
 			}

@@ -13,6 +13,7 @@ type ProfileResponse struct {
 	User      database.User `json:"user"`
 	SsReverse string        `json:"ss_reverse"`
 	SsRelay   string        `json:"ss_relay"`
+	SsDirect  string        `json:"ss_direct"`
 }
 
 func ProfileShow(d *database.Database) echo.HandlerFunc {
@@ -42,6 +43,10 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 
 		if s.SsRelayPort > 0 {
 			r.SsRelay = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsRelayPort, "relay")
+		}
+
+		if s.SsDirectPort > 0 {
+			r.SsDirect = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsDirectPort, "direct")
 		}
 
 		return c.JSON(http.StatusOK, r)

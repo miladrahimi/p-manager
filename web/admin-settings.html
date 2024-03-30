@@ -106,6 +106,9 @@
             case "Relay Port":
                 el.innerText = "Shadowsocks Relay Port.";
                 break;
+            case "Direct Port":
+                el.innerText = "Shadowsocks Direct Port.";
+                break;
         }
         return el;
     }
@@ -137,13 +140,14 @@
             "Host": "host",
             "Reverse Port": "ss_reverse_port",
             "Relay Port": "ss_relay_port",
+            "Direct Port": "ss_direct_port",
         }
 
         let body = {}
         table.getData().forEach(function (v) {
             if (["Traffic Ratio"].includes(v.key)) {
                 body[map[v.key]] = parseFloat(v.value)
-            } else if (["Reverse Port", "Relay Port"].includes(v.key)) {
+            } else if (["Reverse Port", "Relay Port", "Direct Port"].includes(v.key)) {
                 body[map[v.key]] = parseInt(v.value)
             } else {
                 body[map[v.key]] = v.value
@@ -189,6 +193,7 @@
             {"key": "Host", "value": response["host"]},
             {"key": "Reverse Port", "value": response["ss_reverse_port"]},
             {"key": "Relay Port", "value": response["ss_relay_port"]},
+            {"key": "Direct Port", "value": response["ss_direct_port"]},
         ])
     }
 

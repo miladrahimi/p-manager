@@ -80,6 +80,7 @@ func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Data
 			AppName          string         `json:"app_name"`
 			AppVersion       string         `json:"app_version"`
 			AppLicensed      bool           `json:"app_licensed"`
+			Core             string         `json:"core"`
 		}{
 			Stats:            *d.Data.Stats,
 			UsersCount:       len(d.Data.Users),
@@ -87,6 +88,7 @@ func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Data
 			AppName:          config.AppName,
 			AppVersion:       config.AppVersion,
 			AppLicensed:      coordinator.Licensed(),
+			Core:             config.CoreDetails,
 		})
 	}
 }

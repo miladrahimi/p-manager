@@ -37,7 +37,6 @@
         <div id="table"></div>
 
         <div class="card bg-light-subtle mt-3 text-start">
-            <div class="card-header">Insights</div>
             <div class="card-body">
                 <div class="row">
                     <div class="col col-12 col-md-6">
@@ -45,14 +44,17 @@
                             <span>Total traffic:</span>
                             <span id="insights-stats-traffic" class="text-muted"></span>
                             <span class="text-muted">GB</span>
-                            <span class="badge bg-dark-subtle" id="insights-stats-updated-at"></span>
                         </div>
                         <div class="my-1">
-                            <span>Total users:</span>
+                            <span>Last update:</span>
+                            <span id="insights-stats-updated-at" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Total Users:</span>
                             <span id="insights-users-count" class="text-muted"></span>
                         </div>
                         <div class="my-1">
-                            <span>Total active users:</span>
+                            <span>Active users:</span>
                             <span id="insights-active-users-count" class="text-muted"></span>
                         </div>
                     </div>
@@ -68,6 +70,10 @@
                         <div class="my-1">
                             <span>App License:</span>
                             <span id="insights-app-license" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Core:</span>
+                            <span id="insights-core" class="text-muted"></span>
                         </div>
                     </div>
                 </div>
@@ -231,6 +237,7 @@
             $("#insights-app-name").html(response['app_name'])
             $("#insights-app-version").html(response['app_version'])
             $("#insights-app-license").html(response['app_licensed'] ? 'Premium' : 'Free')
+            $("#insights-core").html(response['core'])
         },
         error: function (response) {
             console.log(response)

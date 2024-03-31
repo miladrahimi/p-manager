@@ -71,3 +71,16 @@ func PortFree(port int) bool {
 
 	return true
 }
+
+func PortsUnique(ports []int) bool {
+	seen := make(map[int]bool)
+	for _, port := range ports {
+		if port != 0 {
+			if seen[port] {
+				return false
+			}
+			seen[port] = true
+		}
+	}
+	return true
+}

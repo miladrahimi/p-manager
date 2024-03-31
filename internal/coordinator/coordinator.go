@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -109,22 +110,40 @@ func (c *Coordinator) syncLocalConfigs() {
 				clients,
 			))
 		}
+		if c.database.Data.Settings.SsDirectPort > 0 {
+			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
+				"direct",
+				utils.Key32(),
+				config.ShadowsocksMethod,
+				c.database.Data.Settings.SsDirectPort,
+				clients,
+			))
+		}
 	}
 
-	if len(clients) > 0 && len(c.database.Data.Servers) > 0 {
-		if c.database.Data.Settings.SsRelayPort > 0 {
+	if len(clients) > 0 {
+		if c.database.Data.Settings.SsDirectPort > 0 {
 			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
-				InboundTag:  []string{"relay"},
-				BalancerTag: "relay",
+				InboundTag:  []string{"direct"},
+				OutboundTag: "freedom",
 				Type:        "field",
 			})
 		}
-		if c.database.Data.Settings.SsReversePort > 0 {
-			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
-				InboundTag:  []string{"reverse"},
-				BalancerTag: "portal",
-				Type:        "field",
-			})
+		if len(c.database.Data.Servers) > 0 {
+			if c.database.Data.Settings.SsRelayPort > 0 {
+				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+					InboundTag:  []string{"relay"},
+					BalancerTag: "relay",
+					Type:        "field",
+				})
+			}
+			if c.database.Data.Settings.SsReversePort > 0 {
+				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+					InboundTag:  []string{"reverse"},
+					BalancerTag: "portal",
+					Type:        "field",
+				})
+			}
 		}
 	}
 
@@ -279,7 +298,7 @@ func (c *Coordinator) SyncStats() {
 			servers[parts[1][8:]] += qs.GetValue()
 		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
 			servers[parts[1][6:]] += qs.GetValue()
-		} else if parts[0] == "inbound" && (parts[1] == "reverse" || parts[1] == "relay") {
+		} else if parts[0] == "inbound" && slices.Contains([]string{"reverse", "relay", "direct"}, parts[1]) {
 			c.database.Data.Stats.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
 	}

@@ -5,5 +5,6 @@ type Settings struct {
 	Host          string  `json:"host" validate:"required,max=128"`
 	SsReversePort int     `json:"ss_reverse_port" validate:"min=0,max=65536"`
 	SsRelayPort   int     `json:"ss_relay_port" validate:"min=0,max=65536"`
+	SsDirectPort  int     `json:"ss_direct_port" validate:"min=0,max=65536"`
 	TrafficRatio  float64 `json:"traffic_ratio" validate:"min=1,max=1024"`
 }

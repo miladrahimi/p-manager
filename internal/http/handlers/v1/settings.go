@@ -71,27 +71,29 @@ func SettingsRestartXray(coordinator *coordinator.Coordinator) echo.HandlerFunc 
 	}
 }
 
-func SettingsStatsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		UsersCount := len(d.Data.Users)
-		ActiveUsersCount := UsersCount
+		ActiveUsersCount := len(d.Data.Users)
 		for _, u := range d.Data.Users {
 			if !u.Enabled {
 				ActiveUsersCount--
 			}
 		}
+
 		return c.JSON(http.StatusOK, struct {
-			*database.Stats
-			UsersCount       int    `json:"users_count"`
-			ActiveUsersCount int    `json:"active_users_count"`
-			Version          string `json:"version"`
-			Licensed         bool   `json:"licensed"`
+			Stats            database.Stats `json:"stats"`
+			UsersCount       int            `json:"users_count"`
+			ActiveUsersCount int            `json:"active_users_count"`
+			AppName          string         `json:"app_name"`
+			AppVersion       string         `json:"app_version"`
+			AppLicensed      bool           `json:"app_licensed"`
 		}{
-			Stats:            d.Data.Stats,
-			UsersCount:       UsersCount,
+			Stats:            *d.Data.Stats,
+			UsersCount:       len(d.Data.Users),
 			ActiveUsersCount: ActiveUsersCount,
-			Version:          config.AppVersion,
-			Licensed:         coordinator.Licensed(),
+			AppName:          config.AppName,
+			AppVersion:       config.AppVersion,
+			AppLicensed:      coordinator.Licensed(),
 		})
 	}
 }

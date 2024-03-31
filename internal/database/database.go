@@ -64,6 +64,7 @@ func (d *Database) Save() {
 
 	content, err := json.Marshal(d.Data)
 	if err != nil {
+		d.log.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = os.WriteFile(Path, content, 0755); err != nil {

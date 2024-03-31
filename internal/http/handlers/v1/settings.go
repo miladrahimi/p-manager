@@ -73,13 +73,6 @@ func SettingsRestartXray(coordinator *coordinator.Coordinator) echo.HandlerFunc 
 
 func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		ActiveUsersCount := len(d.Data.Users)
-		for _, u := range d.Data.Users {
-			if !u.Enabled {
-				ActiveUsersCount--
-			}
-		}
-
 		return c.JSON(http.StatusOK, struct {
 			Stats            database.Stats `json:"stats"`
 			UsersCount       int            `json:"users_count"`
@@ -90,7 +83,7 @@ func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Data
 		}{
 			Stats:            *d.Data.Stats,
 			UsersCount:       len(d.Data.Users),
-			ActiveUsersCount: ActiveUsersCount,
+			ActiveUsersCount: d.CountActiveUsers(),
 			AppName:          config.AppName,
 			AppVersion:       config.AppVersion,
 			AppLicensed:      coordinator.Licensed(),

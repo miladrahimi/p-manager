@@ -83,6 +83,16 @@ func (d *Database) Backup() {
 	}
 }
 
+func (d *Database) CountActiveUsers() int {
+	activeUsersCount := len(d.Data.Users)
+	for _, u := range d.Data.Users {
+		if !u.Enabled {
+			activeUsersCount--
+		}
+	}
+	return activeUsersCount
+}
+
 func (d *Database) GenerateUserId() int {
 	if len(d.Data.Users) > 0 {
 		return d.Data.Users[len(d.Data.Users)-1].Id + 1

@@ -8,22 +8,20 @@
     <link rel="icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
     <link rel="apple-touch-icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
     <style>
-        .link div {
-            word-break: break-all;
+        .link {
+            border: solid rgb(210, 210, 210) 1px;
+            border-radius: 0.375rem;
         }
 
         .link a {
-            border: solid rgb(210, 210, 210) 1px;
-            border-right: none;
-            border-radius: 5px 0 0 5px;
-            padding: 5px;
-            overflow: hidden;
+            overflow: scroll;
             text-decoration: none;
+            display: block;
+            padding: 5px;
         }
 
         .link input[type=button] {
-            border-radius: 0 5px 5px 0;
-            border-color: rgb(210, 210, 210) !important;
+            border: none;
         }
     </style>
 </head>
@@ -32,56 +30,51 @@
 <div class="container py-4 text-center">
     <div class="col col-md-6 col-lg-4 offset-md-3 offset-lg-4">
         <div class="text-center">
-            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid" style="max-width: 64px">
+            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid">
         </div>
 
-        <div class="card mt-5">
+        <div class="card mt-4">
             <div class="card-body text-center">
                 <div>
-                    <p>
-                        <strong id="name">Loading...</strong>
-                        <span class="badge bg-danger d-none" id="disabled-badge">Disabled</span>
-                    </p>
+                    <strong id="name">Loading...</strong>
+                    <span class="badge bg-danger d-none" id="disabled-badge">Disabled</span>
                 </div>
-                <div class="progress" role="progressbar" aria-label="Traffic used"
+                <div class="progress mt-3" role="progressbar" aria-label="Traffic used"
                      aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    <div class="progress-bar bg-success" style="width: 0" id="progressbar">0%</div>
+                    <div class="progress-bar bg-dark" style="width: 0" id="progressbar">0%</div>
                 </div>
-                <p class="text-muted small">
+                <div class="text-muted small">
                     <span id="used">0</span> / <span id="quota">0</span> GB
-                </p>
-                <div class="mt-2 pt-3 text-start">
-                    <div id="ss-relay" class="d-none">
+                </div>
+                <div class="mt-3 text-start">
+                    <div id="ss-relay" class="d-none my-1">
                         <small class="text-dark-emphasis">Shadowsocks (Relay):</small>
-                        <div class="small overflow-scroll link">
-                            <div class="d-flex my-1">
-                                <a type="text" href="#" id="ss-relay-link">---</a>
-                                <input type="button" class="btn btn-outline-secondary copy" value="Copy">
-                            </div>
+                        <div class="link small overflow-auto d-flex">
+                            <a type="text" href="#" id="ss-relay-link"
+                               class="text-nowrap align-self-center overflow-auto">---</a>
+                            <input type="button" class="copy btn btn-dark" value="Copy">
                         </div>
                     </div>
-                    <div id="ss-reverse" class="d-none">
+                    <div id="ss-reverse" class="d-none my-1">
                         <small class="text-dark-emphasis">Shadowsocks (Reverse):</small>
-                        <div class="small overflow-scroll link">
-                            <div class="d-flex my-1">
-                                <a type="text" href="#" id="ss-reverse-link">---</a>
-                                <input type="button" class="btn btn-outline-secondary copy" value="Copy">
-                            </div>
+                        <div class="link small overflow-auto d-flex">
+                            <a type="text" href="#" id="ss-reverse-link"
+                               class="text-nowrap align-self-center overflow-auto">---</a>
+                            <input type="button" class="copy btn btn-dark" value="Copy">
                         </div>
                     </div>
-                    <div id="ss-direct" class="d-none">
+                    <div id="ss-direct" class="d-none my-1">
                         <small class="text-dark-emphasis">Shadowsocks (Direct):</small>
-                        <div class="small overflow-scroll link">
-                            <div class="d-flex my-1">
-                                <a type="text" href="#" id="ss-direct-link">---</a>
-                                <input type="button" class="btn btn-outline-secondary copy" value="Copy">
-                            </div>
+                        <div class="link small overflow-auto d-flex">
+                            <a type="text" href="#" id="ss-direct-link"
+                               class="text-nowrap align-self-center overflow-auto">---</a>
+                            <input type="button" class="copy btn btn-dark" value="Copy">
                         </div>
                     </div>
-                    <div class="mt-3 text-center text-secondary">
-                        <small>Registered @</small>
-                        <small id="created_at">-</small>
-                    </div>
+                </div>
+                <div class="mt-3 text-center text-secondary">
+                    <small>Registered @</small>
+                    <small id="created_at">-</small>
                 </div>
                 <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="reset">RESET LINK</button>
             </div>
@@ -128,18 +121,15 @@
                     $("#quota").html(r['user']['quota'])
                     let percent = Math.floor(r['user']['used'] / r['user']['quota'] * 100)
                     progressBar.css("width", String(percent) + "%").html(String(percent) + "%")
-                    progressBar.removeClass('bg-success').removeClass('bg-warning').removeClass('bg-danger')
-                    if (percent < 60) {
-                        progressBar.addClass('bg-success')
-                    } else if (percent < 90) {
-                        progressBar.addClass('bg-warning')
-                    } else {
-                        progressBar.addClass('bg-danger')
+                    if (percent > 90) {
+                        progressBar.removeClass('bg-dark').addClass('bg-danger')
+                    } else if (percent > 60) {
+                        progressBar.removeClass('bg-dark').addClass('bg-warning')
                     }
                 } else {
                     $("#quota").html('Unlimited')
                     progressBar.css("width", "100%").html("0%")
-                    progressBar.removeClass('bg-success').removeClass('bg-warning').removeClass('bg-danger')
+                    progressBar.removeClass('bg-warning').removeClass('bg-danger')
                 }
             },
             error: function (response) {
@@ -163,9 +153,9 @@
             document.execCommand('copy')
             document.body.removeChild(ta)
 
-            me.removeClass('btn-outline-secondary').addClass('btn-success')
+            me.removeClass('btn-dark').addClass('btn-success')
             setTimeout(function () {
-                me.removeClass('btn-success').addClass('btn-outline-secondary').blur()
+                me.removeClass('btn-success').addClass('btn-dark').blur()
             }, 1000)
         })
 

@@ -64,6 +64,7 @@ func (d *Database) Save() {
 
 	content, err := json.Marshal(d.Data)
 	if err != nil {
+		d.log.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = os.WriteFile(Path, content, 0755); err != nil {
@@ -81,6 +82,16 @@ func (d *Database) Backup() {
 	if err = os.WriteFile(path, content, 0755); err != nil {
 		d.log.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(err))
 	}
+}
+
+func (d *Database) CountActiveUsers() int {
+	activeUsersCount := len(d.Data.Users)
+	for _, u := range d.Data.Users {
+		if !u.Enabled {
+			activeUsersCount--
+		}
+	}
+	return activeUsersCount
 }
 
 func (d *Database) GenerateUserId() int {

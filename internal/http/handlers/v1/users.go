@@ -45,9 +45,19 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 			})
 		}
 
-		if len(d.Data.Users) >= config.LimitedUsersCount && !coordinator.Licensed() {
+		if len(d.Data.Users) >= config.MaxUsersCount {
 			return c.JSON(http.StatusForbidden, map[string]string{
-				"message": "You cannot add more users without premium license.",
+				"message": "You have already reached the maximum number of users.",
+			})
+		}
+		if d.CountActiveUsers() >= config.MaxActiveUsersCount && request.Enabled {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"message": "You have already reached the maximum number of active users.",
+			})
+		}
+		if len(d.Data.Users) >= config.FreeUsersCount && !coordinator.Licensed() {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"message": "You cannot add more users without license.",
 			})
 		}
 
@@ -91,6 +101,12 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 		if err := validator.New().Struct(request); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
+			})
+		}
+
+		if d.CountActiveUsers() >= config.MaxActiveUsersCount && request.Enabled {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"message": "You have already reached the maximum number of active users.",
 			})
 		}
 

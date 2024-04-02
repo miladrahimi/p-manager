@@ -15,10 +15,10 @@
 <div class="container py-4 text-center">
     <div class="col">
         <div class="text-center">
-            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid" style="max-width: 64px">
+            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid">
         </div>
 
-        <ul class="nav nav-tabs mb-3 mt-2 small">
+        <ul class="nav nav-tabs small">
             <li class="nav-item">
                 <a class="nav-link px-2" href="admin-users.html">Users</a>
             </li>
@@ -35,44 +35,59 @@
 
         <div id="table"></div>
 
-        <div class="card bg-light-subtle mt-3 text-start">
-            <div class="card-header">Stats</div>
+        <div class="card bg-light-subtle text-start">
             <div class="card-body">
-                <div class="my-1">
-                    <span>Total traffic:</span>
-                    <span id="stats-traffic" class="text-muted"></span>
-                    <span class="text-muted">GB</span>
-                    <span class="badge bg-dark-subtle" id="stats-updated-at"></span>
-                </div>
-                <div class="my-1">
-                    <span>Total users:</span>
-                    <span id="stats-users-count" class="text-muted"></span>
-                </div>
-                <div class="my-1">
-                    <span>Total active users:</span>
-                    <span id="stats-active-users-count" class="text-muted"></span>
-                </div>
-                <hr>
-                <div class="my-1">
-                    <span>App Version:</span>
-                    <span id="stats-version" class="text-muted"></span>
-                </div>
-                <div class="my-1">
-                    <span>App License:</span>
-                    <span id="stats-license" class="text-muted"></span>
+                <div class="row">
+                    <div class="col col-12 col-md-6">
+                        <div class="my-1">
+                            <span>Total traffic:</span>
+                            <span id="insights-stats-traffic" class="text-muted"></span>
+                            <span class="text-muted">GB</span>
+                        </div>
+                        <div class="my-1">
+                            <span>Last update:</span>
+                            <span id="insights-stats-updated-at" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Total Users:</span>
+                            <span id="insights-users-count" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Active users:</span>
+                            <span id="insights-active-users-count" class="text-muted"></span>
+                        </div>
+                    </div>
+                    <div class="col col-12 col-md-6">
+                        <div class="my-1">
+                            <span>App Name:</span>
+                            <span id="insights-app-name" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>App Version:</span>
+                            <span id="insights-app-version" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>App License:</span>
+                            <span id="insights-app-license" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Core:</span>
+                            <span id="insights-core" class="text-muted"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="card mt-3 text-start bg-danger-subtle">
+        <div class="card text-start bg-danger-subtle mt-3">
             <div class="card-header">DANGER ZONE</div>
             <div class="card-body">
-                <div class="d-flex flex-column mt-1">
-                    <button class="btn btn-dark btn-sm my-1" id="xray-restart">RESTART XRAY</button>
-                    <button class="btn btn-secondary btn-sm my-1" id="stats-zero">ZERO STATS</button>
-                    <button class="btn btn-secondary btn-sm my-1" id="servers-zero">ZERO SERVERS</button>
-                    <button class="btn btn-secondary btn-sm my-1" id="users-zero">ZERO USERS</button>
-                    <button class="btn btn-secondary btn-sm my-1" id="users-delete">DELETE USERS</button>
+                <div class="d-flex flex-column flex-md-row mt-1">
+                    <button class="btn btn-dark btn-sm m-1 flex-fill" id="xray-restart">RESTART XRAY</button>
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="stats-zero">ZERO STATS</button>
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="servers-zero">ZERO SERVERS</button>
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="users-zero">ZERO USERS</button>
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="users-delete">DELETE USERS</button>
                 </div>
             </div>
         </div>
@@ -214,12 +229,14 @@
     $.ajax({
         dataType: "json",
         success: function (response) {
-            $("#stats-traffic").html(parseFloat(response['traffic']).toFixed(2))
-            $("#stats-updated-at").html(ts2string(response['updated_at']))
-            $("#stats-users-count").html(response['users_count'])
-            $("#stats-active-users-count").html(response['active_users_count'])
-            $("#stats-version").html(response['version'])
-            $("#stats-license").html(response['licensed'] ? 'Premium' : 'Free')
+            $("#insights-stats-traffic").html(parseFloat(response['stats']['traffic']).toFixed(2))
+            $("#insights-stats-updated-at").html(ts2string(response['stats']['updated_at']))
+            $("#insights-users-count").html(response['users_count'])
+            $("#insights-active-users-count").html(response['active_users_count'])
+            $("#insights-app-name").html(response['app_name'])
+            $("#insights-app-version").html(response['app_version'])
+            $("#insights-app-license").html(response['app_licensed'] ? 'Premium' : 'Free')
+            $("#insights-core").html(response['core'])
         },
         error: function (response) {
             console.log(response)
@@ -227,7 +244,7 @@
         },
         processData: true,
         type: "GET",
-        url: "/v1/settings/stats"
+        url: "/v1/settings/insights"
     });
 
     $('#xray-restart').click(function () {

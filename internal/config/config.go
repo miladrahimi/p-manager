@@ -11,11 +11,15 @@ import (
 const MainPath = "configs/main.json"
 const LocalPath = "configs/main.local.json"
 const AppName = "P-Manager"
-const AppVersion = "v1.2.3"
+const AppVersion = "v1.4.0"
+const CoreDetails = "Xray v1.8.8"
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
 
-const LimitedUsersCount = 15
+const FreeUsersCount = 16
+const MaxUsersCount = 256
+const MaxActiveUsersCount = 128
+
 const LicensePath = "storage/app/license.txt"
 const EnigmaKeyPath = "assets/ed25519_public_key.txt"
 const XrayConfigPath = "storage/app/xray.json"

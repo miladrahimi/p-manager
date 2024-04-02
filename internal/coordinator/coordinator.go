@@ -273,7 +273,7 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 		echo.HeaderContentType:   echo.MIMEApplicationJSON,
 		echo.HeaderAuthorization: fmt.Sprintf("Bearer %s", s.HttpToken),
 		"X-App-Name":             config.AppName,
-		"X-App-Version":          config.AppVersion,
+		"X-App-AppVersion":       config.AppVersion,
 	})
 	if err != nil {
 		c.l.Error("coordinator: cannot update remote configs", zap.Error(err))
@@ -337,7 +337,7 @@ func (c *Coordinator) validateLicense() {
 	headers := map[string]string{
 		echo.HeaderContentType: echo.MIMEApplicationJSON,
 		"X-App-Name":           config.AppName,
-		"X-App-Version":        config.AppVersion,
+		"X-App-AppVersion":     config.AppVersion,
 	}
 	if r, err := c.fetcher.Do(http.MethodPost, url, body, headers); err != nil {
 		c.l.Warn("coordinator: remote license failed", zap.Error(err))

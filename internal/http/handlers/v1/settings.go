@@ -7,6 +7,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/pkg/utils"
 	"net/http"
 	"time"
 )
@@ -19,24 +20,47 @@ func SettingsShow(d *database.Database) echo.HandlerFunc {
 
 func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var settings database.Settings
-		if err := c.Bind(&settings); err != nil {
+		var s database.Settings
+		if err := c.Bind(&s); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Cannot parse the request body.",
 			})
 		}
-		if err := validator.New().Struct(settings); err != nil {
+		if err := validator.New().Struct(s); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
 			})
 		}
 
-		d.Data.Settings = &settings
+		if !utils.PortsUnique([]int{s.SsRelayPort, s.SsReversePort, s.SsDirectPort}) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Proxy ports must be the unique.",
+			})
+		}
+
+		ds := d.Data.Settings
+		if s.SsRelayPort > 0 && s.SsRelayPort != ds.SsRelayPort && !utils.PortFree(s.SsRelayPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Port %d is already in use.", s.SsRelayPort),
+			})
+		}
+		if s.SsReversePort > 0 && s.SsReversePort != ds.SsReversePort && !utils.PortFree(s.SsReversePort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Port %d is already in use.", s.SsReversePort),
+			})
+		}
+		if s.SsDirectPort > 0 && s.SsDirectPort != ds.SsDirectPort && !utils.PortFree(s.SsDirectPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Port %d is already in use.", s.SsDirectPort),
+			})
+		}
+
+		d.Data.Settings = &s
 		d.Save()
 
 		go coordinator.SyncConfigs()
 
-		return c.JSON(http.StatusOK, settings)
+		return c.JSON(http.StatusOK, s)
 	}
 }
 
@@ -47,27 +71,24 @@ func SettingsRestartXray(coordinator *coordinator.Coordinator) echo.HandlerFunc 
 	}
 }
 
-func SettingsStatsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		UsersCount := len(d.Data.Users)
-		ActiveUsersCount := UsersCount
-		for _, u := range d.Data.Users {
-			if !u.Enabled {
-				ActiveUsersCount--
-			}
-		}
 		return c.JSON(http.StatusOK, struct {
-			*database.Stats
-			UsersCount       int    `json:"users_count"`
-			ActiveUsersCount int    `json:"active_users_count"`
-			Version          string `json:"version"`
-			Licensed         bool   `json:"licensed"`
+			Stats            database.Stats `json:"stats"`
+			UsersCount       int            `json:"users_count"`
+			ActiveUsersCount int            `json:"active_users_count"`
+			AppName          string         `json:"app_name"`
+			AppVersion       string         `json:"app_version"`
+			AppLicensed      bool           `json:"app_licensed"`
+			Core             string         `json:"core"`
 		}{
-			Stats:            d.Data.Stats,
-			UsersCount:       UsersCount,
-			ActiveUsersCount: ActiveUsersCount,
-			Version:          config.AppVersion,
-			Licensed:         coordinator.Licensed(),
+			Stats:            *d.Data.Stats,
+			UsersCount:       len(d.Data.Users),
+			ActiveUsersCount: d.CountActiveUsers(),
+			AppName:          config.AppName,
+			AppVersion:       config.AppVersion,
+			AppLicensed:      coordinator.Licensed(),
+			Core:             config.CoreDetails,
 		})
 	}
 }

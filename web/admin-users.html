@@ -15,10 +15,10 @@
 <div class="container py-4 text-center">
     <div class="col">
         <div class="text-center">
-            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid" style="max-width: 64px">
+            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid">
         </div>
 
-        <ul class="nav nav-tabs mb-3 mt-2 small">
+        <ul class="nav nav-tabs small">
             <li class="nav-item">
                 <span class="nav-link px-2 active" aria-current="page">Users</span>
             </li>
@@ -35,7 +35,7 @@
 
         <div id="table" class="celled striped very compact"></div>
 
-        <div class="btn btn-dark btn-sm d-block mt-1" id="create">+ New User</div>
+        <div class="btn btn-dark btn-sm d-block" id="create">+ New User</div>
     </div>
 </div>
 
@@ -199,17 +199,14 @@
             error: function (response) {
                 console.log(response)
                 checkAuth(response)
-                if (response.status === 400) {
+                if (response.status === 400 || response.status === 403) {
                     table.alert(response["responseJSON"]["message"], "error");
-                } else if (response.status === 403) {
-                    table.alert(response["responseJSON"]["message"], "error");
-                    alert(response["responseJSON"]["message"])
                 } else {
                     table.alert("Cannot save the item.", "error");
                 }
                 setTimeout(function () {
                     table.clearAlert()
-                }, 2000)
+                }, 3000)
             },
             processData: true,
             type: cell.getData().id === 0 ? "POST" : "PUT",

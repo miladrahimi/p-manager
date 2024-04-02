@@ -61,7 +61,7 @@ func (s *Server) Run() {
 
 	g2.GET("/settings", v1.SettingsShow(s.database))
 	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))
-	g2.GET("/settings/stats", v1.SettingsStatsShow(s.coordinator, s.database))
+	g2.GET("/settings/insights", v1.SettingsInsightsShow(s.coordinator, s.database))
 	g2.POST("/settings/stats/zero", v1.SettingsStatsZero(s.database))
 	g2.POST("/settings/servers/zero", v1.SettingsServersZero(s.database))
 	g2.POST("/settings/users/zero", v1.SettingsUsersZero(s.coordinator, s.database))

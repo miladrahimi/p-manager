@@ -151,6 +151,7 @@ func UsersZero(coordinator *coordinator.Coordinator, d *database.Database) echo.
 		for _, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				u.Used = 0
+				u.UsedBytes = 0
 				u.Enabled = true
 				d.Save()
 				go coordinator.SyncConfigs()

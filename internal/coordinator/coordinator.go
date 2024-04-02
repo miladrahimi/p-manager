@@ -286,14 +286,15 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 func (c *Coordinator) SyncStats() {
 	c.l.Info("coordinator: syncing stats...")
 
+	queryStats := c.xray.QueryStats()
+
 	c.database.Locker.Lock()
 	defer c.database.Locker.Unlock()
 
 	servers := map[string]int64{}
 	users := map[string]int64{}
 
-	sts := c.xray.QueryStats()
-	for _, qs := range sts {
+	for _, qs := range queryStats {
 		parts := strings.Split(qs.GetName(), ">>>")
 		if parts[0] == "user" {
 			users[parts[1]] += qs.GetValue()

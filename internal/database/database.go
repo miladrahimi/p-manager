@@ -27,11 +27,14 @@ type Data struct {
 
 type Database struct {
 	Data   *Data
-	locker *sync.Mutex
-	log    *logger.Logger
+	Locker *sync.Mutex
+	l      *logger.Logger
 }
 
 func (d *Database) Init() {
+	d.Locker.Lock()
+	defer d.Locker.Unlock()
+
 	if !utils.FileExist(Path) {
 		d.Save()
 	} else {
@@ -40,47 +43,44 @@ func (d *Database) Init() {
 }
 
 func (d *Database) Load() {
-	d.locker.Lock()
-	defer d.locker.Unlock()
-
 	content, err := os.ReadFile(Path)
 	if err != nil {
-		d.log.Fatal("database: cannot read file", zap.Error(errors.WithStack(err)))
+		d.l.Fatal("database: cannot read file", zap.Error(errors.WithStack(err)))
 	}
 
 	err = json.Unmarshal(content, d.Data)
 	if err != nil {
-		d.log.Fatal("database: cannot unmarshal data", zap.Error(errors.WithStack(err)))
+		d.l.Fatal("database: cannot unmarshal data", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = validator.New().Struct(d); err != nil {
-		d.log.Fatal("database: cannot validate data", zap.Error(errors.WithStack(err)))
+		d.l.Fatal("database: cannot validate data", zap.Error(errors.WithStack(err)))
 	}
 }
 
 func (d *Database) Save() {
-	d.locker.Lock()
-	defer d.locker.Unlock()
-
 	content, err := json.Marshal(d.Data)
 	if err != nil {
-		d.log.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
+		d.l.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = os.WriteFile(Path, content, 0755); err != nil {
-		d.log.Fatal("database: cannot save data", zap.Error(errors.WithStack(err)))
+		d.l.Fatal("database: cannot save data", zap.Error(errors.WithStack(err)))
 	}
 }
 
 func (d *Database) Backup() {
+	d.Locker.Lock()
+	defer d.Locker.Unlock()
+
 	content, err := json.Marshal(d.Data)
 	if err != nil {
-		d.log.Error("database: cannot marshal data", zap.Error(err))
+		d.l.Error("database: cannot marshal data", zap.Error(err))
 	}
 
 	path := strings.ToLower(fmt.Sprintf(BackupPath, time.Now().Format("Mon-15")))
 	if err = os.WriteFile(path, content, 0755); err != nil {
-		d.log.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(err))
+		d.l.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(err))
 	}
 }
 
@@ -132,8 +132,8 @@ func (d *Database) GenerateServerId() int {
 
 func New(l *logger.Logger) *Database {
 	return &Database{
-		locker: &sync.Mutex{},
-		log:    l,
+		Locker: &sync.Mutex{},
+		l:      l,
 		Data: &Data{
 			Settings: &Settings{
 				AdminPassword: "password",

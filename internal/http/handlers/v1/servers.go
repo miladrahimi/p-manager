@@ -41,6 +41,9 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		if len(d.Data.Servers) > 5 {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": fmt.Sprintf("Cannot add more servers!"),
@@ -78,6 +81,9 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 			})
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		var server *database.Server
 		for _, s := range d.Data.Servers {
 			if s.Id == r.Id {
@@ -109,11 +115,15 @@ func ServersDelete(coordinator *coordinator.Coordinator, d *database.Database) e
 			})
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		for i, s := range d.Data.Servers {
 			if s.Id == id {
 				d.Data.Servers = append(d.Data.Servers[:i], d.Data.Servers[i+1:]...)
 				d.Save()
 				go coordinator.SyncConfigs()
+				break
 			}
 		}
 

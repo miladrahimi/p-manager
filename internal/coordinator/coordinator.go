@@ -286,6 +286,9 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 func (c *Coordinator) SyncStats() {
 	c.l.Info("coordinator: syncing stats...")
 
+	c.database.Locker.Lock()
+	defer c.database.Locker.Unlock()
+
 	servers := map[string]int64{}
 	users := map[string]int64{}
 

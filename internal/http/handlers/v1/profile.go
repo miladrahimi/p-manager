@@ -55,6 +55,9 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 
 func ProfileReset(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		var user *database.User
 		for _, u := range d.Data.Users {
 			if u.Identity == c.QueryParam("u") {

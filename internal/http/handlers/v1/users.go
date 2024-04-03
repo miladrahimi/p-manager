@@ -45,6 +45,9 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 			})
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		if len(d.Data.Users) >= config.MaxUsersCount {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": "You have already reached the maximum number of users.",
@@ -104,6 +107,9 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 			})
 		}
 
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		if d.CountActiveUsers() >= config.MaxActiveUsersCount && request.Enabled {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": "You have already reached the maximum number of active users.",
@@ -139,28 +145,38 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 
 func UsersZero(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		for _, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				u.Used = 0
+				u.UsedBytes = 0
 				u.Enabled = true
 				d.Save()
 				go coordinator.SyncConfigs()
 				return c.NoContent(http.StatusNoContent)
 			}
 		}
+
 		return c.NoContent(http.StatusNotFound)
 	}
 }
 
 func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
 		for i, u := range d.Data.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				d.Data.Users = slices.Delete(d.Data.Users, i, i+1)
 				d.Save()
 				go coordinator.SyncConfigs()
+				break
 			}
 		}
+
 		return c.NoContent(http.StatusNoContent)
 	}
 }

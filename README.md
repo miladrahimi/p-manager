@@ -45,7 +45,7 @@ Access the admin panel at the default port `8080`.
 * Users: Manage users and view their public profiles
 * Servers: Manage [P-Nodes](https://github.com/miladrahimi/p-node)
 * Settings: Modify the general settings
-* Exit: Sign out of the web panel
+* Exit: Sign out of the admin panel
 
 ### Configuration
 

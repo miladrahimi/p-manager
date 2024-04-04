@@ -31,15 +31,17 @@ make setup
 docker compose up -d
 ```
 
-### Web Panel
+### Admin Panel
 
-Access the web panel at the default port `8080`.
+Access the admin panel at the default port `8080`.
 
-Default credentials to sign in:
+#### Default credentials
+
 * Username: `admin`
 * Password: `password`
 
-Web panel tabs:
+#### Tabs
+
 * Users: Manage users and view their public profiles
 * Servers: Manage [P-Nodes](https://github.com/miladrahimi/p-node)
 * Settings: Modify the general settings

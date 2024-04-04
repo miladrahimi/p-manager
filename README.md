@@ -40,10 +40,10 @@ Default credentials to sign in:
 * Password: `password`
 
 Web panel tabs:
-* In the `Users` tab, you can manage users and view their public profiles.
-* In the `Servers` tab, you can add any number of [P-Nodes](https://github.com/miladrahimi/p-node).
-* In the `Settings` tab, you can modify the general settings.
-* In the `Exit` tab, you can sign out of the web panel.
+* Users: Manage users and view their public profiles
+* Servers: Manage [P-Nodes](https://github.com/miladrahimi/p-node)
+* Settings: Modify the general settings
+* Exit: Sign out of the web panel
 
 ### Configuration
 

@@ -34,29 +34,38 @@ docker compose up -d
 ### Web Panel
 
 Access the web panel at the default port `8080`.
-Sign in using the username `admin` and password `password`.
+
+Default credential:
+* Username: `admin`
+* Password: `password`
+
+Web panel menu:
 * In the `Users` tab, you can manage users and view their public profiles.
 * In the `Servers` tab, you can add any number of [P-Nodes](https://github.com/miladrahimi/p-node).
 * In the `Settings` tab, you can modify the general settings.
 
 ### Configuration
 
+You can customize the web panel port and additional settings by modifying the local configuration file found at:
+
 ```shell
-# Modify web panel port and other configurations.
-# It requires `docker compose restart` to apply changes.
 configs/main.local.json
 ```
 
+It requires `docker compose restart` to apply changes.
+
 ### Update
 
+Automatic updates are set up through cron jobs by default.
+For earlier updates, run the command below:
+
 ``` shell
-# Execute this each time a new version is released
 make update
 ```
 
 ### Requirements
 
- * Operating system: Linux (Debian or Ubuntu)
+ * Operating systems: Debian or Ubuntu
  * RAM: 1 GB or more
  * CPU: 1 Core or more
 

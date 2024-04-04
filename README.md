@@ -35,14 +35,15 @@ docker compose up -d
 
 Access the web panel at the default port `8080`.
 
-Default credential:
+Default credentials to sign in:
 * Username: `admin`
 * Password: `password`
 
-Web panel menu:
+Web panel tabs:
 * In the `Users` tab, you can manage users and view their public profiles.
 * In the `Servers` tab, you can add any number of [P-Nodes](https://github.com/miladrahimi/p-node).
 * In the `Settings` tab, you can modify the general settings.
+* In the `Exit` tab, you can sign out of the web panel.
 
 ### Configuration
 

@@ -1,8 +1,10 @@
 package coordinator
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/database"
@@ -27,7 +29,8 @@ type Coordinator struct {
 	fetcher  *fetcher.Fetcher
 	xray     *xray.Xray
 	enigma   *enigma.Enigma
-	licensed bool
+	state    *State
+	context  context.Context
 }
 
 func (c *Coordinator) Run() {
@@ -35,23 +38,16 @@ func (c *Coordinator) Run() {
 
 	c.SyncConfigs()
 
-	statsWorker := time.NewTicker(time.Duration(c.config.Worker.Interval) * time.Second)
-	go func() {
-		for {
-			<-statsWorker.C
-			c.l.Info("coordinator: working...")
-			c.SyncStats()
-		}
-	}()
+	go newWorker(c.context, time.Duration(c.config.Worker.Interval)*time.Second, func() {
+		c.l.Info("coordinator: running stats worker...")
+		c.SyncStats()
+		c.syncRemoteNodes(false)
+	}).Start()
 
-	backupWorker := time.NewTicker(time.Hour)
-	go func() {
-		for {
-			<-backupWorker.C
-			c.l.Info("coordinator: backing up...")
-			c.database.Backup()
-		}
-	}()
+	go newWorker(c.context, time.Hour, func() {
+		c.l.Info("coordinator: running database backup worker...")
+		c.database.Backup()
+	}).Start()
 
 	go c.validateLicense()
 }
@@ -74,7 +70,7 @@ func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
 func (c *Coordinator) SyncConfigs() {
 	c.l.Info("coordinator: syncing configs...")
 	c.syncLocalConfigs()
-	c.syncRemoteConfigs()
+	c.syncRemoteNodes(true)
 }
 
 func (c *Coordinator) syncLocalConfigs() {
@@ -207,10 +203,14 @@ func (c *Coordinator) syncLocalConfigs() {
 	c.xray.Restart()
 }
 
-func (c *Coordinator) syncRemoteConfigs() {
-	c.l.Info("coordinator: syncing remote configs...")
+func (c *Coordinator) syncRemoteNodes(reconfigure bool) {
+	c.l.Info("coordinator: syncing remote nodes...", zap.Bool("reconfigure", reconfigure))
 
 	for _, s := range c.database.Data.Servers {
+		if s.Status == database.ServerStatusAvailable && !reconfigure {
+			continue
+		}
+
 		xc := xray.NewConfig()
 
 		if c.database.Data.Settings.SsRelayPort > 0 {
@@ -261,13 +261,13 @@ func (c *Coordinator) syncRemoteConfigs() {
 			)
 		}
 
-		go c.updateRemoteConfigs(s, xc)
+		go c.updateRemoteNode(s, xc)
 	}
 }
 
-func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
+func (c *Coordinator) updateRemoteNode(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
-	c.l.Info("coordinator: updating remote configs...", zap.String("url", url))
+	c.l.Info("coordinator: updating remote node...", zap.String("url", url))
 
 	_, err := c.fetcher.Do(http.MethodPost, url, xc, map[string]string{
 		echo.HeaderContentType:   echo.MIMEApplicationJSON,
@@ -276,10 +276,11 @@ func (c *Coordinator) updateRemoteConfigs(s *database.Server, xc *xray.Config) {
 		"X-App-AppVersion":       config.AppVersion,
 	})
 	if err != nil {
-		c.l.Error("coordinator: cannot update remote configs", zap.Error(err))
+		c.l.Error("coordinator: cannot update remote node", zap.Error(err), zap.String("url", url))
 		s.Status = database.ServerStatusUnavailable
 	} else {
 		s.Status = database.ServerStatusAvailable
+		c.l.Debug("coordinator: node updated successfully", zap.String("url", url))
 	}
 }
 
@@ -344,50 +345,56 @@ func (c *Coordinator) validateLicense() {
 		"X-App-Version":        config.AppVersion,
 	}
 	if r, err := c.fetcher.Do(http.MethodPost, url, body, headers); err != nil {
-		c.l.Warn("coordinator: remote license failed", zap.Error(err))
+		c.l.Info("coordinator: cannot fetch license", zap.Error(errors.WithStack(err)))
 	} else {
 		var response map[string]string
 		if err = json.Unmarshal(r, &response); err != nil {
-			c.l.Warn("coordinator: cannot unmarshall license response", zap.Error(err))
+			c.l.Error("coordinator: cannot unmarshall license response", zap.Error(errors.WithStack(err)))
 		}
 		if license, found := response["license"]; found {
 			if err = os.WriteFile(config.LicensePath, []byte(license), 0755); err != nil {
-				c.l.Warn("coordinator: cannot write license file", zap.Error(err))
+				c.l.Error("coordinator: cannot write license file", zap.Error(errors.WithStack(err)))
 			}
 		} else {
-			c.l.Warn("coordinator: no remote license found")
+			c.l.Debug("coordinator: license is not issued")
 		}
 	}
 
 	if !utils.FileExist(config.LicensePath) {
-		c.licensed = false
 		c.l.Info("coordinator: no license file found")
 	} else {
-		if err := c.enigma.Init(); err != nil {
-			c.l.Warn("coordinator: cannot init enigma", zap.Error(err))
-		}
 		licenseFile, err := os.ReadFile(config.LicensePath)
 		if err != nil {
-			c.l.Warn("coordinator: cannot open license file", zap.Error(err))
+			c.l.Error("coordinator: cannot load license file", zap.Error(err))
 		} else {
 			key := fmt.Sprintf("%s:%d", c.database.Data.Settings.Host, c.config.HttpServer.Port)
-			c.licensed = c.enigma.Verify(key, string(licenseFile))
-			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.licensed))
+			c.state.licensed = c.enigma.Verify(key, string(licenseFile))
+			c.l.Info("coordinator: license file checked", zap.Bool("valid", c.state.licensed))
 		}
 	}
 }
 
 func (c *Coordinator) Licensed() bool {
-	return c.licensed
+	return c.state.licensed
 }
 
 func New(
 	c *config.Config,
+	t context.Context,
 	f *fetcher.Fetcher,
 	l *logger.Logger,
 	d *database.Database,
 	x *xray.Xray,
 	e *enigma.Enigma,
 ) *Coordinator {
-	return &Coordinator{config: c, l: l, database: d, xray: x, fetcher: f, enigma: e}
+	return &Coordinator{
+		config:   c,
+		context:  t,
+		l:        l,
+		database: d,
+		xray:     x,
+		fetcher:  f,
+		enigma:   e,
+		state:    newState(),
+	}
 }

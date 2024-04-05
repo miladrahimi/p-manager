@@ -1,8 +1,8 @@
 package logger
 
 import (
-	"errors"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"syscall"
@@ -75,7 +75,7 @@ func (l *Logger) With(fields ...zap.Field) *zap.Logger {
 
 func (l *Logger) Shutdown() {
 	if err := l.engine.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) {
-		l.engine.Error("logger: failed to close", zap.Error(err))
+		l.engine.Error("logger: failed to close", zap.Error(errors.WithStack(err)))
 	} else {
 		l.engine.Info("logger: closed successfully")
 	}

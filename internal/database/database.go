@@ -75,12 +75,12 @@ func (d *Database) Backup() {
 
 	content, err := json.Marshal(d.Data)
 	if err != nil {
-		d.l.Error("database: cannot marshal data", zap.Error(err))
+		d.l.Error("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
 
 	path := strings.ToLower(fmt.Sprintf(BackupPath, time.Now().Format("Mon-15")))
 	if err = os.WriteFile(path, content, 0755); err != nil {
-		d.l.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(err))
+		d.l.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(errors.WithStack(err)))
 	}
 }
 

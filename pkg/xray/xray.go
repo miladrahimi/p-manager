@@ -147,7 +147,7 @@ func (x *Xray) connect() {
 		x.l.Fatal("xray: cannot find api inbound")
 	}
 
-	c, cancel := context.WithTimeout(x.context, 20*time.Second)
+	c, cancel := context.WithTimeout(x.context, 10*time.Second)
 	defer cancel()
 
 	address := "127.0.0.1:" + strconv.Itoa(inbound.Port)
@@ -164,7 +164,6 @@ func (x *Xray) connect() {
 			if err != nil {
 				x.l.Debug("xray: trying to connect to grpc")
 			} else {
-				c.Done()
 				x.l.Debug("xray: connected to api successfully")
 				return
 			}

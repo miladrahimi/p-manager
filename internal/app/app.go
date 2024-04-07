@@ -19,6 +19,7 @@ import (
 
 type App struct {
 	context     context.Context
+	cancel      context.CancelFunc
 	shutdown    chan struct{}
 	Config      *config.Config
 	Logger      *logger.Logger
@@ -32,6 +33,7 @@ type App struct {
 
 func New() (a *App, err error) {
 	a = &App{}
+	a.context, a.cancel = context.WithCancel(context.Background())
 	a.shutdown = make(chan struct{})
 
 	a.Config = config.New()
@@ -43,13 +45,13 @@ func New() (a *App, err error) {
 		return nil, errors.WithStack(err)
 	}
 
-	a.Logger.Info("app: logger and Config initialized successfully")
+	a.Logger.Info("app: logger and config initialized successfully")
 
 	a.Database = database.New(a.Logger)
-	a.Xray = xray.New(a.Logger, config.XrayConfigPath, a.Config.XrayBinaryPath())
+	a.Xray = xray.New(a.context, a.Logger, config.XrayConfigPath, a.Config.XrayBinaryPath())
 	a.Enigma = enigma.New(config.EnigmaKeyPath)
 	a.Fetcher = fetcher.New(a.Config.HttpClient.Timeout)
-	a.Coordinator = coordinator.New(a.Config, a.Fetcher, a.Logger, a.Database, a.Xray, a.Enigma)
+	a.Coordinator = coordinator.New(a.Config, a.context, a.Fetcher, a.Logger, a.Database, a.Xray, a.Enigma)
 	a.HttpServer = server.New(a.Config, a.Logger, a.Coordinator, a.Database, a.Enigma)
 
 	a.Logger.Info("app: modules initialized successfully")
@@ -69,20 +71,17 @@ func (a *App) Init() error {
 }
 
 func (a *App) setupSignalListener() {
-	var cancel context.CancelFunc
-	a.context, cancel = context.WithCancel(context.Background())
-
 	go func() {
 		signalChannel := make(chan os.Signal, 2)
 		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 		s := <-signalChannel
-		a.Logger.Info("app: system call", zap.String("signal", s.String()))
-		cancel()
+		a.Logger.Info("app: signal received", zap.String("signal", s.String()))
+		a.cancel()
 	}()
 
 	go func() {
 		<-a.shutdown
-		cancel()
+		a.cancel()
 	}()
 }
 

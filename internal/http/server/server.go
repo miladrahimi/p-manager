@@ -2,8 +2,8 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/miladrahimi/p-manager/internal/config"
@@ -71,7 +71,7 @@ func (s *Server) Run() {
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)
 		if err := s.engine.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.l.Fatal("http server: failed to start", zap.String("address", address), zap.Error(err))
+			s.l.Fatal("http server: failed to start", zap.String("address", address), zap.Error(errors.WithStack(err)))
 		}
 	}()
 }
@@ -82,7 +82,7 @@ func (s *Server) Shutdown() {
 	defer cancel()
 
 	if err := s.engine.Shutdown(c); err != nil {
-		s.l.Error("http server: failed to close", zap.Error(err))
+		s.l.Error("http server: failed to close", zap.Error(errors.WithStack(err)))
 	} else {
 		s.l.Info("http server: closed successfully")
 	}

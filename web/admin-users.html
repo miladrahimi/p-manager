@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>P-Manager</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator_semanticui.min.css">
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator_semanticui.min.css">
     <link rel="icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
     <link rel="apple-touch-icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
 </head>
@@ -39,9 +39,9 @@
     </div>
 </div>
 
-<script src="assets/third_party/jquery-3.6.3.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.2/js/bootstrap.min.js"></script>
-<script src="assets/third_party/tabulator-5.5.2/dist/js/tabulator.min.js"></script>
+<script src="assets/third_party/jquery-3.7.1.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+<script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     let find = function (rowIndex, field) {
@@ -49,6 +49,11 @@
     }
 
     let destroy = function (rowIndex) {
+        let confirmed = confirm("Press 'OK' to delete the user.");
+        if (!confirmed) {
+            return
+        }
+
         table.alert("Deleting the user...", "msg");
         table.getRow(rowIndex).getElement().classList.add("negative");
 
@@ -63,7 +68,7 @@
             },
             error: function (response) {
                 console.log(response)
-                checkAuth(response)
+                handleAuthError(response)
                 if (response.status === 400) {
                     table.alert(response["responseJSON"]["message"], "error");
                 } else {
@@ -80,6 +85,11 @@
     }
 
     let zero = function (rowIndex) {
+        let confirmed = confirm("Press 'OK' to reset the user's used traffic to zero.");
+        if (!confirmed) {
+            return
+        }
+
         table.alert("Zeroing the user...", "msg");
 
         $.ajax({
@@ -93,7 +103,7 @@
             },
             error: function (response) {
                 console.log(response)
-                checkAuth(response)
+                handleAuthError(response)
                 if (response.status === 400) {
                     table.alert(response["responseJSON"]["message"], "error");
                 } else {
@@ -116,8 +126,8 @@
     let actionsFormatter = function (cell) {
         return [
             `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`,
-            `<span class="badge bg-secondary" onclick="zero('${cell.getRow().getIndex()}')" title="Zero">0</span>`,
-            `<span class="badge bg-primary" onclick="profile('${cell.getRow().getIndex()}')" title="Profile">P</span>`,
+            `<span class="badge bg-success" onclick="zero('${cell.getRow().getIndex()}')" title="Zero">0</span>`,
+            `<span class="badge bg-dark" onclick="profile('${cell.getRow().getIndex()}')" title="Profile">P</span>`,
         ].join('&nbsp')
     }
 
@@ -127,6 +137,11 @@
             headers: {
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
             },
+        },
+        ajaxError: function (error) {
+            console.log('here')
+            console.log('ajaxError', error, error.status)
+            handleAuthError(error)
         },
         layout: "fitDataStretch",
         initialSort: [{column: "name", dir: "asc"}],
@@ -179,6 +194,8 @@
         },
     });
 
+    table.on("dataLoadError", handleAuthError);
+
     table.on("cellEdited", function (cell) {
         if (!cell.getData()['name']) {
             return
@@ -198,7 +215,7 @@
             },
             error: function (response) {
                 console.log(response)
-                checkAuth(response)
+                handleAuthError(response)
                 if (response.status === 400 || response.status === 403) {
                     table.alert(response["responseJSON"]["message"], "error");
                 } else {

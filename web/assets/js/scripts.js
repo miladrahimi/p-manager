@@ -14,7 +14,7 @@ function exit() {
     window.location = "index.html"
 }
 
-function checkAuth(response) {
+function handleAuthError(response) {
     if (response.status === 401) {
         exit()
     }

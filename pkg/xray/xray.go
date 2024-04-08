@@ -115,11 +115,11 @@ func (x *Xray) runCore() {
 
 func (x *Xray) Restart() {
 	x.l.Info("xray: restarting...")
-	x.Shutdown()
+	x.Close()
 	x.SaveConfigAndRun()
 }
 
-func (x *Xray) Shutdown() {
+func (x *Xray) Close() {
 	x.l.Info("xray: shutting down...")
 
 	x.locker.Lock()

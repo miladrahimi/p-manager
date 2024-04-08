@@ -1,4 +1,4 @@
-package fetcher
+package client
 
 import (
 	"bytes"
@@ -10,11 +10,11 @@ import (
 	"time"
 )
 
-type Fetcher struct {
+type Client struct {
 	E *http.Client
 }
 
-func (f *Fetcher) Do(method, url string, body interface{}, headers map[string]string) ([]byte, error) {
+func (f *Client) Do(method, url string, body interface{}, headers map[string]string) ([]byte, error) {
 	var requestReader io.Reader
 	var jsonBody []byte
 	if body != nil {
@@ -63,10 +63,10 @@ func (f *Fetcher) Do(method, url string, body interface{}, headers map[string]st
 	return nil, errors.Errorf("failed, method: %s, url: %s, status: %d", method, url, response.StatusCode)
 }
 
-func New(timeout int) *Fetcher {
+func New(timeout int) *Client {
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	return &Fetcher{
+	return &Client{
 		E: &http.Client{
 			Transport: customTransport,
 			Timeout:   time.Duration(timeout) * time.Second,

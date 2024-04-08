@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/miladrahimi/p-manager/internal/config"
+	c "github.com/miladrahimi/p-manager/internal/config"
 	"github.com/spf13/cobra"
+	r "runtime"
 )
 
 var rootCmd = &cobra.Command{
@@ -11,9 +12,9 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	cobra.OnInitialize(func() { fmt.Println(config.AppName) })
-	rootCmd.AddCommand(startCmd)
-	rootCmd.AddCommand(versionCmd)
+	cobra.OnInitialize(func() {
+		fmt.Println(c.AppName, c.AppVersion, "(", r.Version(), r.Compiler, r.GOOS, "/", r.GOARCH, ")")
+	})
 }
 
 func Execute() error {

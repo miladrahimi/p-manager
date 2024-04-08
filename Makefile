@@ -1,10 +1,10 @@
-.PHONY: dev_setup dev_fresh setup recover fresh update license version
+.PHONY: dev_setup dev_fresh dev_clean setup recover fresh update license version
 
 dev_setup:
 	@./scripts/install-xray-mac.sh
 
 dev_run:
-	go run main.go start
+	@go run main.go start
 
 dev_fresh:
 	rm -f storage/app/*.txt
@@ -12,11 +12,11 @@ dev_fresh:
 	rm -f storage/database/*.json
 	rm -f storage/logs/*.log
 
-dev_clean_logs:
+dev_clean:
 	rm -f storage/logs/*.log
 
 setup:
-	@./scripts/setup-updater.sh
+	@./scripts/setup.sh
 	@if [ ! -f ./configs/main.local.json ]; then \
 		cp ./configs/main.json ./configs/main.local.json; \
 	fi
@@ -34,6 +34,3 @@ fresh:
 update: setup
 	@git pull
 	@./scripts/update.sh
-
-version:
-	@docker compose exec app ./p-manager version

@@ -7,6 +7,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/licensor"
 	"net/http"
 	"slices"
 	"strconv"
@@ -31,7 +32,7 @@ func UsersIndex(d *database.Database) echo.HandlerFunc {
 	}
 }
 
-func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func UsersStore(coordinator *coordinator.Coordinator, d *database.Database, l *licensor.Licensor) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersStoreRequest
 		if err := c.Bind(&request); err != nil {
@@ -58,7 +59,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 				"message": "You have already reached the maximum number of active users.",
 			})
 		}
-		if len(d.Data.Users) >= config.FreeUsersCount && !coordinator.Licensed() {
+		if len(d.Data.Users) >= config.FreeUsersCount && !l.Licensed() {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": "You cannot add more users without license.",
 			})

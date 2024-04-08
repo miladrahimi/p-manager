@@ -11,10 +11,11 @@ import (
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/pages"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/v1"
+	"github.com/miladrahimi/p-manager/internal/licensor"
 	"github.com/miladrahimi/p-manager/pkg/enigma"
+	"github.com/miladrahimi/p-manager/pkg/http/middleware"
+	"github.com/miladrahimi/p-manager/pkg/http/validator"
 	"github.com/miladrahimi/p-manager/pkg/logger"
-	mw "github.com/miladrahimi/p-manager/pkg/routing/middleware"
-	"github.com/miladrahimi/p-manager/pkg/routing/validator"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -27,11 +28,12 @@ type Server struct {
 	coordinator *coordinator.Coordinator
 	database    *database.Database
 	enigma      *enigma.Enigma
+	licensor    *licensor.Licensor
 }
 
 // Run defines the required HTTP routes and starts the HTTP Server.
 func (s *Server) Run() {
-	s.engine.Use(mw.Logger(s.l))
+	s.engine.Use(middleware.Logger(s.l))
 	s.engine.Use(echoMiddleware.CORS())
 
 	s.engine.Static("/", "web")
@@ -44,12 +46,12 @@ func (s *Server) Run() {
 	g1.POST("/profile/reset", v1.ProfileReset(s.coordinator, s.database))
 
 	g2 := s.engine.Group("/v1")
-	g2.Use(mw.Authorize(func() string {
+	g2.Use(middleware.Authorize(func() string {
 		return s.database.Data.Settings.AdminPassword
 	}))
 
 	g2.GET("/users", v1.UsersIndex(s.database))
-	g2.POST("/users", v1.UsersStore(s.coordinator, s.database))
+	g2.POST("/users", v1.UsersStore(s.coordinator, s.database, s.licensor))
 	g2.PUT("/users", v1.UsersUpdate(s.coordinator, s.database))
 	g2.DELETE("/users/:id", v1.UsersDelete(s.coordinator, s.database))
 	g2.PATCH("/users/:id/zero", v1.UsersZero(s.coordinator, s.database))
@@ -61,7 +63,7 @@ func (s *Server) Run() {
 
 	g2.GET("/settings", v1.SettingsShow(s.database))
 	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))
-	g2.GET("/settings/insights", v1.SettingsInsightsShow(s.coordinator, s.database))
+	g2.GET("/settings/insights", v1.SettingsInsightsShow(s.database, s.licensor))
 	g2.POST("/settings/stats/zero", v1.SettingsStatsZero(s.database))
 	g2.POST("/settings/servers/zero", v1.SettingsServersZero(s.database))
 	g2.POST("/settings/users/zero", v1.SettingsUsersZero(s.coordinator, s.database))
@@ -76,8 +78,8 @@ func (s *Server) Run() {
 	}()
 }
 
-// Shutdown closes the HTTP Server.
-func (s *Server) Shutdown() {
+// Close closes the HTTP Server.
+func (s *Server) Close() {
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -95,16 +97,18 @@ func New(
 	c *coordinator.Coordinator,
 	database *database.Database,
 	enigma *enigma.Enigma,
+	licensor *licensor.Licensor,
 ) *Server {
 	e := echo.New()
 	e.HideBanner = true
 	e.Validator = validator.New()
 	return &Server{
 		engine:      e,
-		config:      config,
 		l:           logger,
+		config:      config,
 		coordinator: c,
 		database:    database,
 		enigma:      enigma,
+		licensor:    licensor,
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/licensor"
 	"github.com/miladrahimi/p-manager/pkg/utils"
 	"net/http"
 	"time"
@@ -74,7 +75,7 @@ func SettingsRestartXray(coordinator *coordinator.Coordinator) echo.HandlerFunc 
 	}
 }
 
-func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func SettingsInsightsShow(d *database.Database, l *licensor.Licensor) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			Stats            database.Stats `json:"stats"`
@@ -90,8 +91,8 @@ func SettingsInsightsShow(coordinator *coordinator.Coordinator, d *database.Data
 			ActiveUsersCount: d.CountActiveUsers(),
 			AppName:          config.AppName,
 			AppVersion:       config.AppVersion,
-			AppLicensed:      coordinator.Licensed(),
-			Core:             config.CoreDetails,
+			AppLicensed:      l.Licensed(),
+			Core:             config.CoreVersion,
 		})
 	}
 }

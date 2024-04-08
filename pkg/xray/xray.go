@@ -156,11 +156,11 @@ func (x *Xray) connect() {
 	for {
 		select {
 		case <-c.Done():
-			x.l.Error("xray: cannot connect to api", zap.Error(errors.WithStack(x.context.Err())))
+			x.l.Fatal("xray: cannot connect to grpc api", zap.Error(errors.WithStack(x.context.Err())))
 			return
 		default:
 			time.Sleep(time.Second)
-			x.connection, err = grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			x.connection, err = grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				x.l.Debug("xray: trying to connect to grpc")
 			} else {

@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>P-Manager</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-5.5.2/dist/css/tabulator_semanticui.min.css">
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator_semanticui.min.css">
     <link rel="icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
     <link rel="apple-touch-icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
 </head>
@@ -42,9 +42,9 @@
     </div>
 </div>
 
-<script src="assets/third_party/jquery-3.6.3.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.2/js/bootstrap.min.js"></script>
-<script src="assets/third_party/tabulator-5.5.2/dist/js/tabulator.min.js"></script>
+<script src="assets/third_party/jquery-3.7.1.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+<script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     let statusFormatter = function (cell) {
@@ -69,8 +69,12 @@
     }
 
     let destroy = function (rowIndex) {
-        let row = table.getRow(rowIndex)
+        let confirmed = confirm("Press 'OK' to delete the server.");
+        if (!confirmed) {
+            return
+        }
 
+        let row = table.getRow(rowIndex)
         if (row.getData().id === 0) {
             table.deleteRow(rowIndex)
             return
@@ -89,7 +93,7 @@
             },
             error: function (response) {
                 console.log(response)
-                checkAuth(response)
+                handleAuthError(response)
                 let t = 2000
                 if (response.status === 400) {
                     table.alert(response["responseJSON"]["message"], "error");
@@ -166,6 +170,8 @@
         ],
     });
 
+    table.on("dataLoadError", handleAuthError);
+
     table.on("cellEdited", function (cell) {
         if (
             !cell.getData()['host'] ||
@@ -189,7 +195,7 @@
             },
             error: function (response) {
                 console.log(response)
-                checkAuth(response)
+                handleAuthError(response)
                 let t = 2000
                 if (response.status === 400) {
                     table.alert(response["responseJSON"]["message"], "error");

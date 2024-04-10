@@ -1,0 +1,696 @@
+{"level":"ERROR","ts":"2024-04-08 23:56:53.677","message":"http server: failed to start","address":"0.0.0.0:8080","error":"listen tcp 0.0.0.0:8080: bind: address already in use","errorVerbose":"listen tcp 0.0.0.0:8080: bind: address already in use\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/internal/http/server.(*Server).Run.func2\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/http/server/server.go:76\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) listen tcp 0.0.0.0:8080\nWraps: (3) bind\nWraps: (4) address already in use\nError types: (1) *withstack.withStack (2) *net.OpError (3) *os.SyscallError (4) syscall.Errno"}
+{"level":"INFO","ts":"2024-04-10 14:23:54.766","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 14:23:54.766","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 14:23:54.766","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 14:23:54.766","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 14:23:54.766","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 14:23:54.769","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 14:23:54.769","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 14:23:54.769","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 14:23:54.769","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 14:23:54.769","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 14:23:54.769","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 14:23:54.769","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 14:23:54.769","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 14:23:54.769","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 14:23:54.881","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 14:23:55.771","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 14:23:55.771","message":"coordinator: syncing remote configs..."}
+{"level":"DEBUG","ts":"2024-04-10 14:23:55.772","message":"app: waiting..."}
+{"level":"INFO","ts":"2024-04-10 14:23:55.772","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:23:55.776","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 14:23:59.945","message":"Success","remote_ip":"::1","latency":"79.042µs","host":"localhost:8080","request":"GET /v1/servers","status":200,"size":118,"user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36","request_id":""}
+{"level":"DEBUG","ts":"2024-04-10 14:24:01.169","message":"Redirection","remote_ip":"::1","latency":"227.25µs","host":"localhost:8080","request":"GET /admin-servers.html","status":304,"size":0,"user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36","request_id":""}
+{"level":"DEBUG","ts":"2024-04-10 14:24:01.208","message":"Success","remote_ip":"::1","latency":"27.458µs","host":"localhost:8080","request":"GET /v1/servers","status":200,"size":118,"user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36","request_id":""}
+{"level":"INFO","ts":"2024-04-10 14:24:25.773","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:24:25.774","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:24:55.773","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:24:55.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:24:55.773","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:24:55.773","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:24:55.773","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:24:55.778","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:25:25.772","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:25:25.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:25:55.772","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:25:55.772","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:25:55.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:25:55.773","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:25:55.773","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:25:55.775","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:26:25.772","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:26:25.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:26:55.772","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:26:55.772","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:26:55.772","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:26:55.772","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:26:55.772","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:26:55.775","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:27:25.772","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:27:25.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:27:55.772","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:27:55.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:27:55.772","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:27:55.774","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:27:55.774","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:27:55.778","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:28:25.772","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:28:25.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:28:55.771","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:28:55.772","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:28:55.771","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:28:55.773","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:28:55.773","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:28:55.777","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:29:25.771","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:29:25.772","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:29:55.771","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:29:55.771","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:29:55.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:29:55.771","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:29:55.772","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:29:55.774","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:30:25.771","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:30:25.772","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:30:55.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:30:55.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:30:55.771","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:30:55.771","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:30:55.771","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:30:55.777","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:31:25.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:31:25.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:31:55.769","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:31:55.769","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:31:55.769","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:31:55.770","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:31:55.770","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:31:55.772","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:32:25.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:32:25.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:32:55.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:32:55.770","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:32:55.770","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:32:55.770","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:32:55.771","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:32:55.773","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:33:25.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:33:25.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:33:55.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:33:55.771","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:33:55.771","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:33:55.770","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:33:55.771","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:33:55.774","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:34:25.769","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:34:25.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:34:55.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:34:55.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:34:55.770","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:34:55.771","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:34:55.772","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:34:55.773","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:35:25.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:35:25.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:35:55.768","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:35:55.769","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:35:55.770","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:35:55.770","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:35:55.770","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:35:55.771","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:36:25.769","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:36:25.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:36:55.770","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:36:55.770","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:36:55.771","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:36:55.771","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:36:55.771","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:36:55.773","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:37:25.768","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:37:25.770","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:37:55.768","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:37:55.769","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:37:55.768","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:37:55.769","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:37:55.769","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:37:55.771","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:38:25.791","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:38:25.792","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:38:55.804","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:38:55.806","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:38:55.804","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:38:55.806","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:38:55.806","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:38:55.810","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:39:25.807","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:39:25.809","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:39:55.808","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:39:55.809","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:39:55.808","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:39:55.809","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:39:55.809","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:39:55.811","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:40:25.807","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:40:25.808","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:40:55.807","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:40:55.808","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:40:55.807","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:40:55.808","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:40:55.808","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:40:55.811","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:41:25.808","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:41:25.809","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:41:55.808","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:41:55.808","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:41:55.810","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:41:55.810","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:41:55.810","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:41:55.813","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:42:25.808","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:42:25.809","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:42:55.809","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:42:55.809","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:42:55.810","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:42:55.810","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:42:55.810","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:42:55.815","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:43:25.808","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:43:25.810","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:43:55.809","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:43:55.809","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:43:55.811","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:43:55.811","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:43:55.811","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:43:55.813","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:44:25.810","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:44:25.811","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:44:55.810","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:44:55.811","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:44:55.810","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:44:55.811","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:44:55.811","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:44:55.814","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:45:25.810","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:45:25.812","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:45:55.810","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:45:55.812","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:45:55.810","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:45:55.813","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:45:55.813","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:45:55.815","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:46:25.811","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:46:25.812","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:46:55.811","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:46:55.812","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:46:55.811","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:46:55.812","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:46:55.813","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:46:55.818","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:47:25.811","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:47:25.813","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:47:55.811","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:47:55.812","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:47:55.813","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:47:55.813","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:47:55.813","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:47:55.815","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:48:25.811","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:48:25.813","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:48:55.812","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:48:55.813","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:48:55.812","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:48:55.814","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:48:55.814","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:48:55.816","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:49:25.812","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:49:25.813","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:49:55.813","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:49:55.813","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:49:55.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:49:55.814","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:49:55.814","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"ERROR","ts":"2024-04-10 14:49:55.818","message":"coordinator: cannot sync remote config","error":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n","errorVerbose":"external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\n(1) attached stack trace\n  -- stack trace:\n  | github.com/miladrahimi/p-manager/pkg/http/client.(*Client).Do\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/pkg/http/client/client.go:57\n  | github.com/miladrahimi/p-manager/internal/coordinator.(*Coordinator).syncRemoteConfig\n  | \t/Users/miladrahimi/Projects/MiladRahimi/p-manager/internal/coordinator/coordinator.go:85\n  | runtime.goexit\n  | \t/opt/homebrew/opt/go/libexec/src/runtime/asm_arm64.s:1222\nWraps: (2) external error, method: POST, url: http://localhost:16636/v1/configs, body: {\"message\":\"Unknown client.\"}\nError types: (1) *withstack.withStack (2) *errutil.leafError","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:50:25.813","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:50:25.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:50:52.948","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 14:50:52.949","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 14:50:52.949","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 14:50:52.949","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 14:50:52.950","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 14:50:52.950","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 14:50:52.951","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 14:50:52.955","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 14:50:55.324","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 14:50:55.324","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 14:50:55.324","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 14:50:55.324","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 14:50:55.324","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 14:50:55.327","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 14:50:55.327","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 14:50:55.327","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 14:50:55.327","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 14:50:55.327","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 14:50:55.327","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 14:50:55.327","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 14:50:55.327","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 14:50:55.327","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 14:50:55.429","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 14:50:56.329","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 14:50:56.329","message":"coordinator: syncing remote configs..."}
+{"level":"INFO","ts":"2024-04-10 14:50:56.329","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 14:50:56.329","message":"app: waiting..."}
+{"level":"DEBUG","ts":"2024-04-10 14:50:56.335","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 14:50:56.429","message":"Redirection","remote_ip":"::1","latency":"215.417µs","host":"localhost:8080","request":"GET /admin-servers.html","status":304,"size":0,"user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36","request_id":""}
+{"level":"DEBUG","ts":"2024-04-10 14:50:56.527","message":"Success","remote_ip":"::1","latency":"82µs","host":"localhost:8080","request":"GET /v1/servers","status":200,"size":116,"user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36","request_id":""}
+{"level":"INFO","ts":"2024-04-10 14:51:26.330","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:51:26.330","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:51:56.331","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:51:56.331","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:51:56.331","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:51:56.331","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:52:26.330","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:52:26.330","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:52:56.331","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:52:56.331","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:52:56.331","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:52:56.331","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:53:26.331","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:53:26.332","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:53:56.332","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:53:56.332","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:53:56.332","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:53:56.332","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:54:26.331","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:54:26.332","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:54:56.333","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:54:56.334","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:54:56.332","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:54:56.334","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:55:26.332","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:55:26.332","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:55:56.333","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:55:56.333","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:55:56.333","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:55:56.333","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:56:26.333","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:56:26.335","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:56:56.333","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:56:56.334","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:56:56.333","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:56:56.334","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:57:26.333","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:57:26.335","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:57:56.334","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:57:56.334","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:57:56.334","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:57:56.334","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:58:26.334","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:58:26.334","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:58:56.334","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:58:56.334","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 14:58:56.334","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 14:58:56.334","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 14:59:14.535","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 14:59:14.535","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 14:59:14.535","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 14:59:14.535","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 14:59:14.535","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 14:59:14.536","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 14:59:14.536","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 14:59:14.541","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 14:59:16.743","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 14:59:16.744","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 14:59:16.744","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 14:59:16.744","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 14:59:16.744","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 14:59:16.746","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 14:59:16.746","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 14:59:16.746","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 14:59:16.746","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 14:59:16.747","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 14:59:16.747","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 14:59:16.747","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 14:59:16.747","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 14:59:16.747","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 14:59:16.845","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 14:59:17.748","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 14:59:17.748","message":"coordinator: syncing remote configs..."}
+{"level":"DEBUG","ts":"2024-04-10 14:59:17.748","message":"app: waiting..."}
+{"level":"INFO","ts":"2024-04-10 14:59:17.748","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 14:59:17.753","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 14:59:47.749","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 14:59:47.750","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:00:17.750","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:00:17.750","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:00:17.750","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:00:17.750","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:00:47.750","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:00:47.750","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:01:17.750","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:01:17.751","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:01:17.750","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:01:17.751","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:01:47.750","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:01:47.750","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:02:17.751","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:02:17.752","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:02:17.751","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:02:17.752","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:02:47.751","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:02:47.751","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:03:17.751","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:03:17.751","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:03:17.752","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:03:17.752","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:03:47.752","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:03:47.752","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:04:17.752","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:04:17.752","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:04:17.752","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:04:17.752","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:04:20.285","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 15:04:20.286","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 15:04:20.286","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:20.286","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 15:04:20.286","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 15:04:20.286","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 15:04:20.286","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:20.291","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:28.323","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:28.324","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:28.324","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 15:04:28.324","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 15:04:28.324","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 15:04:28.327","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 15:04:28.327","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:28.327","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:28.327","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:28.327","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 15:04:28.327","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:28.327","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:28.327","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 15:04:28.327","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 15:04:28.418","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 15:04:29.329","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:29.329","message":"coordinator: syncing remote configs..."}
+{"level":"INFO","ts":"2024-04-10 15:04:29.330","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 15:04:29.330","message":"app: waiting..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:29.334","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 15:04:40.362","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 15:04:40.363","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 15:04:40.363","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:40.363","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 15:04:40.363","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 15:04:40.363","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 15:04:40.363","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:40.369","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:52.598","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:52.599","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:52.599","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 15:04:52.599","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 15:04:52.599","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 15:04:52.601","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 15:04:52.601","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:52.601","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:52.601","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:52.602","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 15:04:52.602","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:52.602","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:52.602","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 15:04:52.602","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 15:04:52.677","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 15:04:53.603","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:53.604","message":"coordinator: syncing remote configs..."}
+{"level":"INFO","ts":"2024-04-10 15:04:53.604","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 15:04:53.604","message":"app: waiting..."}
+{"level":"DEBUG","ts":"2024-04-10 15:04:53.609","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 15:04:55.143","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 15:04:55.143","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 15:04:55.143","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:55.143","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 15:04:55.143","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 15:04:55.144","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 15:04:55.144","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:04:55.148","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:08:26.967","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:08:26.968","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:08:26.968","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 15:08:26.968","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 15:08:26.968","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 15:08:26.971","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 15:08:26.971","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 15:08:26.971","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:08:26.971","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 15:08:26.971","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 15:08:26.971","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:08:26.971","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 15:08:26.971","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 15:08:26.972","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 15:08:27.074","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 15:08:27.972","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 15:08:27.973","message":"coordinator: syncing remote configs..."}
+{"level":"INFO","ts":"2024-04-10 15:08:27.973","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 15:08:27.973","message":"app: waiting..."}
+{"level":"DEBUG","ts":"2024-04-10 15:08:27.978","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 15:08:57.974","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:08:57.976","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:09:27.975","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:09:27.975","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:09:27.976","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:09:27.976","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:09:57.975","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:09:57.976","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:10:27.975","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:10:27.977","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:10:27.975","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:10:27.977","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:10:57.975","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:10:57.977","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:11:27.976","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:11:27.976","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:11:27.977","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:11:27.977","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:11:57.976","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:11:57.977","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:12:27.976","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:12:27.976","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:12:27.978","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:12:27.978","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:12:57.976","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:12:57.977","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:13:09.087","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 15:13:09.087","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 15:13:09.088","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:09.088","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 15:13:09.088","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 15:13:09.088","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 15:13:09.088","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:09.093","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:11.719","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:11.719","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:11.719","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 15:13:11.719","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 15:13:11.719","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 15:13:11.722","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 15:13:11.722","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 15:13:11.722","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:13:11.722","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 15:13:11.722","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 15:13:11.722","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:13:11.722","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 15:13:11.722","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 15:13:11.722","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 15:13:11.793","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 15:13:12.724","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:12.724","message":"coordinator: syncing remote configs..."}
+{"level":"INFO","ts":"2024-04-10 15:13:12.724","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 15:13:12.725","message":"app: waiting..."}
+{"level":"DEBUG","ts":"2024-04-10 15:13:12.729","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 15:13:20.373","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 15:13:20.373","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 15:13:20.374","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:20.374","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 15:13:20.374","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 15:13:20.374","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 15:13:20.374","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:13:20.380","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:18:11.395","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:18:11.397","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:18:11.397","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 15:18:11.397","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 15:18:11.397","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 15:18:11.400","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 15:18:11.400","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 15:18:11.400","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:18:11.400","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 15:18:11.400","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 15:18:11.400","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:18:11.400","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 15:18:11.400","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 15:18:11.400","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 15:18:11.501","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 15:18:12.401","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 15:18:12.402","message":"coordinator: syncing remote configs..."}
+{"level":"INFO","ts":"2024-04-10 15:18:12.402","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 15:18:12.402","message":"app: waiting..."}
+{"level":"DEBUG","ts":"2024-04-10 15:18:12.407","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 15:18:42.403","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:18:42.404","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:19:12.403","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:19:12.404","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:19:12.403","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:19:12.404","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:19:42.403","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:19:42.404","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:20:12.402","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:20:12.403","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:20:12.402","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:20:12.403","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:20:42.402","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:20:42.403","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:21:12.401","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:21:12.401","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:21:12.403","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:21:12.403","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:21:42.402","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:21:42.404","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:22:12.402","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:22:12.402","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:22:12.404","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:22:12.405","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:22:37.935","message":"app: signal received","signal":"interrupt"}
+{"level":"INFO","ts":"2024-04-10 15:22:37.937","message":"app: closing..."}
+{"level":"INFO","ts":"2024-04-10 15:22:37.937","message":"http server: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:22:37.937","message":"xray: shutting down..."}
+{"level":"INFO","ts":"2024-04-10 15:22:37.937","message":"xray: disconnecting xray core grpc..."}
+{"level":"INFO","ts":"2024-04-10 15:22:37.937","message":"xray: stopping down the xray core..."}
+{"level":"INFO","ts":"2024-04-10 15:22:37.937","message":"xray: the xray core closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:22:37.942","message":"logger: closed successfully"}
+{"level":"INFO","ts":"2024-04-10 15:22:40.811","message":"app: modules initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:22:40.811","message":"app: initialized successfully"}
+{"level":"INFO","ts":"2024-04-10 15:22:40.811","message":"coordinator: running..."}
+{"level":"INFO","ts":"2024-04-10 15:22:40.811","message":"coordinator: syncing configs..."}
+{"level":"INFO","ts":"2024-04-10 15:22:40.811","message":"coordinator: syncing local configs..."}
+{"level":"INFO","ts":"2024-04-10 15:22:40.814","message":"xray: restarting..."}
+{"level":"INFO","ts":"2024-04-10 15:22:40.814","message":"xray: shutting down..."}
+{"level":"DEBUG","ts":"2024-04-10 15:22:40.814","message":"xray: saving config and running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:22:40.814","message":"xray: saving config..."}
+{"level":"DEBUG","ts":"2024-04-10 15:22:40.814","message":"xray: config file saved"}
+{"level":"DEBUG","ts":"2024-04-10 15:22:40.814","message":"xray: running..."}
+{"level":"DEBUG","ts":"2024-04-10 15:22:40.814","message":"xray: connecting to xray core api..."}
+{"level":"DEBUG","ts":"2024-04-10 15:22:40.814","message":"xray: running core..."}
+{"level":"INFO","ts":"2024-04-10 15:22:40.814","message":"xray: running xray core binary...","path":"third_party/xray-macos-arm64/xray"}
+{"level":"INFO","ts":"2024-04-10 15:22:40.887","message":"licensor: license file checked","valid":false}
+{"level":"DEBUG","ts":"2024-04-10 15:22:41.815","message":"xray: connected to api successfully"}
+{"level":"INFO","ts":"2024-04-10 15:22:41.815","message":"coordinator: syncing remote configs..."}
+{"level":"INFO","ts":"2024-04-10 15:22:41.816","message":"coordinator: syncing remote config...","url":"http://localhost:16636/v1/configs"}
+{"level":"DEBUG","ts":"2024-04-10 15:22:41.816","message":"app: waiting..."}
+{"level":"DEBUG","ts":"2024-04-10 15:22:41.820","message":"coordinator: remote config synced","url":"http://localhost:16636/v1/configs"}
+{"level":"INFO","ts":"2024-04-10 15:23:11.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:23:11.817","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:23:41.817","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:23:41.817","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:23:41.817","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:23:41.817","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:24:11.817","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:24:11.817","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:24:41.817","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:24:41.818","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:24:41.817","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:24:41.819","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:25:11.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:25:11.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:25:41.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:25:41.817","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:25:41.817","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:25:41.817","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:26:11.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:26:11.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:26:41.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:26:41.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:26:41.816","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:26:41.817","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:27:11.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:27:11.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:27:41.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:27:41.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:27:41.816","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:27:41.816","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:28:11.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:28:11.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:28:41.815","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:28:41.815","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:28:41.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:28:41.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:29:11.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:29:11.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:29:41.815","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:29:41.815","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:29:41.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:29:41.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:30:11.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:30:11.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:30:41.816","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:30:41.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:30:41.818","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:30:41.818","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:31:11.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:31:11.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:31:41.816","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:31:41.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:31:41.817","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:31:41.816","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:32:11.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:32:11.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:32:41.816","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:32:41.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:32:41.816","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:32:41.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:33:11.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:33:11.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:33:41.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:33:41.815","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:33:41.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:33:41.816","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:34:11.816","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:34:11.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:34:41.815","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:34:41.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:34:41.816","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:34:41.816","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:35:11.813","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:35:11.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:35:41.813","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:35:41.814","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:35:41.814","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:35:41.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:36:11.814","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:36:11.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:36:41.814","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:36:41.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:36:41.814","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:36:41.814","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:37:11.813","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:37:11.813","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:37:41.815","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:37:41.815","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:37:41.815","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:37:41.815","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:38:11.813","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:38:11.813","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:38:41.814","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:38:41.814","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:38:41.814","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:38:41.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:39:11.814","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:39:11.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:39:41.814","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:39:41.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:39:41.814","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:39:41.814","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:40:11.814","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:40:11.814","message":"coordinator: syncing stats..."}
+{"level":"INFO","ts":"2024-04-10 15:40:41.813","message":"coordinator: running stats worker..."}
+{"level":"INFO","ts":"2024-04-10 15:40:41.813","message":"coordinator: running node worker..."}
+{"level":"INFO","ts":"2024-04-10 15:40:41.813","message":"coordinator: syncing outdated configs..."}
+{"level":"INFO","ts":"2024-04-10 15:40:41.813","message":"coordinator: syncing stats..."}

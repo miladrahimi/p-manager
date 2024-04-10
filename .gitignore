@@ -2,3 +2,4 @@
 .DS_Store
 .env
 configs/main.local.json
+configs/main.json

@@ -3,10 +3,10 @@ package coordinator
 import (
 	"context"
 	"fmt"
-	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/writer"
 	"github.com/miladrahimi/p-manager/pkg/http/client"
 	"github.com/miladrahimi/p-manager/pkg/logger"
 	"github.com/miladrahimi/p-manager/pkg/utils"
@@ -20,12 +20,13 @@ import (
 )
 
 type Coordinator struct {
+	l        *logger.Logger
+	context  context.Context
 	config   *config.Config
 	database *database.Database
-	l        *logger.Logger
 	hc       *client.Client
 	xray     *xray.Xray
-	context  context.Context
+	writer   *writer.Writer
 }
 
 func (c *Coordinator) Run() {
@@ -34,246 +35,62 @@ func (c *Coordinator) Run() {
 	c.SyncConfigs()
 
 	go newWorker(c.context, time.Duration(c.config.Worker.Interval)*time.Second, func() {
-		c.l.Info("coordinator: running sync worker...")
+		c.l.Info("coordinator: running stats worker...")
 		c.SyncStats()
-		c.syncRemoteNodes(false)
+	}).Start()
+
+	go newWorker(c.context, time.Minute, func() {
+		c.l.Info("coordinator: running node worker...")
+		c.syncOutdatedConfigs()
 	}).Start()
 
 	go newWorker(c.context, time.Hour, func() {
-		c.l.Info("coordinator: running database backup worker...")
+		c.l.Info("coordinator: running backup worker...")
 		c.database.Backup()
 	}).Start()
 }
 
-func (c *Coordinator) generateShadowsocksClients() []*xray.Client {
-	var clients []*xray.Client
-	for _, u := range c.database.Data.Users {
-		if !u.Enabled {
-			continue
-		}
-		clients = append(clients, &xray.Client{
-			Email:    strconv.Itoa(u.Id),
-			Password: u.ShadowsocksPassword,
-			Method:   u.ShadowsocksMethod,
-		})
-	}
-	return clients
-}
-
 func (c *Coordinator) SyncConfigs() {
 	c.l.Info("coordinator: syncing configs...")
-	c.syncLocalConfigs()
-	c.syncRemoteNodes(true)
+	c.syncLocalConfig()
+	c.syncRemoteConfigs()
 }
 
-func (c *Coordinator) syncLocalConfigs() {
+func (c *Coordinator) syncLocalConfig() {
 	c.l.Info("coordinator: syncing local configs...")
-
-	clients := c.generateShadowsocksClients()
-	apiPort, err := utils.FreePort()
-	if err != nil {
-		c.l.Fatal("coordinator: cannot find free port for xray api", zap.Error(errors.WithStack(err)))
-	}
-
-	xc := xray.NewConfig()
-	c.xray.SetConfig(xc)
-
-	xc.FindInbound("api").Port = apiPort
-
-	if len(clients) > 0 {
-		if c.database.Data.Settings.SsRelayPort > 0 {
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				"relay",
-				utils.Key32(),
-				config.ShadowsocksMethod,
-				c.database.Data.Settings.SsRelayPort,
-				clients,
-			))
-		}
-		if c.database.Data.Settings.SsReversePort > 0 {
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				"reverse",
-				utils.Key32(),
-				config.ShadowsocksMethod,
-				c.database.Data.Settings.SsReversePort,
-				clients,
-			))
-		}
-		if c.database.Data.Settings.SsDirectPort > 0 {
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				"direct",
-				utils.Key32(),
-				config.ShadowsocksMethod,
-				c.database.Data.Settings.SsDirectPort,
-				clients,
-			))
-		}
-	}
-
-	if len(clients) > 0 {
-		if c.database.Data.Settings.SsDirectPort > 0 {
-			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
-				InboundTag:  []string{"direct"},
-				OutboundTag: "freedom",
-				Type:        "field",
-			})
-		}
-		if len(c.database.Data.Servers) > 0 {
-			if c.database.Data.Settings.SsRelayPort > 0 {
-				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
-					InboundTag:  []string{"relay"},
-					BalancerTag: "relay",
-					Type:        "field",
-				})
-			}
-			if c.database.Data.Settings.SsReversePort > 0 {
-				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
-					InboundTag:  []string{"reverse"},
-					BalancerTag: "portal",
-					Type:        "field",
-				})
-			}
-		}
-	}
-
-	if len(c.database.Data.Servers) > 0 {
-		if c.database.Data.Settings.SsRelayPort > 0 {
-			xc.Routing.Balancers = append(xc.Routing.Balancers, &xray.Balancer{Tag: "relay", Selector: []string{}})
-		}
-		if c.database.Data.Settings.SsReversePort > 0 {
-			xc.Routing.Balancers = append(xc.Routing.Balancers, &xray.Balancer{Tag: "portal", Selector: []string{}})
-		}
-	}
-
-	for _, s := range c.database.Data.Servers {
-		inboundPort, err := utils.FreePort()
-		if err != nil {
-			c.l.Fatal("coordinator: cannot find port for foreign inbound", zap.Error(errors.WithStack(err)))
-		}
-
-		if c.database.Data.Settings.SsReversePort > 0 {
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				fmt.Sprintf("foreign-%d", s.Id),
-				utils.Key32(),
-				config.Shadowsocks2022Method,
-				inboundPort,
-				nil,
-			))
-			xc.Reverse.Portals = append(xc.Reverse.Portals, &xray.ReverseItem{
-				Tag:    fmt.Sprintf("portal-%d", s.Id),
-				Domain: fmt.Sprintf("s%d.google.com", s.Id),
-			})
-			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
-				InboundTag:  []string{fmt.Sprintf("foreign-%d", s.Id)},
-				OutboundTag: fmt.Sprintf("portal-%d", s.Id),
-				Type:        "field",
-			})
-			xc.FindBalancer("portal").Selector = append(
-				xc.FindBalancer("portal").Selector,
-				fmt.Sprintf("portal-%d", s.Id),
-			)
-		}
-
-		if c.database.Data.Settings.SsRelayPort > 0 {
-			outboundRelayPort, err := utils.FreePort()
-			if err != nil {
-				c.l.Fatal("coordinator: cannot find port for relay outbound", zap.Error(errors.WithStack(err)))
-			}
-			xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
-				fmt.Sprintf("relay-%d", s.Id),
-				s.Host,
-				utils.Key32(),
-				config.Shadowsocks2022Method,
-				outboundRelayPort,
-			))
-			xc.FindBalancer("relay").Selector = append(
-				xc.FindBalancer("relay").Selector,
-				fmt.Sprintf("relay-%d", s.Id),
-			)
-		}
-	}
-
+	c.xray.SetConfig(c.writer.LocalConfig())
 	c.xray.Restart()
 }
 
-func (c *Coordinator) syncRemoteNodes(reconfigure bool) {
-	c.l.Info("coordinator: syncing remote nodes...", zap.Bool("reconfigure", reconfigure))
-
+func (c *Coordinator) syncRemoteConfigs() {
+	c.l.Info("coordinator: syncing remote configs...")
 	for _, s := range c.database.Data.Servers {
-		if s.Status == database.ServerStatusAvailable && !reconfigure {
-			continue
-		}
-
-		xc := xray.NewConfig()
-
-		if c.database.Data.Settings.SsRelayPort > 0 {
-			relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", s.Id))
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				"direct",
-				relayOutbound.Settings.Servers[0].Password,
-				relayOutbound.Settings.Servers[0].Method,
-				relayOutbound.Settings.Servers[0].Port,
-				nil,
-			))
-			xc.Routing.Settings.Rules = append(
-				xc.Routing.Settings.Rules,
-				&xray.Rule{
-					Type:        "field",
-					InboundTag:  []string{"direct"},
-					OutboundTag: "freedom",
-				},
-			)
-		}
-
-		if c.database.Data.Settings.SsReversePort > 0 {
-			foreignOutbound := c.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
-			xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
-				"foreign",
-				c.database.Data.Settings.Host,
-				foreignOutbound.Settings.Password,
-				foreignOutbound.Settings.Method,
-				foreignOutbound.Port,
-			))
-			xc.Reverse.Bridges = append(xc.Reverse.Bridges, &xray.ReverseItem{
-				Tag:    "bridge",
-				Domain: fmt.Sprintf("s%d.google.com", s.Id),
-			})
-			xc.Routing.Settings.Rules = append(
-				xc.Routing.Settings.Rules,
-				&xray.Rule{
-					Type:        "field",
-					InboundTag:  []string{"bridge"},
-					Domain:      []string{fmt.Sprintf("full:s%d.google.com", s.Id)},
-					OutboundTag: "foreign",
-				},
-				&xray.Rule{
-					Type:        "field",
-					InboundTag:  []string{"bridge"},
-					OutboundTag: "freedom",
-				},
-			)
-		}
-
-		go c.updateRemoteNode(s, xc)
+		go c.syncRemoteConfig(s, c.writer.RemoteConfig(s))
 	}
 }
 
-func (c *Coordinator) updateRemoteNode(s *database.Server, xc *xray.Config) {
+func (c *Coordinator) syncOutdatedConfigs() {
+	c.l.Info("coordinator: syncing outdated configs...")
+	for _, s := range c.database.Data.Servers {
+		if s.Status != database.ServerStatusAvailable {
+			go c.syncRemoteConfig(s, c.writer.RemoteConfig(s))
+		}
+	}
+}
+
+func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
-	c.l.Info("coordinator: updating remote node...", zap.String("url", url))
+	c.l.Info("coordinator: syncing remote config...", zap.String("url", url))
 
 	_, err := c.hc.Do(http.MethodPost, url, xc, map[string]string{
-		echo.HeaderContentType:   echo.MIMEApplicationJSON,
 		echo.HeaderAuthorization: fmt.Sprintf("Bearer %s", s.HttpToken),
-		"X-App-Name":             config.AppName,
-		"X-App-AppVersion":       config.AppVersion,
 	})
 	if err != nil {
-		c.l.Error("coordinator: cannot update remote node", zap.Error(err), zap.String("url", url))
+		c.l.Error("coordinator: cannot sync remote config", zap.Error(err), zap.String("url", url))
 		s.Status = database.ServerStatusUnavailable
 	} else {
 		s.Status = database.ServerStatusAvailable
-		c.l.Debug("coordinator: node updated successfully", zap.String("url", url))
+		c.l.Debug("coordinator: remote config synced", zap.String("url", url))
 	}
 }
 
@@ -307,19 +124,19 @@ func (c *Coordinator) SyncStats() {
 		}
 	}
 
-	isSyncConfigsRequired := false
+	shouldSync := false
 	for _, u := range c.database.Data.Users {
 		if bytes, found := users[strconv.Itoa(u.Id)]; found {
 			u.UsedBytes += bytes
 			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
 			if u.Quota > 0 && u.Used > u.Quota {
 				u.Enabled = false
-				isSyncConfigsRequired = true
+				shouldSync = true
 			}
 		}
 	}
 
-	if isSyncConfigsRequired {
+	if shouldSync {
 		go c.SyncConfigs()
 	}
 
@@ -333,6 +150,7 @@ func New(
 	logger *logger.Logger,
 	database *database.Database,
 	xray *xray.Xray,
+	writer *writer.Writer,
 ) *Coordinator {
 	return &Coordinator{
 		l:        logger,
@@ -341,5 +159,6 @@ func New(
 		context:  context,
 		database: database,
 		xray:     xray,
+		writer:   writer,
 	}
 }

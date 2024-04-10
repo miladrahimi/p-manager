@@ -72,6 +72,7 @@ func PortFree(port int) bool {
 	return true
 }
 
+// PortsUnique makes sure all ports are unique or zero (disabled).
 func PortsUnique(ports []int) bool {
 	seen := make(map[int]bool)
 	for _, port := range ports {

@@ -8,7 +8,6 @@ COPY . .
 
 RUN go mod tidy
 RUN go build -o p-manager
-
 RUN tar -zcf web.tar.gz web
 
 ## Deploy

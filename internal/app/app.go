@@ -8,6 +8,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/http/server"
 	"github.com/miladrahimi/p-manager/internal/licensor"
+	"github.com/miladrahimi/p-manager/internal/writer"
 	"github.com/miladrahimi/p-manager/pkg/enigma"
 	"github.com/miladrahimi/p-manager/pkg/http/client"
 	"github.com/miladrahimi/p-manager/pkg/logger"
@@ -27,6 +28,7 @@ type App struct {
 	HttpClient  *client.Client
 	HttpServer  *server.Server
 	Database    *database.Database
+	Writer      *writer.Writer
 	Coordinator *coordinator.Coordinator
 	Xray        *xray.Xray
 	Enigma      *enigma.Enigma
@@ -49,10 +51,11 @@ func New() (a *App, err error) {
 
 	a.Database = database.New(a.Logger)
 	a.Xray = xray.New(a.Context, a.Logger, config.XrayConfigPath, config.XrayBinaryPath())
-	a.HttpClient = client.New(a.Config.HttpClient.Timeout)
+	a.HttpClient = client.New(a.Config.HttpClient.Timeout, config.AppName, config.AppVersion)
 	a.Enigma = enigma.New(config.EnigmaKeyPath)
 	a.Licensor = licensor.New(a.Config, a.HttpClient, a.Logger, a.Database, a.Enigma)
-	a.Coordinator = coordinator.New(a.Config, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray)
+	a.Writer = writer.New(a.Logger, a.Database, a.Xray)
+	a.Coordinator = coordinator.New(a.Config, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)
 	a.HttpServer = server.New(a.Config, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor)
 
 	a.Logger.Info("app: modules initialized successfully")

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
 	"io"
@@ -17,11 +18,11 @@ type Client struct {
 	appVersion string
 }
 
-func (c *Client) Do(method, url string, body interface{}, headers map[string]string) ([]byte, error) {
+func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error) {
 	info := map[string]interface{}{
-		"method":          method,
-		"url":             url,
-		"request_headers": headers,
+		"method": method,
+		"url":    url,
+		"token":  token,
 	}
 
 	var requestReader io.Reader
@@ -42,11 +43,9 @@ func (c *Client) Do(method, url string, body interface{}, headers map[string]str
 	}
 
 	request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	request.Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token))
 	request.Header.Set("X-App-Name", c.appName)
 	request.Header.Set("X-App-AppVersion", c.appVersion)
-	for key, value := range headers {
-		request.Header.Set(key, value)
-	}
 
 	response, err := c.E.Do(request)
 	if err != nil {

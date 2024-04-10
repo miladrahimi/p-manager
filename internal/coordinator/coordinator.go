@@ -3,7 +3,6 @@ package coordinator
 import (
 	"context"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/writer"
@@ -82,9 +81,7 @@ func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
 	c.l.Info("coordinator: syncing remote config...", zap.String("url", url))
 
-	_, err := c.hc.Do(http.MethodPost, url, xc, map[string]string{
-		echo.HeaderAuthorization: fmt.Sprintf("Bearer %s", s.HttpToken),
-	})
+	_, err := c.hc.Do(http.MethodPost, url, s.HttpToken, xc)
 	if err != nil {
 		c.l.Error("coordinator: cannot sync remote config", zap.Error(err), zap.String("url", url))
 		s.Status = database.ServerStatusUnavailable

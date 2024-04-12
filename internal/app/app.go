@@ -96,7 +96,9 @@ func (a *App) Wait() {
 }
 
 func (a *App) Close() {
-	a.Logger.Info("app: closing...")
+	a.Logger.Debug("app: closing...")
+	defer a.Logger.Info("app: closed")
+
 	if a.HttpServer != nil {
 		a.HttpServer.Close()
 	}

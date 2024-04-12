@@ -22,9 +22,9 @@ import (
 )
 
 type Server struct {
-	engine      *echo.Echo
-	config      *config.Config
+	e           *echo.Echo
 	l           *logger.Logger
+	config      *config.Config
 	coordinator *coordinator.Coordinator
 	database    *database.Database
 	enigma      *enigma.Enigma
@@ -33,19 +33,20 @@ type Server struct {
 
 // Run defines the required HTTP routes and starts the HTTP Server.
 func (s *Server) Run() {
-	s.engine.Use(middleware.Logger(s.l))
-	s.engine.Use(echoMiddleware.CORS())
+	s.e.Use(middleware.Logger(s.l))
+	s.e.Use(middleware.General())
+	s.e.Use(echoMiddleware.CORS())
 
-	s.engine.Static("/", "web")
-	s.engine.GET("/profile", pages.Profile())
+	s.e.Static("/", "web")
+	s.e.GET("/profile", pages.Profile())
 
-	g1 := s.engine.Group("/v1")
+	g1 := s.e.Group("/v1")
 	g1.POST("/sign-in", v1.SignIn(s.database, s.enigma))
 
 	g1.GET("/profile", v1.ProfileShow(s.database))
 	g1.POST("/profile/reset", v1.ProfileReset(s.coordinator, s.database))
 
-	g2 := s.engine.Group("/v1")
+	g2 := s.e.Group("/v1")
 	g2.Use(middleware.Authorize(func() string {
 		return s.database.Data.Settings.AdminPassword
 	}))
@@ -72,8 +73,8 @@ func (s *Server) Run() {
 
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)
-		if err := s.engine.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.l.Fatal("cannot start", zap.String("address", address), zap.Error(errors.WithStack(err)))
+		if err := s.e.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			s.l.Fatal("cannot serve http", zap.String("address", address), zap.Error(errors.WithStack(err)))
 		}
 	}()
 }
@@ -83,10 +84,10 @@ func (s *Server) Close() {
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := s.engine.Shutdown(c); err != nil {
-		s.l.Error("http server: failed to close", zap.Error(errors.WithStack(err)))
+	if err := s.e.Shutdown(c); err != nil {
+		s.l.Error("cannot close http server", zap.Error(errors.WithStack(err)))
 	} else {
-		s.l.Info("http server: closed successfully")
+		s.l.Info("http: server: closed successfully")
 	}
 }
 
@@ -103,7 +104,7 @@ func New(
 	e.HideBanner = true
 	e.Validator = validator.New()
 	return &Server{
-		engine:      e,
+		e:           e,
 		l:           logger,
 		config:      config,
 		coordinator: c,

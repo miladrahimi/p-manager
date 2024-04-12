@@ -13,16 +13,16 @@ import (
 )
 
 type Client struct {
-	E          *http.Client
+	e          *http.Client
 	appName    string
 	appVersion string
 }
 
 func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error) {
 	info := map[string]interface{}{
-		"method": method,
-		"url":    url,
-		"token":  token,
+		"request_method": method,
+		"request_url":    url,
+		"request_token":  token,
 	}
 
 	var requestReader io.Reader
@@ -45,9 +45,9 @@ func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error)
 	request.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	request.Header.Set(echo.HeaderAuthorization, fmt.Sprintf("Bearer %s", token))
 	request.Header.Set("X-App-Name", c.appName)
-	request.Header.Set("X-App-AppVersion", c.appVersion)
+	request.Header.Set("X-App-Version", c.appVersion)
 
-	response, err := c.E.Do(request)
+	response, err := c.e.Do(request)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot do request, %v", info)
 	}
@@ -80,7 +80,7 @@ func New(timeout int, appName, appVersion string) *Client {
 	return &Client{
 		appName:    appName,
 		appVersion: appVersion,
-		E: &http.Client{
+		e: &http.Client{
 			Transport: customTransport,
 			Timeout:   time.Duration(timeout) * time.Second,
 		},

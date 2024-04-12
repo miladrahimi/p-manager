@@ -29,7 +29,7 @@ func Key32() string {
 	return base64.StdEncoding.EncodeToString(key)
 }
 
-// UUID generates UUID without - character.
+// UUID generates UUID without the '-' character.
 func UUID() string {
 	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }
@@ -58,7 +58,7 @@ func FreePort() (int, error) {
 	return listener.Addr().(*net.TCPAddr).Port, err
 }
 
-// PortFree checks if the port is free or not.
+// PortFree checks if the given port is free or not.
 func PortFree(port int) bool {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {

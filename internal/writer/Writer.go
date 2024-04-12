@@ -40,7 +40,7 @@ func (c *Writer) LocalConfig() *xray.Config {
 
 	apiPort, err := utils.FreePort()
 	if err != nil {
-		c.l.Fatal("cannot find port for xray api", zap.Error(errors.WithStack(err)))
+		c.l.Fatal("writer: cannot find port for xray api", zap.Error(errors.WithStack(err)))
 	}
 
 	xc := xray.NewConfig()
@@ -114,7 +114,7 @@ func (c *Writer) LocalConfig() *xray.Config {
 	for _, s := range c.database.Data.Servers {
 		inboundPort, err := utils.FreePort()
 		if err != nil {
-			c.l.Fatal("cannot find port for foreign inbound", zap.Error(errors.WithStack(err)))
+			c.l.Fatal("writer: cannot find port for foreign inbound", zap.Error(errors.WithStack(err)))
 		}
 
 		if c.database.Data.Settings.SsReversePort > 0 {
@@ -143,7 +143,7 @@ func (c *Writer) LocalConfig() *xray.Config {
 		if c.database.Data.Settings.SsRelayPort > 0 {
 			outboundRelayPort, err := utils.FreePort()
 			if err != nil {
-				c.l.Fatal("cannot find port for relay outbound", zap.Error(errors.WithStack(err)))
+				c.l.Fatal("writer: cannot find port for relay outbound", zap.Error(errors.WithStack(err)))
 			}
 			xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 				fmt.Sprintf("relay-%d", s.Id),

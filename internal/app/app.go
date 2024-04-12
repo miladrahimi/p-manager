@@ -58,7 +58,7 @@ func New() (a *App, err error) {
 	a.Coordinator = coordinator.New(a.Config, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)
 	a.HttpServer = server.New(a.Config, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor)
 
-	a.Logger.Info("app: modules initialized successfully")
+	a.Logger.Info("app: constructed successfully")
 
 	a.setupSignalListener()
 
@@ -96,7 +96,9 @@ func (a *App) Wait() {
 }
 
 func (a *App) Close() {
-	a.Logger.Info("app: closing...")
+	a.Logger.Debug("app: closing...")
+	defer a.Logger.Info("app: closed")
+
 	if a.HttpServer != nil {
 		a.HttpServer.Close()
 	}

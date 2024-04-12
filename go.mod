@@ -6,7 +6,6 @@ toolchain go1.22.1
 
 require (
 	github.com/cockroachdb/errors v1.11.1
-	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.11.4
@@ -47,5 +46,4 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
-	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )

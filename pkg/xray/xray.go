@@ -71,30 +71,19 @@ func (x *Xray) saveConfig() {
 	}
 }
 
-func (x *Xray) run() {
-	x.l.Debug("xray: running...")
-	go x.runCore()
-	x.connect()
-}
-
-func (x *Xray) SaveConfigAndRun() {
+func (x *Xray) Run() {
 	x.l.Debug("xray: saving config and running...")
 
 	x.locker.Lock()
 	defer x.locker.Unlock()
 
 	x.saveConfig()
-	x.run()
+	go x.runCore()
+	x.connect()
 }
 
-func (x *Xray) LoadConfigAndRun() {
-	x.l.Debug("xray: loading config and running...")
-
-	x.locker.Lock()
-	defer x.locker.Unlock()
-
+func (x *Xray) Init() {
 	x.loadConfig()
-	x.run()
 }
 
 func (x *Xray) runCore() {
@@ -117,7 +106,7 @@ func (x *Xray) runCore() {
 func (x *Xray) Restart() {
 	x.l.Info("xray: restarting...")
 	x.Close()
-	x.SaveConfigAndRun()
+	x.Run()
 }
 
 func (x *Xray) Close() {

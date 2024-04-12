@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/gommon/random"
 	"github.com/miladrahimi/p-manager/pkg/logger"
 	"github.com/miladrahimi/p-manager/pkg/utils"

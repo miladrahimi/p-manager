@@ -11,9 +11,13 @@ var startCmd = &cobra.Command{
 	Run: startFunc,
 }
 
+func init() {
+	rootCmd.AddCommand(startCmd)
+}
+
 func startFunc(_ *cobra.Command, _ []string) {
 	a, err := app.New()
-	defer a.Shutdown()
+	defer a.Close()
 	if err != nil {
 		panic(fmt.Sprintf("%+v\n", err))
 	}

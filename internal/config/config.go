@@ -3,16 +3,20 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cockroachdb/errors"
+	"github.com/go-playground/validator/v10"
 	"github.com/miladrahimi/p-manager/pkg/utils"
 	"os"
 	"runtime"
 )
 
-const MainPath = "configs/main.json"
-const LocalPath = "configs/main.local.json"
+const defaultConfigPath = "configs/main.defaults.json"
+const envConfigPath = "configs/main.json"
+
 const AppName = "P-Manager"
-const AppVersion = "v1.4.0"
-const CoreDetails = "Xray v1.8.8"
+const AppVersion = "v1.4.1"
+const CoreVersion = "Xray v1.8.8"
+
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
 
@@ -27,6 +31,13 @@ const XrayConfigPath = "storage/app/xray.json"
 var xrayBinaryPaths = map[string]string{
 	"darwin": "third_party/xray-macos-arm64/xray",
 	"linux":  "third_party/xray-linux-64/xray",
+}
+
+func XrayBinaryPath() string {
+	if path, found := xrayBinaryPaths[runtime.GOOS]; found {
+		return path
+	}
+	return xrayBinaryPaths["linux"]
 }
 
 type Config struct {
@@ -49,46 +60,37 @@ type Config struct {
 	} `json:"worker"`
 }
 
-func (c *Config) Init() (err error) {
-	var content []byte
-	var path string
-
-	if utils.FileExist(LocalPath) {
-		path = LocalPath
-	} else {
-		path = MainPath
-	}
-
-	content, err = os.ReadFile(path)
+func (c *Config) String() string {
+	j, err := json.Marshal(c)
 	if err != nil {
-		return fmt.Errorf("config: cannot load file, err: %v", err)
+		return err.Error()
 	}
-
-	err = json.Unmarshal(content, &c)
-	if err != nil {
-		return fmt.Errorf("config: cannot validate file, err: %v", err)
-	}
-
-	if path == LocalPath {
-		marshalled, err := json.MarshalIndent(c, "", "  ")
-		if err != nil {
-			return fmt.Errorf("config: cannot marshall config, err: %v", err)
-		}
-
-		err = os.WriteFile(path, marshalled, 0755)
-		if err != nil {
-			return fmt.Errorf("config: cannot save file, err: %v", err)
-		}
-	}
-
-	return nil
+	return string(j)
 }
 
-func (c *Config) XrayBinaryPath() string {
-	if path, found := xrayBinaryPaths[runtime.GOOS]; found {
-		return path
+func (c *Config) Init() (err error) {
+	content, err := os.ReadFile(defaultConfigPath)
+	if err != nil {
+		return errors.WithStack(err)
 	}
-	return xrayBinaryPaths["linux"]
+	err = json.Unmarshal(content, &c)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if utils.FileExist(envConfigPath) {
+		content, err = os.ReadFile(envConfigPath)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if err = json.Unmarshal(content, &c); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	fmt.Println("Config:", c.String())
+
+	return errors.WithStack(validator.New().Struct(c))
 }
 
 func New() *Config {

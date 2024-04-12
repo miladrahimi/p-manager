@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Install Xray for Mac
 BASE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../third_party"
 DIR="${BASE}/xray-macos-arm64"
 FILE="${DIR}.zip"

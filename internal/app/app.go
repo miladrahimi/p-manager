@@ -7,8 +7,10 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/http/server"
+	"github.com/miladrahimi/p-manager/internal/licensor"
+	"github.com/miladrahimi/p-manager/internal/writer"
 	"github.com/miladrahimi/p-manager/pkg/enigma"
-	"github.com/miladrahimi/p-manager/pkg/fetcher"
+	"github.com/miladrahimi/p-manager/pkg/http/client"
 	"github.com/miladrahimi/p-manager/pkg/logger"
 	"github.com/miladrahimi/p-manager/pkg/xray"
 	"go.uber.org/zap"
@@ -18,41 +20,43 @@ import (
 )
 
 type App struct {
-	context     context.Context
-	cancel      context.CancelFunc
-	shutdown    chan struct{}
+	Context     context.Context
+	Cancel      context.CancelFunc
+	Shutdown    chan struct{}
 	Config      *config.Config
 	Logger      *logger.Logger
-	Fetcher     *fetcher.Fetcher
+	HttpClient  *client.Client
 	HttpServer  *server.Server
 	Database    *database.Database
+	Writer      *writer.Writer
 	Coordinator *coordinator.Coordinator
 	Xray        *xray.Xray
 	Enigma      *enigma.Enigma
+	Licensor    *licensor.Licensor
 }
 
 func New() (a *App, err error) {
 	a = &App{}
-	a.context, a.cancel = context.WithCancel(context.Background())
-	a.shutdown = make(chan struct{})
+	a.Context, a.Cancel = context.WithCancel(context.Background())
+	a.Shutdown = make(chan struct{})
 
 	a.Config = config.New()
 	if err = a.Config.Init(); err != nil {
-		return nil, errors.WithStack(err)
+		return a, errors.WithStack(err)
 	}
-	a.Logger = logger.New(a.Config.Logger.Level, a.Config.Logger.Format, a.shutdown)
+	a.Logger = logger.New(a.Config, a.Shutdown)
 	if err = a.Logger.Init(); err != nil {
-		return nil, errors.WithStack(err)
+		return a, errors.WithStack(err)
 	}
-
-	a.Logger.Info("app: logger and config initialized successfully")
 
 	a.Database = database.New(a.Logger)
-	a.Xray = xray.New(a.context, a.Logger, config.XrayConfigPath, a.Config.XrayBinaryPath())
+	a.Xray = xray.New(a.Context, a.Logger, config.XrayConfigPath, config.XrayBinaryPath())
+	a.HttpClient = client.New(a.Config.HttpClient.Timeout, config.AppName, config.AppVersion)
 	a.Enigma = enigma.New(config.EnigmaKeyPath)
-	a.Fetcher = fetcher.New(a.Config.HttpClient.Timeout)
-	a.Coordinator = coordinator.New(a.Config, a.context, a.Fetcher, a.Logger, a.Database, a.Xray, a.Enigma)
-	a.HttpServer = server.New(a.Config, a.Logger, a.Coordinator, a.Database, a.Enigma)
+	a.Licensor = licensor.New(a.Config, a.HttpClient, a.Logger, a.Database, a.Enigma)
+	a.Writer = writer.New(a.Logger, a.Database, a.Xray)
+	a.Coordinator = coordinator.New(a.Config, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)
+	a.HttpServer = server.New(a.Config, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor)
 
 	a.Logger.Info("app: modules initialized successfully")
 
@@ -66,6 +70,7 @@ func (a *App) Init() error {
 	if err := a.Enigma.Init(); err != nil {
 		return errors.WithStack(err)
 	}
+	a.Licensor.Init()
 	a.Logger.Info("app: initialized successfully")
 	return nil
 }
@@ -76,28 +81,29 @@ func (a *App) setupSignalListener() {
 		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 		s := <-signalChannel
 		a.Logger.Info("app: signal received", zap.String("signal", s.String()))
-		a.cancel()
+		a.Cancel()
 	}()
 
 	go func() {
-		<-a.shutdown
-		a.cancel()
+		<-a.Shutdown
+		a.Cancel()
 	}()
 }
 
 func (a *App) Wait() {
-	<-a.context.Done()
+	a.Logger.Debug("app: waiting...")
+	<-a.Context.Done()
 }
 
-func (a *App) Shutdown() {
-	a.Logger.Info("app: shutting down...")
+func (a *App) Close() {
+	a.Logger.Info("app: closing...")
 	if a.HttpServer != nil {
-		a.HttpServer.Shutdown()
+		a.HttpServer.Close()
 	}
 	if a.Xray != nil {
-		a.Xray.Shutdown()
+		a.Xray.Close()
 	}
 	if a.Logger != nil {
-		a.Logger.Shutdown()
+		a.Logger.Close()
 	}
 }

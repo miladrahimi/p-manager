@@ -40,17 +40,17 @@ func (x *Xray) loadConfig() {
 
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
-		x.l.Fatal("xray: cannot load config file", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("cannot load config file", zap.Error(errors.WithStack(err)))
 	}
 
 	var newConfig Config
 	err = json.Unmarshal(content, &newConfig)
 	if err != nil {
-		x.l.Fatal("xray: cannot unmarshal load config file", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("cannot unmarshal load config file", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = newConfig.Validate(); err != nil {
-		x.l.Fatal("xray: cannot validate load config file", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("cannot validate load config file", zap.Error(errors.WithStack(err)))
 	}
 
 	x.config = &newConfig
@@ -62,11 +62,11 @@ func (x *Xray) saveConfig() {
 
 	content, err := json.Marshal(x.config)
 	if err != nil {
-		x.l.Fatal("xray: cannot marshal config data", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("cannot marshal config data", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = os.WriteFile(x.configPath, content, 0755); err != nil {
-		x.l.Fatal("xray: cannot save config data", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("cannot save config data", zap.Error(errors.WithStack(err)))
 	}
 }
 
@@ -100,7 +100,7 @@ func (x *Xray) runCore() {
 	x.l.Debug("xray: running core...")
 
 	if !utils.FileExist(x.binaryPath) {
-		x.l.Fatal("xray: core binary file not found", zap.String("path", x.binaryPath))
+		x.l.Fatal("core binary file not found", zap.String("path", x.binaryPath))
 	}
 
 	x.command = exec.Command(x.binaryPath, "-c", x.configPath)
@@ -109,17 +109,17 @@ func (x *Xray) runCore() {
 
 	x.l.Info("xray: running xray core binary...", zap.String("path", x.binaryPath))
 	if err := x.command.Run(); err != nil && err.Error() != "signal: killed" {
-		x.l.Fatal("xray: cannot start the xray core", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("cannot start the xray core", zap.Error(errors.WithStack(err)))
 	}
 }
 
 func (x *Xray) Restart() {
 	x.l.Info("xray: restarting...")
-	x.Shutdown()
+	x.Close()
 	x.SaveConfigAndRun()
 }
 
-func (x *Xray) Shutdown() {
+func (x *Xray) Close() {
 	x.l.Info("xray: shutting down...")
 
 	x.locker.Lock()
@@ -144,7 +144,7 @@ func (x *Xray) connect() {
 
 	inbound := x.config.FindInbound("api")
 	if inbound == nil {
-		x.l.Fatal("xray: cannot find api inbound")
+		x.l.Fatal("cannot find api inbound")
 	}
 
 	c, cancel := context.WithTimeout(x.context, 10*time.Second)
@@ -156,7 +156,7 @@ func (x *Xray) connect() {
 	for {
 		select {
 		case <-c.Done():
-			x.l.Fatal("xray: cannot connect to grpc api", zap.Error(errors.WithStack(x.context.Err())))
+			x.l.Fatal("cannot connect to grpc api", zap.Error(errors.WithStack(x.context.Err())))
 			return
 		default:
 			time.Sleep(time.Second)

@@ -34,17 +34,17 @@ func (c *Coordinator) Run() {
 	c.SyncConfigs()
 
 	go newWorker(c.context, time.Duration(c.config.Worker.Interval)*time.Second, func() {
-		c.l.Info("coordinator: running stats worker...")
+		c.l.Info("coordinator: running worker for sync stats...")
 		c.SyncStats()
 	}).Start()
 
 	go newWorker(c.context, time.Minute, func() {
-		c.l.Info("coordinator: running node worker...")
+		c.l.Info("coordinator: running worker to sync outdated configs...")
 		c.syncOutdatedConfigs()
 	}).Start()
 
 	go newWorker(c.context, time.Hour, func() {
-		c.l.Info("coordinator: running backup worker...")
+		c.l.Info("coordinator: running worker to backup database...")
 		c.database.Backup()
 	}).Start()
 }
@@ -83,7 +83,7 @@ func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 
 	_, err := c.hc.Do(http.MethodPost, url, s.HttpToken, xc)
 	if err != nil {
-		c.l.Error("coordinator: cannot sync remote config", zap.Error(err), zap.String("url", url))
+		c.l.Error("cannot sync remote config", zap.Error(err), zap.String("url", url))
 		s.Status = database.ServerStatusUnavailable
 	} else {
 		s.Status = database.ServerStatusAvailable

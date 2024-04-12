@@ -15,11 +15,11 @@ type Enigma struct {
 func (e *Enigma) Init() error {
 	publicKeyData, err := os.ReadFile(e.publicKeyPath)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "cannot read public key file")
 	}
 	e.publicKey, err = hex.DecodeString(string(publicKeyData))
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "cannot decode public key")
 	}
 	return nil
 }

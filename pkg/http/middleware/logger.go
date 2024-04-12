@@ -23,19 +23,19 @@ func Logger(l *logger.Logger) echo.MiddlewareFunc {
 			res := ctx.Response()
 
 			fields := []zapcore.Field{
-				zap.String("remote_ip", ctx.RealIP()),
+				zap.String("ip", ctx.RealIP()),
 				zap.String("latency", time.Since(start).String()),
 				zap.String("host", req.Host),
 				zap.String("request", fmt.Sprintf("%s %s", req.Method, req.RequestURI)),
 				zap.Int("status", res.Status),
 				zap.Int64("size", res.Size),
-				zap.String("user_agent", req.UserAgent()),
+				zap.String("agent", req.UserAgent()),
 			}
 
 			id := req.Header.Get(echo.HeaderXRequestID)
 			if id == "" {
 				id = res.Header().Get(echo.HeaderXRequestID)
-				fields = append(fields, zap.String("request_id", id))
+				fields = append(fields, zap.String("id", id))
 			}
 
 			n := res.Status

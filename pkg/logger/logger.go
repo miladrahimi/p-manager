@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"go.uber.org/zap"
@@ -10,18 +9,18 @@ import (
 )
 
 type Logger struct {
-	engine   *zap.Logger
-	shutdown chan struct{}
+	e        *zap.Logger
 	config   *config.Config
+	shutdown chan struct{}
 }
 
 func (l *Logger) Init() (err error) {
 	level := zap.NewAtomicLevel()
 	if err = level.UnmarshalText([]byte(l.config.Logger.Level)); err != nil {
-		return fmt.Errorf("logger: invalid level %s, err: %v", l.config.Logger.Level, err)
+		return errors.Wrapf(err, "invalid log level '%s'", l.config.Logger.Level)
 	}
 
-	l.engine, err = zap.Config{
+	l.e, err = zap.Config{
 		Level:             level,
 		Development:       false,
 		Encoding:          "json",
@@ -45,38 +44,38 @@ func (l *Logger) Init() (err error) {
 }
 
 func (l *Logger) Debug(msg string, fields ...zap.Field) {
-	l.engine.Debug(msg, fields...)
+	l.e.Debug(msg, fields...)
 }
 
 func (l *Logger) Info(msg string, fields ...zap.Field) {
-	l.engine.Info(msg, fields...)
+	l.e.Info(msg, fields...)
 }
 
 func (l *Logger) Warn(msg string, fields ...zap.Field) {
-	l.engine.Warn(msg, fields...)
+	l.e.Warn(msg, fields...)
 }
 
 func (l *Logger) Error(msg string, fields ...zap.Field) {
-	l.engine.Error(msg, fields...)
+	l.e.Error(msg, fields...)
 }
 
 func (l *Logger) Fatal(msg string, fields ...zap.Field) {
-	l.engine.Error(msg, fields...)
+	l.e.Error(msg, fields...)
 	l.shutdown <- struct{}{}
 }
 
 func (l *Logger) With(fields ...zap.Field) *zap.Logger {
-	return l.engine.With(fields...)
+	return l.e.With(fields...)
 }
 
 func (l *Logger) Close() {
-	if err := l.engine.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) {
-		l.engine.Error("cannot close logger", zap.Error(errors.WithStack(err)))
+	if err := l.e.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) {
+		l.e.Error("cannot close logger", zap.Error(errors.WithStack(err)))
 	} else {
-		l.engine.Info("logger: closed successfully")
+		l.e.Info("logger: closed successfully")
 	}
 }
 
 func New(config *config.Config, closer chan struct{}) (logger *Logger) {
-	return &Logger{engine: nil, shutdown: closer, config: config}
+	return &Logger{e: nil, shutdown: closer, config: config}
 }

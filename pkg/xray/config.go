@@ -1,7 +1,7 @@
 package xray
 
 import (
-	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -186,14 +186,10 @@ func (c *Config) FindBalancer(tag string) *Balancer {
 }
 
 func (c *Config) Validate() error {
-	v := validator.New(validator.WithRequiredStructEnabled())
-	if err := v.Struct(c); err != nil {
-		return err
-	}
 	if c.FindInbound("api") == nil {
-		return fmt.Errorf("api inbound not found")
+		return errors.New("xray: config: api inbound not found")
 	}
-	return nil
+	return errors.WithStack(validator.New(validator.WithRequiredStructEnabled()).Struct(c))
 }
 
 func NewConfig() *Config {

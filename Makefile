@@ -1,18 +1,18 @@
-.PHONY: dev_setup dev_run dev_fresh dev_clean setup recover fresh update
+.PHONY: dev-setup dev-run dev-fresh dev-clean setup recover fresh update
 
-dev_setup:
-	@./scripts/dev_setup.sh
+dev-setup:
+	@./scripts/dev-setup.sh
 
-dev_run:
+dev-run:
 	@go run main.go start
 
-dev_fresh:
+dev-fresh:
 	@rm -f storage/app/*.txt
 	@rm -f storage/app/*.json
 	@rm -f storage/database/*.json
 	@rm -f storage/logs/*.log
 
-dev_clean:
+dev-clean:
 	@rm -f storage/logs/*.log
 
 setup:

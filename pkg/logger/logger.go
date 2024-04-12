@@ -51,10 +51,6 @@ func (l *Logger) Info(msg string, fields ...zap.Field) {
 	l.e.Info(msg, fields...)
 }
 
-func (l *Logger) Warn(msg string, fields ...zap.Field) {
-	l.e.Warn(msg, fields...)
-}
-
 func (l *Logger) Error(msg string, fields ...zap.Field) {
 	l.e.Error(msg, fields...)
 }

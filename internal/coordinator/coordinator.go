@@ -83,7 +83,7 @@ func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 
 	_, err := c.hc.Do(http.MethodPost, url, s.HttpToken, xc)
 	if err != nil {
-		c.l.Error("cannot sync remote config", zap.Error(err), zap.String("url", url))
+		c.l.Error("coordinator: cannot sync remote config", zap.Error(err), zap.String("url", url))
 		s.Status = database.ServerStatusUnavailable
 	} else {
 		s.Status = database.ServerStatusAvailable

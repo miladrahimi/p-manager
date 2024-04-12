@@ -41,17 +41,17 @@ func (x *Xray) loadConfig() {
 
 	content, err := os.ReadFile(x.configPath)
 	if err != nil {
-		x.l.Fatal("cannot load xray config file", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("xray: cannot load xray config file", zap.Error(errors.WithStack(err)))
 	}
 
 	var newConfig Config
 	err = json.Unmarshal(content, &newConfig)
 	if err != nil {
-		x.l.Fatal("cannot unmarshal xray config", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("xray: cannot unmarshal xray config", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = newConfig.Validate(); err != nil {
-		x.l.Fatal("cannot validate xray config file", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("xray: cannot validate xray config file", zap.Error(errors.WithStack(err)))
 	}
 
 	x.config = &newConfig
@@ -63,11 +63,11 @@ func (x *Xray) saveConfig() {
 
 	content, err := json.Marshal(x.config)
 	if err != nil {
-		x.l.Fatal("cannot marshal xray config", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("xray: cannot marshal config", zap.Error(errors.WithStack(err)))
 	}
 
 	if err = os.WriteFile(x.configPath, content, 0755); err != nil {
-		x.l.Fatal("cannot save xray config file", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("xray: cannot save config file", zap.Error(errors.WithStack(err)))
 	}
 }
 
@@ -101,16 +101,16 @@ func (x *Xray) runCore() {
 	x.l.Debug("xray: running core...")
 
 	if !utils.FileExist(x.binaryPath) {
-		x.l.Fatal("xray binary file not found", zap.String("path", x.binaryPath))
+		x.l.Fatal("xray: binary not found", zap.String("path", x.binaryPath))
 	}
 
 	x.command = exec.Command(x.binaryPath, "-c", x.configPath)
 	x.command.Stderr = os.Stderr
 	x.command.Stdout = os.Stdout
 
-	x.l.Info("xray: executing the xray binary...", zap.String("path", x.binaryPath))
+	x.l.Info("xray: executing the binary...", zap.String("path", x.binaryPath))
 	if err := x.command.Run(); err != nil && err.Error() != "signal: killed" {
-		x.l.Fatal("cannot execute the xray binary", zap.Error(errors.WithStack(err)))
+		x.l.Fatal("xray: cannot execute the binary", zap.Error(errors.WithStack(err)))
 	}
 }
 
@@ -134,7 +134,7 @@ func (x *Xray) Close() {
 	if x.command != nil && x.command.Process != nil {
 		x.l.Debug("xray: killing the xray process...")
 		if err := x.command.Process.Kill(); err != nil {
-			x.l.Error("cannot kill the xray process", zap.Error(errors.WithStack(err)))
+			x.l.Error("xray: cannot kill the xray process", zap.Error(errors.WithStack(err)))
 		} else {
 			x.l.Debug("xray: the xray process killed")
 		}
@@ -158,7 +158,7 @@ func (x *Xray) connect() {
 	for {
 		select {
 		case <-c.Done():
-			x.l.Fatal("connection to xray api timed out", zap.Error(errors.WithStack(x.context.Err())))
+			x.l.Fatal("xray: connection to xray api timed out", zap.Error(errors.WithStack(x.context.Err())))
 			return
 		default:
 			time.Sleep(time.Second)
@@ -185,7 +185,7 @@ func (x *Xray) QueryStats() []*stats.Stat {
 	client := stats.NewStatsServiceClient(x.connection)
 	qs, err := client.QueryStats(context.Background(), &stats.QueryStatsRequest{Reset_: true})
 	if err != nil {
-		x.l.Error("cannot fetch query stats", zap.Error(errors.WithStack(err)))
+		x.l.Error("xray: cannot fetch query stats", zap.Error(errors.WithStack(err)))
 	}
 	return qs.GetStat()
 }

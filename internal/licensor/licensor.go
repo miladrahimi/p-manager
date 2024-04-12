@@ -40,7 +40,7 @@ func (l *Licensor) validate() {
 	} else {
 		licenseFile, err := os.ReadFile(config.LicensePath)
 		if err != nil {
-			l.l.Error("cannot read license file", zap.Error(errors.WithStack(err)))
+			l.l.Error("licensor: cannot read license file", zap.Error(errors.WithStack(err)))
 		} else {
 			key := fmt.Sprintf("%s:%d", l.database.Data.Settings.Host, l.config.HttpServer.Port)
 			l.licensed = l.enigma.Verify(key, string(licenseFile))
@@ -55,15 +55,15 @@ func (l *Licensor) fetch() {
 		"port": l.config.HttpServer.Port,
 	}
 	if r, err := l.hc.Do(http.MethodPost, Server, Token, body); err != nil {
-		l.l.Debug("cannot fetch license", zap.Error(errors.WithStack(err)))
+		l.l.Debug("licensor: cannot fetch license", zap.Error(errors.WithStack(err)))
 	} else {
 		var response map[string]string
 		if err = json.Unmarshal(r, &response); err != nil {
-			l.l.Debug("cannot unmarshall license server response", zap.Error(errors.WithStack(err)))
+			l.l.Debug("licensor: cannot unmarshall server response", zap.Error(errors.WithStack(err)))
 		}
 		if license, found := response["license"]; found {
 			if err = os.WriteFile(config.LicensePath, []byte(license), 0755); err != nil {
-				l.l.Debug("cannot save license file", zap.Error(errors.WithStack(err)))
+				l.l.Debug("licensor: cannot save license file", zap.Error(errors.WithStack(err)))
 			}
 		} else {
 			l.l.Debug("licensor: license is not issued")

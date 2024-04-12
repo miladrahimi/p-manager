@@ -2,7 +2,6 @@ package logger
 
 import (
 	"github.com/cockroachdb/errors"
-	"github.com/miladrahimi/p-manager/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"syscall"
@@ -10,14 +9,15 @@ import (
 
 type Logger struct {
 	e        *zap.Logger
-	config   *config.Config
 	shutdown chan struct{}
+	level    string
+	format   string
 }
 
 func (l *Logger) Init() (err error) {
 	level := zap.NewAtomicLevel()
-	if err = level.UnmarshalText([]byte(l.config.Logger.Level)); err != nil {
-		return errors.Wrapf(err, "invalid log level '%s'", l.config.Logger.Level)
+	if err = level.UnmarshalText([]byte(l.level)); err != nil {
+		return errors.Wrapf(err, "invalid log level '%s'", l.level)
 	}
 
 	l.e, err = zap.Config{
@@ -30,7 +30,7 @@ func (l *Logger) Init() (err error) {
 		ErrorOutputPaths:  []string{"./storage/logs/app-err.log"},
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
-			EncodeTime:     zapcore.TimeEncoderOfLayout(l.config.Logger.Format),
+			EncodeTime:     zapcore.TimeEncoderOfLayout(l.format),
 			EncodeDuration: zapcore.StringDurationEncoder,
 			LevelKey:       "level",
 			EncodeLevel:    zapcore.CapitalLevelEncoder,
@@ -72,6 +72,6 @@ func (l *Logger) Close() {
 	}
 }
 
-func New(config *config.Config, closer chan struct{}) (logger *Logger) {
-	return &Logger{e: nil, shutdown: closer, config: config}
+func New(level, format string, closer chan struct{}) (logger *Logger) {
+	return &Logger{e: nil, shutdown: closer, level: level, format: format}
 }

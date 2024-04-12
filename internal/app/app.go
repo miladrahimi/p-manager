@@ -44,7 +44,7 @@ func New() (a *App, err error) {
 	if err = a.Config.Init(); err != nil {
 		return a, errors.WithStack(err)
 	}
-	a.Logger = logger.New(a.Config, a.Shutdown)
+	a.Logger = logger.New(a.Config.Logger.Level, a.Config.Logger.Format, a.Shutdown)
 	if err = a.Logger.Init(); err != nil {
 		return a, errors.WithStack(err)
 	}

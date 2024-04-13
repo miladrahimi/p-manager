@@ -3,7 +3,7 @@ package v1
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/database"
-	"github.com/miladrahimi/p-manager/pkg/enigma"
+	"github.com/miladrahimi/p-manager/internal/enigma"
 	"net/http"
 	"time"
 )

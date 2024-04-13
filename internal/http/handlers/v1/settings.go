@@ -8,7 +8,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/licensor"
-	"github.com/miladrahimi/p-manager/pkg/utils"
+	"github.com/miladrahimi/p-manager/internal/utils"
 	"net/http"
 	"time"
 )

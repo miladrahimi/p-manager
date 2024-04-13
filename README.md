@@ -44,7 +44,7 @@ Access the admin panel at the default port `8080`.
 
 * Users: Manage users and view their public profiles
 * Servers: Manage P-Nodes
-* Settings: Modify the general settings
+* Settings: Modify general settings
 * Exit: Sign out of the admin panel
 
 ### Configuration
@@ -52,7 +52,7 @@ Access the admin panel at the default port `8080`.
 You can customize the web panel port and additional settings by modifying the local configuration file found at:
 
 ```shell
-configs/main.local.json
+configs/main.json
 ```
 
 It requires `docker compose restart` to apply changes.

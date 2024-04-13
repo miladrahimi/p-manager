@@ -96,7 +96,8 @@ type Routing struct {
 	DomainStrategy string           `json:"domainStrategy" validate:"required"`
 	DomainMatcher  string           `json:"domainMatcher" validate:"required"`
 	Strategy       string           `json:"strategy" validate:"required"`
-	Settings       *RoutingSettings `json:"settings" validate:"required"`
+	Settings       *RoutingSettings `json:"settings,omitempty"`
+	Rules          []*Rule          `json:"rules,omitempty" validate:"omitempty,dive"`
 	Balancers      []*Balancer      `json:"balancers,omitempty" validate:"omitempty,dive"`
 }
 
@@ -113,7 +114,7 @@ type ReverseItem struct {
 type Config struct {
 	Log       *Log                   `json:"log" validate:"required"`
 	Inbounds  []*Inbound             `json:"inbounds" validate:"required,dive"`
-	Outbounds []*Outbound            `json:"outbounds" validate:"dive"`
+	Outbounds []*Outbound            `json:"outbounds" validate:"required,dive"`
 	DNS       *DNS                   `json:"dns" validate:"required"`
 	Stats     map[string]interface{} `json:"stats" validate:"required"`
 	API       *API                   `json:"api" validate:"required"`

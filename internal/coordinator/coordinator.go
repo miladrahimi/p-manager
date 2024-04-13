@@ -36,16 +36,22 @@ func (c *Coordinator) Run() {
 	go newWorker(c.context, time.Duration(c.config.Worker.Interval)*time.Second, func() {
 		c.l.Info("coordinator: running worker for sync stats...")
 		c.SyncStats()
+	}, func() {
+		c.l.Debug("coordinator: worker for sync stats stopped")
 	}).Start()
 
 	go newWorker(c.context, time.Minute, func() {
 		c.l.Info("coordinator: running worker to sync outdated configs...")
 		c.syncOutdatedConfigs()
+	}, func() {
+		c.l.Debug("coordinator: worker for sync outdated configs stopped")
 	}).Start()
 
 	go newWorker(c.context, time.Hour, func() {
 		c.l.Info("coordinator: running worker to backup database...")
 		c.database.Backup()
+	}, func() {
+		c.l.Debug("coordinator: worker for backup database stopped")
 	}).Start()
 }
 

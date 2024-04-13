@@ -26,15 +26,15 @@ func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error)
 	}
 
 	var requestReader io.Reader
-	var jsonBody []byte
+	var requestBody []byte
 	if body != nil {
 		var err error
-		jsonBody, err = json.Marshal(body)
+		requestBody, err = json.Marshal(body)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot unmarshall request body, %v", info)
 		}
-		requestReader = bytes.NewBuffer(jsonBody)
-		info["request_body"] = string(jsonBody)
+		requestReader = bytes.NewBuffer(requestBody)
+		info["request_body"] = string(requestBody)
 	}
 
 	request, err := http.NewRequest(method, url, requestReader)
@@ -61,12 +61,12 @@ func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error)
 	is4xx := response.StatusCode >= 400 && response.StatusCode < 500
 	if is2xx || is4xx {
 		responseBody, err := io.ReadAll(response.Body)
-		info["response_body"] = response.StatusCode
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot unmarshall response body, %v", info)
+			return nil, errors.Wrapf(err, "cannot read response body, %v", info)
 		}
+		info["response_body"] = string(responseBody)
 		if is4xx {
-			return nil, errors.Errorf("bad request received, %v", info)
+			return responseBody, errors.Errorf("bad request received, %v", info)
 		}
 		return responseBody, nil
 	}

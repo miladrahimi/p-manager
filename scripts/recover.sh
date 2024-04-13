@@ -2,13 +2,13 @@
 
 docker compose down
 
-ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
-LATEST_BACKUP=$(ls -t "$ROOT_DIR/storage/database/backup-"* 2>/dev/null | head -n 1)
-if [ -n "$LATEST_BACKUP" ]; then
-  cp "$LATEST_BACKUP" "$ROOT_DIR/storage/database/app.json"
-  echo "$LATEST_BACKUP recovered successfully."
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+LAST_BACKUP=$(ls -t "$ROOT/storage/database/backup-"* 2>/dev/null | head -n 1)
+if [ -n "$LAST_BACKUP" ]; then
+  cp "$LAST_BACKUP" "$ROOT/storage/database/app.json"
+  echo "$LAST_BACKUP recovered successfully."
 else
-    echo "No backup files found."
+    echo "No backup file found."
 fi
 
 docker compose up -d

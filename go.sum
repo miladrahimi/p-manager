@@ -73,7 +73,6 @@ github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovk
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
-github.com/miladrahimi/p-node v0.0.0-20240413101732-625e53090151/go.mod h1:k30yU8aswyn6/JKvcRBonxkpTQcGq8i8GNJGCOI9biE=
 github.com/miladrahimi/p-node v0.0.0-20240413114653-0b3a75df7c9c h1:mRZ9G5mAhEAnuHlj2LhanmN9U/AquDZoY8wT/K9yhy4=
 github.com/miladrahimi/p-node v0.0.0-20240413114653-0b3a75df7c9c/go.mod h1:bp5Y3RbgEJb7E1Lg/dHUFe755VIoTjMU/wrycEQ+/dE=
 github.com/onsi/ginkgo/v2 v2.16.0 h1:7q1w9frJDzninhXxjZd+Y/x54XNjG/UlRLIYPZafsPM=

@@ -4,27 +4,31 @@
 
 ### Installation
 
+1. Install the requirements
+
 ```shell
-# Install the requirements
 apt-get -y update && apt-get -y upgrade
 apt-get -y install make wget curl vim git openssl cron
 ```
 
+2. Install Docker
+
 ```shell
-# Install Docker
 wget -O install-docker.sh https://get.docker.com
 chmod +x install-docker.sh && ./install-docker.sh && rm -f install-docker.sh
 ```
 
+3. Install BBR
+
 ```shell
-# Install BBR
 sudo sh -c 'echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf'
 sudo sh -c 'echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf'
 sudo sysctl -p
 ```
 
+4. Install P-Manager
+
 ```shell
-# Install P-Manager
 git clone https://github.com/miladrahimi/p-manager.git
 cd p-manager
 make setup

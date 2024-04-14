@@ -49,7 +49,7 @@ Access the admin panel at the default port `8080`.
 
 ### Configuration
 
-You can customize the web panel port and additional settings by modifying the local configuration file found at:
+You can customize the web panel port and additional settings by modifying the configuration file found at:
 
 ```shell
 configs/main.json

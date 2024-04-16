@@ -79,7 +79,7 @@ make update
 
 ## Links
 
-* https://github.com/miladrahimi/p-node
+* [P-Node](https://github.com/miladrahimi/p-node)
 
 ## License
 

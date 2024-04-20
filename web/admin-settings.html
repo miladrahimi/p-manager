@@ -84,11 +84,11 @@
             <div class="card-header">DANGER ZONE</div>
             <div class="card-body">
                 <div class="d-flex flex-column flex-md-row mt-1">
-                    <button class="btn btn-dark btn-sm m-1 flex-fill" id="xray-restart">RESTART XRAY</button>
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="xray-restart">RESTART XRAY</button>
                     <button class="btn btn-secondary btn-sm m-1 flex-fill" id="stats-zero">ZERO STATS</button>
                     <button class="btn btn-secondary btn-sm m-1 flex-fill" id="servers-zero">ZERO SERVERS</button>
                     <button class="btn btn-secondary btn-sm m-1 flex-fill" id="users-zero">ZERO USERS</button>
-                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="users-delete">DELETE USERS</button>
+                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="users-delete">DELETE USERS</button>
                 </div>
             </div>
         </div>
@@ -251,6 +251,11 @@
     });
 
     $('#xray-restart').click(function () {
+        let confirmed = confirm("Click 'OK' to restart the Xray core.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('RESTARTING...')
 
@@ -275,6 +280,11 @@
     })
 
     $('#stats-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset the total traffic.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('ZEROING...')
 
@@ -304,6 +314,11 @@
     })
 
     $('#servers-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset traffic for all servers.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('ZEROING...')
 
@@ -333,6 +348,11 @@
     })
 
     $('#users-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset traffic for all users and activate their accounts.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('ZEROING...')
 
@@ -362,6 +382,11 @@
     })
 
     $('#users-delete').click(function () {
+        let confirmed = confirm("Click 'OK' to permanently delete all user accounts.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('DELETING USERS...')
 

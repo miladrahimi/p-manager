@@ -102,30 +102,33 @@
 <script>
     let tooltip = function (e, cell) {
         let el = document.createElement("div");
+
         el.style.backgroundColor = "black";
         el.style.padding = "10px";
         el.style.borderRadius = "5px";
         el.style.color = "white";
+
         switch (cell.getRow().getCells()[0].getValue()) {
-            case "Password":
+            case "admin_password":
                 el.innerText = "Password of the manager (current) panel.";
                 break;
-            case "Traffic Ratio":
+            case "traffic_ratio":
                 el.innerText = "Factor for displaying traffic to users!";
                 break;
-            case "Host":
+            case "host":
                 el.innerText = "Host to use in proxy links.";
                 break;
-            case "Reverse Port":
+            case "ss_reverse_port":
                 el.innerText = "Shadowsocks Reverse Port.";
                 break;
-            case "Relay Port":
+            case "ss_relay_port":
                 el.innerText = "Shadowsocks Relay Port.";
                 break;
-            case "Direct Port":
+            case "ss_direct_port":
                 el.innerText = "Shadowsocks Direct Port.";
                 break;
         }
+
         return el;
     }
 
@@ -144,7 +147,7 @@
                 title: "Key", field: "key", widthGrow: 1, resizable: true,
             },
             {
-                title: "Value", field: "value", widthGrow: 3, resizable: true, editor: "input", editable: true
+                title: "Value", field: "value", widthGrow: 3, resizable: true, editor: "input", editable: true,
             },
         ],
     });
@@ -152,23 +155,14 @@
     table.on("dataLoadError", handleAuthError);
 
     table.on("cellEdited", function () {
-        let map = {
-            "Password": "admin_password",
-            "Traffic Ratio": "traffic_ratio",
-            "Host": "host",
-            "Reverse Port": "ss_reverse_port",
-            "Relay Port": "ss_relay_port",
-            "Direct Port": "ss_direct_port",
-        }
-
         let body = {}
         table.getData().forEach(function (v) {
-            if (["Traffic Ratio"].includes(v.key)) {
-                body[map[v.key]] = parseFloat(v.value)
-            } else if (["Reverse Port", "Relay Port", "Direct Port"].includes(v.key)) {
-                body[map[v.key]] = parseInt(v.value)
+            if (["traffic_ratio"].includes(v.key)) {
+                body[v.key] = parseFloat(v.value)
+            } else if (["ss_reverse_port", "ss_relay_port", "ss_direct_port"].includes(v.key)) {
+                body[v.key] = parseInt(v.value)
             } else {
-                body[map[v.key]] = v.value
+                body[v.key] = v.value
             }
         })
 
@@ -204,21 +198,17 @@
         });
     });
 
-    function inject(response) {
-        table.setData([
-            {"key": "Password", "value": response["admin_password"]},
-            {"key": "Traffic Ratio", "value": response["traffic_ratio"]},
-            {"key": "Host", "value": response["host"]},
-            {"key": "Reverse Port", "value": response["ss_reverse_port"]},
-            {"key": "Relay Port", "value": response["ss_relay_port"]},
-            {"key": "Direct Port", "value": response["ss_direct_port"]},
-        ])
-    }
-
     $.ajax({
         dataType: "json",
         success: function (response) {
-            inject(response)
+            table.setData([
+                {"key": "admin_password", "value": response["admin_password"]},
+                {"key": "traffic_ratio", "value": response["traffic_ratio"]},
+                {"key": "host", "value": response["host"]},
+                {"key": "ss_reverse_port", "value": response["ss_reverse_port"]},
+                {"key": "ss_relay_port", "value": response["ss_relay_port"]},
+                {"key": "ss_direct_port", "value": response["ss_direct_port"]},
+            ])
         },
         error: function (response) {
             console.log(response)

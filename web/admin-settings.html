@@ -81,14 +81,14 @@
         </div>
 
         <div class="card text-start bg-danger-subtle mt-3">
-            <div class="card-header">DANGER ZONE</div>
             <div class="card-body">
-                <div class="d-flex flex-column flex-md-row mt-1">
-                    <button class="btn btn-dark btn-sm m-1 flex-fill" id="xray-restart">RESTART XRAY</button>
+                <div class="text-danger fw-bold text-center">DANGER ZONE</div>
+                <div class="d-flex flex-column flex-md-row mt-2">
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="xray-restart">RESTART XRAY</button>
                     <button class="btn btn-secondary btn-sm m-1 flex-fill" id="stats-zero">ZERO STATS</button>
                     <button class="btn btn-secondary btn-sm m-1 flex-fill" id="servers-zero">ZERO SERVERS</button>
                     <button class="btn btn-secondary btn-sm m-1 flex-fill" id="users-zero">ZERO USERS</button>
-                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="users-delete">DELETE USERS</button>
+                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="users-delete">DELETE USERS</button>
                 </div>
             </div>
         </div>
@@ -100,6 +100,20 @@
 <script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
+    const COLUMNS = {
+        AdminPassword: { k: "admin_password", v: "Admin Password" },
+        TrafficRatio: { k: "traffic_ratio", v: "Traffic Ratio" },
+        Host: { k: "host", v: "Host" },
+        SsReversePort: { k: "ss_reverse_port", v: "Reverse Port" },
+        SsRelayPort: { k: "ss_relay_port", v: "Relay Port" },
+        SsDirectPort: { k: "ss_direct_port", v: "Direct Port" }
+    };
+
+    const COLUMN_KEYS = Object.values(COLUMNS).reduce((acc, { v, k }) => {
+        acc[v] = k;
+        return acc;
+    }, {});
+
     let tooltip = function (e, cell) {
         let el = document.createElement("div");
         el.style.backgroundColor = "black";
@@ -107,22 +121,22 @@
         el.style.borderRadius = "5px";
         el.style.color = "white";
         switch (cell.getRow().getCells()[0].getValue()) {
-            case "Password":
+            case COLUMNS.AdminPassword.v:
                 el.innerText = "Password of the manager (current) panel.";
                 break;
-            case "Traffic Ratio":
+            case COLUMNS.TrafficRatio.v:
                 el.innerText = "Factor for displaying traffic to users!";
                 break;
-            case "Host":
+            case COLUMNS.Host.v:
                 el.innerText = "Host to use in proxy links.";
                 break;
-            case "Reverse Port":
+            case COLUMNS.SsReversePort.v:
                 el.innerText = "Shadowsocks Reverse Port.";
                 break;
-            case "Relay Port":
+            case COLUMNS.SsRelayPort.v:
                 el.innerText = "Shadowsocks Relay Port.";
                 break;
-            case "Direct Port":
+            case COLUMNS.SsDirectPort.v:
                 el.innerText = "Shadowsocks Direct Port.";
                 break;
         }
@@ -152,23 +166,14 @@
     table.on("dataLoadError", handleAuthError);
 
     table.on("cellEdited", function () {
-        let map = {
-            "Password": "admin_password",
-            "Traffic Ratio": "traffic_ratio",
-            "Host": "host",
-            "Reverse Port": "ss_reverse_port",
-            "Relay Port": "ss_relay_port",
-            "Direct Port": "ss_direct_port",
-        }
-
         let body = {}
         table.getData().forEach(function (v) {
-            if (["Traffic Ratio"].includes(v.key)) {
-                body[map[v.key]] = parseFloat(v.value)
-            } else if (["Reverse Port", "Relay Port", "Direct Port"].includes(v.key)) {
-                body[map[v.key]] = parseInt(v.value)
+            if ([COLUMNS.TrafficRatio.v].includes(v.key)) {
+                body[COLUMN_KEYS[v.key]] = parseFloat(v.value)
+            } else if ([COLUMNS.SsReversePort.v, COLUMNS.SsRelayPort.v, COLUMNS.SsDirectPort.v].includes(v.key)) {
+                body[COLUMN_KEYS[v.key]] = parseInt(v.value)
             } else {
-                body[map[v.key]] = v.value
+                body[COLUMN_KEYS[v.key]] = v.value
             }
         })
 
@@ -206,12 +211,12 @@
 
     function inject(response) {
         table.setData([
-            {"key": "Password", "value": response["admin_password"]},
-            {"key": "Traffic Ratio", "value": response["traffic_ratio"]},
-            {"key": "Host", "value": response["host"]},
-            {"key": "Reverse Port", "value": response["ss_reverse_port"]},
-            {"key": "Relay Port", "value": response["ss_relay_port"]},
-            {"key": "Direct Port", "value": response["ss_direct_port"]},
+            {"key": COLUMNS.AdminPassword.v, "value": response[COLUMNS.AdminPassword.k]},
+            {"key": COLUMNS.TrafficRatio.v, "value": response[COLUMNS.TrafficRatio.k]},
+            {"key": COLUMNS.Host.v, "value": response[COLUMNS.Host.k]},
+            {"key": COLUMNS.SsReversePort.v, "value": response[COLUMNS.SsReversePort.k]},
+            {"key": COLUMNS.SsRelayPort.v, "value": response[COLUMNS.SsRelayPort.k]},
+            {"key": COLUMNS.SsDirectPort.v, "value": response[COLUMNS.SsDirectPort.k]},
         ])
     }
 
@@ -251,6 +256,11 @@
     });
 
     $('#xray-restart').click(function () {
+        let confirmed = confirm("Click 'OK' to restart the Xray core.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('RESTARTING...')
 
@@ -275,6 +285,11 @@
     })
 
     $('#stats-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset the total traffic.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('ZEROING...')
 
@@ -304,6 +319,11 @@
     })
 
     $('#servers-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset traffic for all servers.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('ZEROING...')
 
@@ -333,6 +353,11 @@
     })
 
     $('#users-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset traffic for all users and activate their accounts.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('ZEROING...')
 
@@ -362,6 +387,11 @@
     })
 
     $('#users-delete').click(function () {
+        let confirmed = confirm("Click 'OK' to permanently delete all user accounts.");
+        if (!confirmed) {
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled').val('DELETING USERS...')
 

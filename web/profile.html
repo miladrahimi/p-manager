@@ -158,6 +158,11 @@
         })
 
         $('#reset').click(function () {
+            let confirmed = confirm("Click 'OK' to confirm.");
+            if (!confirmed) {
+                return
+            }
+
             let me = $(this)
             me.attr('disabled', true).val('RESETTING...')
             $.ajax({

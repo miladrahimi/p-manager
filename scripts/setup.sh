@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Detect root directoy
 ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
 
 # Configure Git

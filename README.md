@@ -27,9 +27,9 @@ chmod +x install-docker.sh && ./install-docker.sh && rm -f install-docker.sh
 3. Install BBR
 
 ```shell
-sudo sh -c 'echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf'
-sudo sh -c 'echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf'
-sudo sysctl -p
+echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+sysctl -p
 ```
 
 4. Install P-Manager

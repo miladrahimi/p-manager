@@ -78,7 +78,7 @@
                     <small>Registered @</small>
                     <small id="created_at">-</small>
                 </div>
-                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="reset">RESET LINKS</button>
+                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="reset">UPDATE LINKS</button>
             </div>
         </div>
     </div>
@@ -185,7 +185,7 @@
                     console.log(response)
                     me.val('Error!')
                     setTimeout(function () {
-                        me.val('RESET LINK').attr('disabled', false)
+                        me.val('UPDATE LINKS').attr('disabled', false)
                     }, 2000)
                 }
             })

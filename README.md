@@ -11,18 +11,7 @@ apt-get -y update && apt-get -y upgrade
 apt-get -y install make wget curl vim git openssl cron
 ```
 
-2. Install Docker
-
-```shell
-# For servers located in Iran:
-# https://docs.docker.com/engine/install/#supported-platforms
-```
-
-```shell
-# For servers located outside of Iran:
-wget -O install-docker.sh https://get.docker.com
-chmod +x install-docker.sh && ./install-docker.sh && rm -f install-docker.sh
-```
+2. [Install Docker](https://docs.docker.com/engine/install/#supported-platforms)
 
 3. Install BBR
 

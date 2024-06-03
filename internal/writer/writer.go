@@ -15,14 +15,15 @@ import (
 
 type Writer struct {
 	l        *logger.Logger
+	c        *config.Config
 	hc       *client.Client
 	database *database.Database
 	xray     *xray.Xray
 }
 
-func (c *Writer) clients() []*xray.Client {
+func (w *Writer) clients() []*xray.Client {
 	var clients []*xray.Client
-	for _, u := range c.database.Data.Users {
+	for _, u := range w.database.Data.Users {
 		if !u.Enabled {
 			continue
 		}
@@ -35,64 +36,67 @@ func (c *Writer) clients() []*xray.Client {
 	return clients
 }
 
-func (c *Writer) LocalConfig() *xray.Config {
-	clients := c.clients()
+func (w *Writer) LocalConfig() *xray.Config {
+	clients := w.clients()
 
 	apiPort, err := utils.FreePort()
 	if err != nil {
-		c.l.Fatal("writer: cannot find port for xray api", zap.Error(errors.WithStack(err)))
+		w.l.Fatal("writer: cannot find port for xray api", zap.Error(errors.WithStack(err)))
 	}
 
-	xc := xray.NewConfig()
+	xc := xray.NewConfig(w.c.Xray.LogLevel)
 	xc.FindInbound("api").Port = apiPort
 
 	if len(clients) > 0 {
-		if c.database.Data.Settings.SsRelayPort > 0 {
+		if w.database.Data.Settings.SsRelayPort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"relay",
 				utils.Key32(),
 				config.ShadowsocksMethod,
-				c.database.Data.Settings.SsRelayPort,
+				"tcp,udp",
+				w.database.Data.Settings.SsRelayPort,
 				clients,
 			))
 		}
-		if c.database.Data.Settings.SsReversePort > 0 {
+		if w.database.Data.Settings.SsReversePort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"reverse",
 				utils.Key32(),
 				config.ShadowsocksMethod,
-				c.database.Data.Settings.SsReversePort,
+				"tcp,udp",
+				w.database.Data.Settings.SsReversePort,
 				clients,
 			))
 		}
-		if c.database.Data.Settings.SsDirectPort > 0 {
+		if w.database.Data.Settings.SsDirectPort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"direct",
 				utils.Key32(),
 				config.ShadowsocksMethod,
-				c.database.Data.Settings.SsDirectPort,
+				"tcp,udp",
+				w.database.Data.Settings.SsDirectPort,
 				clients,
 			))
 		}
 	}
 
 	if len(clients) > 0 {
-		if c.database.Data.Settings.SsDirectPort > 0 {
+		if w.database.Data.Settings.SsDirectPort > 0 {
 			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 				InboundTag:  []string{"direct"},
 				OutboundTag: "freedom",
 				Type:        "field",
 			})
 		}
-		if len(c.database.Data.Servers) > 0 {
-			if c.database.Data.Settings.SsRelayPort > 0 {
+		if len(w.database.Data.Servers) > 0 {
+			if w.database.Data.Settings.SsRelayPort > 0 {
 				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 					InboundTag:  []string{"relay"},
 					BalancerTag: "relay",
 					Type:        "field",
 				})
 			}
-			if c.database.Data.Settings.SsReversePort > 0 {
+			if w.database.Data.Settings.SsReversePort > 0 {
 				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 					InboundTag:  []string{"reverse"},
 					BalancerTag: "portal",
@@ -102,26 +106,27 @@ func (c *Writer) LocalConfig() *xray.Config {
 		}
 	}
 
-	if len(c.database.Data.Servers) > 0 {
-		if c.database.Data.Settings.SsRelayPort > 0 {
+	if len(w.database.Data.Servers) > 0 {
+		if w.database.Data.Settings.SsRelayPort > 0 {
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &xray.Balancer{Tag: "relay", Selector: []string{}})
 		}
-		if c.database.Data.Settings.SsReversePort > 0 {
+		if w.database.Data.Settings.SsReversePort > 0 {
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &xray.Balancer{Tag: "portal", Selector: []string{}})
 		}
 	}
 
-	for _, s := range c.database.Data.Servers {
+	for _, s := range w.database.Data.Servers {
 		inboundPort, err := utils.FreePort()
 		if err != nil {
-			c.l.Fatal("writer: cannot find port for foreign inbound", zap.Error(errors.WithStack(err)))
+			w.l.Fatal("writer: cannot find port for foreign inbound", zap.Error(errors.WithStack(err)))
 		}
 
-		if c.database.Data.Settings.SsReversePort > 0 {
+		if w.database.Data.Settings.SsReversePort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				fmt.Sprintf("foreign-%d", s.Id),
 				utils.Key32(),
 				config.Shadowsocks2022Method,
+				"tcp",
 				inboundPort,
 				nil,
 			))
@@ -140,10 +145,10 @@ func (c *Writer) LocalConfig() *xray.Config {
 			)
 		}
 
-		if c.database.Data.Settings.SsRelayPort > 0 {
+		if w.database.Data.Settings.SsRelayPort > 0 {
 			outboundRelayPort, err := utils.FreePort()
 			if err != nil {
-				c.l.Fatal("writer: cannot find port for relay outbound", zap.Error(errors.WithStack(err)))
+				w.l.Fatal("writer: cannot find port for relay outbound", zap.Error(errors.WithStack(err)))
 			}
 			xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 				fmt.Sprintf("relay-%d", s.Id),
@@ -162,15 +167,16 @@ func (c *Writer) LocalConfig() *xray.Config {
 	return xc
 }
 
-func (c *Writer) RemoteConfig(s *database.Server) *xray.Config {
-	xc := xray.NewConfig()
+func (w *Writer) RemoteConfig(s *database.Server) *xray.Config {
+	xc := xray.NewConfig(w.c.Xray.LogLevel)
 
-	if c.database.Data.Settings.SsRelayPort > 0 {
-		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", s.Id))
+	if w.database.Data.Settings.SsRelayPort > 0 {
+		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", s.Id))
 		xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 			"direct",
 			relayOutbound.Settings.Servers[0].Password,
 			relayOutbound.Settings.Servers[0].Method,
+			"tcp",
 			relayOutbound.Settings.Servers[0].Port,
 			nil,
 		))
@@ -184,11 +190,11 @@ func (c *Writer) RemoteConfig(s *database.Server) *xray.Config {
 		)
 	}
 
-	if c.database.Data.Settings.SsReversePort > 0 {
-		foreignOutbound := c.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
+	if w.database.Data.Settings.SsReversePort > 0 {
+		foreignOutbound := w.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
 		xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 			"foreign",
-			c.database.Data.Settings.Host,
+			w.database.Data.Settings.Host,
 			foreignOutbound.Settings.Password,
 			foreignOutbound.Settings.Method,
 			foreignOutbound.Port,
@@ -216,6 +222,6 @@ func (c *Writer) RemoteConfig(s *database.Server) *xray.Config {
 	return xc
 }
 
-func New(logger *logger.Logger, database *database.Database, xray *xray.Xray) *Writer {
-	return &Writer{l: logger, database: database, xray: xray}
+func New(logger *logger.Logger, config *config.Config, database *database.Database, xray *xray.Xray) *Writer {
+	return &Writer{l: logger, c: config, database: database, xray: xray}
 }

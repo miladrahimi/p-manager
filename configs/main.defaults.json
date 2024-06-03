@@ -12,5 +12,8 @@
   },
   "worker": {
     "interval": 300
+  },
+  "xray": {
+    "log_level": "info"
   }
 }

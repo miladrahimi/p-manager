@@ -18,7 +18,7 @@ const AppVersion = "v1.4.2"
 const CoreVersion = "Xray v1.8.8"
 
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
-const Shadowsocks2022Method = "2022-blake3-aes-256-gcm"
+const Shadowsocks2022Method = "2022-blake3-aes-128-gcm"
 
 const FreeUsersCount = 16
 const MaxUsersCount = 256
@@ -58,6 +58,10 @@ type Config struct {
 	Worker struct {
 		Interval int `json:"interval"`
 	} `json:"worker"`
+
+	Xray struct {
+		LogLevel string `json:"log_level"`
+	} `json:"xray"`
 }
 
 func (c *Config) String() string {

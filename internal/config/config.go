@@ -14,8 +14,8 @@ const defaultConfigPath = "configs/main.defaults.json"
 const envConfigPath = "configs/main.json"
 
 const AppName = "P-Manager"
-const AppVersion = "v1.4.2"
-const CoreVersion = "Xray v1.8.8"
+const AppVersion = "v1.5.0"
+const CoreVersion = "Xray v1.8.13"
 
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-128-gcm"

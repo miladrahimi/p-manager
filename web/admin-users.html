@@ -8,15 +8,15 @@
     <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator_semanticui.min.css">
-    <link rel="icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
-    <link rel="apple-touch-icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
+    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
 </head>
 <body>
 
 <div class="container py-4 text-center">
     <div class="col">
         <div class="text-center">
-            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid">
+            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
         </div>
 
         <ul class="nav nav-tabs small">
@@ -24,13 +24,13 @@
                 <span class="nav-link px-2 active" aria-current="page">Users</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link px-2" href="admin-servers.html">Servers</a>
+                <a class="nav-link px-2" href="admin-nodes.html">Nodes</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link px-2" href="admin-settings.html">Settings</a>
+                <a class="nav-link px-2" href="admin-settings-general.html">Settings</a>
             </li>
             <li class="nav-item">
-                <span class="nav-link px-2" id="exit">Exit</span>
+                <a href="#" class="nav-link px-2" id="exit">Exit</a>
             </li>
         </ul>
 
@@ -46,23 +46,23 @@
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     let find = function (rowIndex, field) {
-        return table.getRow(rowIndex).getData()[field];
+        return table.getRow(rowIndex).getData()[field]
     }
 
     let destroy = function (rowIndex) {
-        let confirmed = confirm("Press 'OK' to delete the user.");
+        let confirmed = confirm("Press 'OK' to delete the user.")
         if (!confirmed) {
             return
         }
 
-        table.alert("Deleting the user...", "msg");
-        table.getRow(rowIndex).getElement().classList.add("negative");
+        table.alert("Deleting the user...", "msg")
+        table.getRow(rowIndex).getElement().classList.add("negative")
 
         $.ajax({
             contentType: "application/json",
             dataType: "json",
             success: function () {
-                table.alert("User deleted successfully.", "msg");
+                table.alert("User deleted successfully.", "msg")
                 setTimeout(function () {
                     window.location.reload()
                 }, 1000)
@@ -71,9 +71,9 @@
                 console.log(response)
                 handleAuthError(response)
                 if (response.status === 400) {
-                    table.alert(response["responseJSON"]["message"], "error");
+                    table.alert(response["responseJSON"]["message"], "error")
                 } else {
-                    table.alert("Cannot delete the item.", "error");
+                    table.alert("Cannot delete the item.", "error")
                 }
                 setTimeout(function () {
                     table.clearAlert()
@@ -82,22 +82,22 @@
             processData: true,
             type: "DELETE",
             url: `/v1/users/${find(rowIndex, 'id')}`
-        });
+        })
     }
 
     let zero = function (rowIndex) {
-        let confirmed = confirm("Press 'OK' to reset the user's used traffic to zero.");
+        let confirmed = confirm("Press 'OK' to reset the user's used traffic to zero.")
         if (!confirmed) {
             return
         }
 
-        table.alert("Zeroing the user...", "msg");
+        table.alert("Zeroing the user...", "msg")
 
         $.ajax({
             contentType: "application/json",
             dataType: "json",
             success: function () {
-                table.alert("User zeroed successfully.", "msg");
+                table.alert("User zeroed successfully.", "msg")
                 setTimeout(function () {
                     window.location.reload()
                 }, 1000)
@@ -106,9 +106,9 @@
                 console.log(response)
                 handleAuthError(response)
                 if (response.status === 400) {
-                    table.alert(response["responseJSON"]["message"], "error");
+                    table.alert(response["responseJSON"]["message"], "error")
                 } else {
-                    table.alert("Cannot zero the user.", "error");
+                    table.alert("Cannot zero the user.", "error")
                 }
                 setTimeout(function () {
                     table.clearAlert()
@@ -117,11 +117,11 @@
             processData: true,
             type: "PATCH",
             url: `/v1/users/${find(rowIndex, 'id')}/zero`
-        });
+        })
     }
 
     let profile = function (rowIndex) {
-        window.open(`/profile?u=${find(rowIndex, 'identity')}`, '_blank');
+        window.open(`/profile?u=${find(rowIndex, 'identity')}`, '_blank')
     }
 
     let actionsFormatter = function (cell) {
@@ -181,7 +181,7 @@
             },
             {
                 title: "Created @", field: "created_at", resizable: true, formatter: function (cell) {
-                    return ts2string(cell.getData().created_at);
+                    return ts2string(cell.getData().created_at)
                 },
             },
             {
@@ -190,26 +190,26 @@
         ],
         rowFormatter: function (row) {
             if (row.getData().id === 0) {
-                row.getElement().classList.add("positive");
+                row.getElement().classList.add("positive")
             }
         },
-    });
+    })
 
-    table.on("dataLoadError", handleAuthError);
+    table.on("dataLoadError", handleAuthError)
 
     table.on("cellEdited", function (cell) {
         if (!cell.getData()['name']) {
             return
         }
 
-        table.alert("Saving the user...", "msg");
+        table.alert("Saving the user...", "msg")
 
         $.ajax({
             contentType: "application/json",
             data: JSON.stringify(cell.getData()),
             dataType: "json",
             success: function () {
-                table.alert("Item saved successfully.", "msg");
+                table.alert("Item saved successfully.", "msg")
                 setTimeout(function () {
                     window.location.reload()
                 }, 1000)
@@ -218,9 +218,9 @@
                 console.log(response)
                 handleAuthError(response)
                 if (response.status === 400 || response.status === 403) {
-                    table.alert(response["responseJSON"]["message"], "error");
+                    table.alert(response["responseJSON"]["message"], "error")
                 } else {
-                    table.alert("Cannot save the item.", "error");
+                    table.alert("Cannot save the item.", "error")
                 }
                 setTimeout(function () {
                     table.clearAlert()
@@ -229,8 +229,8 @@
             processData: true,
             type: cell.getData().id === 0 ? "POST" : "PUT",
             url: "/v1/users"
-        });
-    });
+        })
+    })
 
     $("#create").click(function () {
         table.addRow({

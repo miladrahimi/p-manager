@@ -6,8 +6,8 @@
     <meta name="robots" content="noindex,nofollow">
     <title>Profile</title>
     <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
-    <link rel="icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
-    <link rel="apple-touch-icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
+    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
     <style>
         .link {
             border: solid rgb(210, 210, 210) 1px;
@@ -32,7 +32,7 @@
 <div class="container py-4 text-center">
     <div class="col col-md-6 col-lg-4 offset-md-3 offset-lg-4">
         <div class="text-center">
-            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid">
+            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
         </div>
 
         <div class="card mt-4">
@@ -118,7 +118,7 @@
                     $("#ss-direct-link").html(`${r["ss_direct"]}`).attr('href', `${r["ss_direct"]}`)
                 }
 
-                let progressBar = $("#progressbar");
+                let progressBar = $("#progressbar")
                 if (r['user']['quota'] !== 0) {
                     $("#quota").html(r['user']['quota'])
                     let percent = Math.floor(r['user']['used'] / r['user']['quota'] * 100)
@@ -138,10 +138,10 @@
                 console.log(response)
                 alert('Cannot load user data.')
             },
-        });
+        })
 
         $(document).on('click', '.copy', function () {
-            const me = $(this);
+            const me = $(this)
 
             const ta = document.createElement('textarea')
             ta.value = $(this).parent().find('a').html()
@@ -158,7 +158,7 @@
         })
 
         $('#reset').click(function () {
-            let confirmed = confirm("Click 'OK' to confirm.");
+            let confirmed = confirm("Click 'OK' to confirm.")
             if (!confirmed) {
                 return
             }

@@ -6,8 +6,8 @@
     <meta name="robots" content="noindex,nofollow">
     <title>Sign In</title>
     <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
-    <link rel="icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
-    <link rel="apple-touch-icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
+    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
 </head>
 <body>
 
@@ -17,7 +17,7 @@
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <div class="text-center my-3">
-                        <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid">
+                        <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
                     </div>
                     <input type="text" class="form-control" id="username" placeholder="Username" title="Username">
                     <input type="password" class="form-control" id="password" placeholder="Password" title="Password">
@@ -63,15 +63,15 @@
                         me.val('Sign in').attr('disabled', false)
                     }, 1500)
                 }
-            });
+            })
         })
 
         $('#username, #password').keypress(function (e) {
-            const keyCode = e.keyCode ? e.keyCode : e.which;
+            const keyCode = e.keyCode ? e.keyCode : e.which
             if (keyCode === 13) {
-                $('#sign-in').click();
+                $('#sign-in').click()
             }
-        });
+        })
     })
 </script>
 </body>

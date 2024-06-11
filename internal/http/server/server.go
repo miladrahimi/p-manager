@@ -10,6 +10,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/enigma"
+	"github.com/miladrahimi/p-manager/internal/http/client"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/pages"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/v1"
 	"github.com/miladrahimi/p-manager/internal/licensor"
@@ -29,6 +30,7 @@ type Server struct {
 	database    *database.Database
 	enigma      *enigma.Enigma
 	licensor    *licensor.Licensor
+	hc          *client.Client
 }
 
 // Run defines the required HTTP routes and starts the HTTP Server.
@@ -57,19 +59,23 @@ func (s *Server) Run() {
 	g2.DELETE("/users/:id", v1.UsersDelete(s.coordinator, s.database))
 	g2.PATCH("/users/:id/zero", v1.UsersZero(s.coordinator, s.database))
 
-	g2.GET("/servers", v1.ServersIndex(s.database))
-	g2.POST("/servers", v1.ServersStore(s.coordinator, s.database))
-	g2.PUT("/servers", v1.ServersUpdate(s.coordinator, s.database))
-	g2.DELETE("/servers/:id", v1.ServersDelete(s.coordinator, s.database))
+	g2.GET("/nodes", v1.NodesIndex(s.database))
+	g2.POST("/nodes", v1.NodesStore(s.coordinator, s.database))
+	g2.PUT("/nodes", v1.NodesUpdate(s.coordinator, s.database))
+	g2.DELETE("/nodes/:id", v1.NodesDelete(s.coordinator, s.database))
 
-	g2.GET("/settings", v1.SettingsShow(s.database))
-	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))
+	g2.GET("/settings/general", v1.SettingsGeneralMainShow(s.database))
+	g2.POST("/settings/general", v1.SettingsGeneralMainUpdate(s.coordinator, s.database))
+	g2.POST("/settings/general/users/delete", v1.SettingsGeneralUsersDelete(s.coordinator, s.database))
+	g2.POST("/settings/general/users/disabled/delete", v1.SettingsGeneralUsersDisabledDelete(s.coordinator, s.database))
+	g2.POST("/settings/general/xray/restart", v1.SettingsGeneralRestartXray(s.coordinator))
+
 	g2.GET("/settings/insights", v1.SettingsInsightsShow(s.database, s.licensor))
-	g2.POST("/settings/stats/zero", v1.SettingsStatsZero(s.database))
-	g2.POST("/settings/servers/zero", v1.SettingsServersZero(s.database))
-	g2.POST("/settings/users/zero", v1.SettingsUsersZero(s.coordinator, s.database))
-	g2.POST("/settings/users/delete", v1.SettingsUsersDelete(s.coordinator, s.database))
-	g2.POST("/settings/xray/restart", v1.SettingsRestartXray(s.coordinator))
+	g2.POST("/settings/insights/stats/zero", v1.SettingsInsightsStatsZero(s.database))
+	g2.POST("/settings/insights/nodes/zero", v1.SettingsInsightsNodesZero(s.database))
+	g2.POST("/settings/insights/users/zero", v1.SettingsInsightsUsersZero(s.coordinator, s.database))
+
+	g2.POST("/settings/tools/import/pm", v1.SettingsImportPM(s.database, s.hc))
 
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)
@@ -103,6 +109,7 @@ func New(
 	database *database.Database,
 	enigma *enigma.Enigma,
 	licensor *licensor.Licensor,
+	hc *client.Client,
 ) *Server {
 	e := echo.New()
 	e.HideBanner = true
@@ -115,5 +122,6 @@ func New(
 		database:    database,
 		enigma:      enigma,
 		licensor:    licensor,
+		hc:          hc,
 	}
 }

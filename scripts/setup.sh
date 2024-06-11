@@ -31,6 +31,7 @@ SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 SERVICE_TEMPLATE="$ROOT/scripts/service.template"
 sed "s|THE_NAME|$SERVICE_NAME|" "$SERVICE_TEMPLATE" > "$SERVICE_FILE"
 sed -i "s|THE_PATH|$BINARY_PATH|" "$SERVICE_FILE"
+sed -i "s|THE_DIR|$ROOT|" "$SERVICE_FILE"
 
 if systemctl is-enabled --quiet "$SERVICE_NAME"; then
     echo "$SERVICE_NAME service is already enabled and installed."

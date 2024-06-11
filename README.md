@@ -27,7 +27,6 @@ sysctl -p
 git clone https://github.com/miladrahimi/p-manager.git
 cd p-manager
 make setup
-docker compose up -d
 ```
 
 ### Admin Panel
@@ -54,7 +53,7 @@ You can customize the web panel port and additional settings by modifying the co
 configs/main.json
 ```
 
-It requires `docker compose restart` to apply changes.
+It requires `systemctl restart p-manager` to apply changes.
 
 ### Update
 

@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/path/to/binary
+ExecStart=/path/to/binary start
 Restart=on-failure
 
 [Install]

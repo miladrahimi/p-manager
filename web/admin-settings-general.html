@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>P-Manager</title>
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator_semanticui.min.css">
+    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+</head>
+<body>
+
+<div class="container py-4 text-center">
+    <div class="col">
+        <div class="text-center">
+            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
+        </div>
+
+        <ul class="nav nav-tabs small">
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-users.html">Users</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-nodes.html">Nodes</a>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link px-2 active" aria-current="page">Settings</span>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link px-2" id="exit">Exit</span>
+            </li>
+        </ul>
+
+        <ul class="nav nav-pills small my-3">
+            <li class="nav-item">
+                <span class="nav-link px-2 active bg-dark" aria-current="page">General</span>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-settings-insights.html">Insights</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-settings-import.html">Import</a>
+            </li>
+        </ul>
+
+        <div id="table" style="margin: 0 !important"></div>
+
+        <div class="card text-start mt-3">
+            <div class="card-body">
+                <div class="fw-bold text-center">Actions</div>
+                <div class="d-flex flex-column flex-md-row mt-2">
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="xray-restart">
+                        Restart Xray
+                    </button>
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="users-disabled-delete">
+                        Delete Disabled Users
+                    </button>
+                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="users-all-delete">
+                        Delete All Users
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/third_party/jquery-3.7.1.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+<script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
+<script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+<script>
+    const COLUMNS = {
+        AdminPassword: {k: "admin_password", v: "Admin Password"},
+        TrafficRatio: {k: "traffic_ratio", v: "Traffic Ratio"},
+        Host: {k: "host", v: "Host"},
+        SsReversePort: {k: "ss_reverse_port", v: "Reverse Port"},
+        SsRelayPort: {k: "ss_relay_port", v: "Relay Port"},
+        SsDirectPort: {k: "ss_direct_port", v: "Direct Port"}
+    }
+
+    const COLUMN_KEYS = Object.values(COLUMNS).reduce((acc, {v, k}) => {
+        acc[v] = k
+        return acc
+    }, {})
+
+    let tooltip = function (e, cell) {
+        let el = document.createElement("div")
+        el.style.backgroundColor = "black"
+        el.style.padding = "10px"
+        el.style.borderRadius = "5px"
+        el.style.color = "white"
+        switch (cell.getRow().getCells()[0].getValue()) {
+            case COLUMNS.AdminPassword.v:
+                el.innerText = "Current panel password."
+                break
+            case COLUMNS.TrafficRatio.v:
+                el.innerText = "Traffic display multiplier for users!"
+                break
+            case COLUMNS.Host.v:
+                el.innerText = "Host to use in proxy links."
+                break
+            case COLUMNS.SsReversePort.v:
+                el.innerText = "Shadowsocks reverse port."
+                break
+            case COLUMNS.SsRelayPort.v:
+                el.innerText = "Shadowsocks relay port."
+                break
+            case COLUMNS.SsDirectPort.v:
+                el.innerText = "Shadowsocks direct port."
+                break
+        }
+        return el
+    }
+
+    let table = new Tabulator("#table", {
+        layout: "fitDataStretch",
+        validationMode: "blocking",
+        headerVisible: false,
+        rowFormatter: function (row) {
+            row.getElement().firstElementChild.style.background = "#f6f6f6"
+        },
+        columnDefaults: {
+            tooltip: tooltip,
+        },
+        columns: [
+            {
+                title: "Key", field: "key", widthGrow: 1, resizable: true,
+            },
+            {
+                title: "Value", field: "value", widthGrow: 3, resizable: true, editor: "input", editable: true
+            },
+        ],
+    })
+
+    table.on("dataLoadError", handleAuthError)
+
+    table.on("cellEdited", function () {
+        let body = {}
+        table.getData().forEach(function (v) {
+            if ([COLUMNS.TrafficRatio.v].includes(v.key)) {
+                body[COLUMN_KEYS[v.key]] = parseFloat(v.value)
+            } else if ([COLUMNS.SsReversePort.v, COLUMNS.SsRelayPort.v, COLUMNS.SsDirectPort.v].includes(v.key)) {
+                body[COLUMN_KEYS[v.key]] = parseInt(v.value)
+            } else {
+                body[COLUMN_KEYS[v.key]] = v.value
+            }
+        })
+
+        table.alert("Saving the setting...", "msg")
+
+        $.ajax({
+            contentType: "application/json",
+            data: JSON.stringify(body),
+            dataType: "json",
+            success: function () {
+                table.alert("Settings saved successfully.", "msg")
+                setTimeout(function () {
+                    window.location.reload()
+                }, 1000)
+            },
+            error: function (response) {
+                console.log(response)
+                handleAuthError(response)
+                let t = 2000
+                if (response.status === 400) {
+                    table.alert(response["responseJSON"]["message"], "error")
+                } else {
+                    table.alert("Cannot save the settings.", "error")
+                    t = 1000
+                }
+                setTimeout(function () {
+                    table.clearAlert()
+                }, t)
+            },
+            processData: true,
+            type: "POST",
+            url: "/v1/settings/general"
+        })
+    })
+
+    function inject(response) {
+        table.setData([
+            {"key": COLUMNS.AdminPassword.v, "value": response[COLUMNS.AdminPassword.k]},
+            {"key": COLUMNS.TrafficRatio.v, "value": response[COLUMNS.TrafficRatio.k]},
+            {"key": COLUMNS.Host.v, "value": response[COLUMNS.Host.k]},
+            {"key": COLUMNS.SsReversePort.v, "value": response[COLUMNS.SsReversePort.k]},
+            {"key": COLUMNS.SsRelayPort.v, "value": response[COLUMNS.SsRelayPort.k]},
+            {"key": COLUMNS.SsDirectPort.v, "value": response[COLUMNS.SsDirectPort.k]},
+        ])
+    }
+
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            inject(response)
+        },
+        error: function (response) {
+            console.log(response)
+            handleAuthError(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/settings/general"
+    })
+
+    $('#xray-restart').click(function () {
+        let confirmed = confirm("Click 'OK' to restart the Xray core.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/general/xray/restart`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Xray restarted successfully.'),
+            error: response => {
+                console.log('ERROR', 'Restart Xray', response.status, response.responseText)
+                alert('Cannot restart Xray, see the error in your console.')
+            },
+        })
+    })
+
+    $('#users-disabled-delete').click(function () {
+        let confirmed = confirm("Click 'OK' to delete disabled users.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/general/users/disabled/delete`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Disabled users deleted successfully.'),
+            error: response => {
+                console.log('ERROR', 'Delete Disabled Users', response.status, response.responseText)
+                alert('Cannot delete disabled users, see the error in your console.')
+            },
+        })
+    })
+
+    $('#users-all-delete').click(function () {
+        let confirmed = confirm("Click 'OK' to delete all users.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/general/users/delete`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('All users deleted successfully.'),
+            error: response => {
+                console.log('ERROR', 'Delete All Users', response.status, response.responseText)
+                alert('Cannot delete all users, see the error in your console.')
+            },
+        })
+    })
+</script>
+
+</body>
+</html>

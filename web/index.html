@@ -21,7 +21,7 @@
                     </div>
                     <input type="text" class="form-control" id="username" placeholder="Username" title="Username">
                     <input type="password" class="form-control" id="password" placeholder="Password" title="Password">
-                    <input type="button" class="btn btn-dark d-block" id="sign-in" value="Sign in">
+                    <button class="btn btn-dark d-block" id="sign-in">Sign in</button>
                 </div>
             </div>
         </div>
@@ -32,41 +32,41 @@
 <script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
-    jQuery(function () {
+    jQuery(() => {
         $('#sign-in').click(function () {
             let me = $(this)
-            me.attr('disabled', true).val('Processing...')
+            me.attr('disabled', 'disabled').html('Processing...')
 
             $.ajax({
                 type: 'POST',
                 url: '/v1/sign-in',
-                processData: true,
-                dataType: 'json',
                 data: JSON.stringify({
                     "username": $("#username").val(),
                     "password": $("#password").val(),
                 }),
-                success: function (response) {
+                dataType: 'json',
+                processData: true,
+                success: response => {
                     localStorage.setItem("token", response['token'])
                     window.location = "admin-users.html"
                 },
-                error: function (response) {
+                error: response => {
                     me.removeClass('btn-primary').addClass('btn-danger')
                     if (response.status === 401) {
-                        me.val('Unauthorized!')
+                        me.html('Unauthorized!')
                     } else {
-                        console.log(response)
-                        me.val('Error!')
+                        console.log('ERROR', 'Sign In', response.status, response.responseText)
+                        me.html('Error!')
                     }
-                    setTimeout(function () {
+                    setTimeout(() => {
                         me.removeClass('btn-danger').addClass('btn-primary')
-                        me.val('Sign in').attr('disabled', false)
+                        me.html('Sign in').removeAttr('disabled')
                     }, 1500)
                 }
             })
         })
 
-        $('#username, #password').keypress(function (e) {
+        $('#username, #password').keypress(e => {
             const keyCode = e.keyCode ? e.keyCode : e.which
             if (keyCode === 13) {
                 $('#sign-in').click()

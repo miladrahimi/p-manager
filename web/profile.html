@@ -78,7 +78,7 @@
                     <small>Registered @</small>
                     <small id="created_at">-</small>
                 </div>
-                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="reset">UPDATE LINKS</button>
+                <button class="btn btn-danger d-block w-100 mt-3 btn-sm" id="update">UPDATE LINKS</button>
             </div>
         </div>
     </div>
@@ -88,13 +88,13 @@
 <script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
-    jQuery(function () {
+    jQuery(() => {
         $.ajax({
             type: "GET",
             url: `/v1/profile${window.location.search}`,
             processData: true,
             dataType: "json",
-            success: function (r) {
+            success: r => {
                 $("#name").html(r['user']['name'])
                 $("#used").html(r['user']['used'])
                 $("#created_at").html(ts2string(r['user']['created_at']))
@@ -134,9 +134,9 @@
                     progressBar.removeClass('bg-warning').removeClass('bg-danger')
                 }
             },
-            error: function (response) {
-                console.log(response)
-                alert('Cannot load user data.')
+            error: response => {
+                console.log('ERROR', 'Load Profile', response.status, response.responseText)
+                alert('Cannot load profile :(')
             },
         })
 
@@ -152,41 +152,34 @@
             document.body.removeChild(ta)
 
             me.removeClass('btn-dark').addClass('btn-success')
-            setTimeout(function () {
-                me.removeClass('btn-success').addClass('btn-dark').blur()
-            }, 1000)
+            setTimeout(() => me.removeClass('btn-success').addClass('btn-dark').blur(), 1000)
         })
 
-        $('#reset').click(function () {
-            let confirmed = confirm("Click 'OK' to confirm.")
+        $('#update').click(function () {
+            let confirmed = confirm("Click 'OK' to update links.")
             if (!confirmed) {
                 return
             }
 
             let me = $(this)
-            me.attr('disabled', true).val('RESETTING...')
+            me.attr('disabled', 'disabled').val('UPDATING...')
+
             $.ajax({
                 type: 'POST',
                 url: `/v1/profile/reset${window.location.search}`,
-                processData: true,
                 dataType: 'json',
-                success: function (response) {
-                    console.log(response)
+                processData: true,
+                success: () => {
                     me.html('DONE!').removeClass('btn-danger').addClass('btn-success')
-                    setTimeout(function () {
-                        console.log(response)
-                        me.html('LOADING...')
-                        setTimeout(function () {
-                            window.location.reload()
-                        }, 2000)
+                    setTimeout(() => {
+                        me.html('LOADING NEW LINKS...')
+                        setTimeout(() => window.location.reload(), 2000)
                     }, 2000)
                 },
-                error: function (response) {
-                    console.log(response)
+                error: response => {
+                    console.log('ERROR', 'Update Links', response.status, response.responseText)
                     me.val('Error!')
-                    setTimeout(function () {
-                        me.val('UPDATE LINKS').attr('disabled', false)
-                    }, 2000)
+                    setTimeout(() => me.val('UPDATE LINKS').removeAttr('disabled'), 2000)
                 }
             })
         })

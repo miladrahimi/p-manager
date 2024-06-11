@@ -49,7 +49,7 @@
 <script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
-    let statusFormatter = function (cell) {
+    let statusFormatter = cell => {
         switch (cell.getValue()) {
             case "available":
                 cell.getElement().style.color = "#198754"
@@ -66,11 +66,11 @@
         }
     }
 
-    let actionsFormatter = function (cell) {
+    let actionsFormatter = cell => {
         return `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`
     }
 
-    let destroy = function (rowIndex) {
+    let destroy = rowIndex => {
         let confirmed = confirm("Press 'OK' to delete the node.")
         if (!confirmed) {
             return
@@ -95,7 +95,7 @@
                 setTimeout(() => window.location.reload(), 1000)
             },
             error: response => {
-                console.log(response)
+                console.log('ERROR', 'Delete Node', response.status, response.responseText)
                 handleAuthError(response)
                 let t = 2000
                 if (response.status === 400) {
@@ -191,7 +191,7 @@
                 setTimeout(() => window.location.reload(), 1000)
             },
             error: response => {
-                console.log(response)
+                console.log('ERROR', 'Edit/Create Node', response.status, response.responseText)
                 handleAuthError(response)
                 let t = 2000
                 if (response.status === 400) {

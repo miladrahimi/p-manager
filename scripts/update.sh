@@ -18,7 +18,6 @@ service_active() {
     systemctl is-active --quiet "$SERVICE_NAME"
 }
 
-systemctl daemon-reload
 if service_exists; then
     if service_active; then
         systemctl restart "$SERVICE_NAME"

@@ -11,9 +11,7 @@ apt-get -y update && apt-get -y upgrade
 apt-get -y install make wget curl vim git openssl cron
 ```
 
-2. [Install Docker](https://docs.docker.com/engine/install/#supported-platforms)
-
-3. Install BBR
+2. Install BBR
 
 ```shell
 echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
@@ -21,7 +19,7 @@ echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
 sysctl -p
 ```
 
-4. Install P-Manager
+3. Install P-Manager
 
 ```shell
 git clone https://github.com/miladrahimi/p-manager.git

@@ -6,10 +6,12 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/gommon/random"
+	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/utils"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"go.uber.org/zap"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -29,13 +31,14 @@ type Database struct {
 	Data   *Data
 	Locker *sync.Mutex
 	l      *logger.Logger
+	c      *config.Config
 }
 
 func (d *Database) Init() {
 	d.Locker.Lock()
 	defer d.Locker.Unlock()
 
-	if !utils.FileExist(Path) {
+	if !utils.FileExist(filepath.Join(d.c.AppPath, Path)) {
 		d.Save()
 	} else {
 		d.Load()
@@ -43,7 +46,7 @@ func (d *Database) Init() {
 }
 
 func (d *Database) Load() {
-	content, err := os.ReadFile(Path)
+	content, err := os.ReadFile(filepath.Join(d.c.AppPath, Path))
 	if err != nil {
 		d.l.Fatal("database: cannot load file", zap.Error(errors.WithStack(err)))
 	}
@@ -64,7 +67,7 @@ func (d *Database) Save() {
 		d.l.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
 
-	if err = os.WriteFile(Path, content, 0755); err != nil {
+	if err = os.WriteFile(filepath.Join(d.c.AppPath, Path), content, 0755); err != nil {
 		d.l.Fatal("database: cannot save file", zap.Error(errors.WithStack(err)))
 	}
 }
@@ -79,8 +82,10 @@ func (d *Database) Backup() {
 	}
 
 	path := strings.ToLower(fmt.Sprintf(BackupPath, time.Now().Format("Mon-15")))
-	if err = os.WriteFile(path, content, 0755); err != nil {
-		d.l.Fatal("database: cannot save backup file", zap.String("file", path), zap.Error(errors.WithStack(err)))
+	if err = os.WriteFile(filepath.Join(d.c.AppPath, path), content, 0755); err != nil {
+		d.l.Fatal(
+			"database: cannot save backup file", zap.String("file", path), zap.Error(errors.WithStack(err)),
+		)
 	}
 }
 
@@ -130,10 +135,11 @@ func (d *Database) GenerateServerId() int {
 	}
 }
 
-func New(l *logger.Logger) *Database {
+func New(l *logger.Logger, c *config.Config) *Database {
 	return &Database{
 		Locker: &sync.Mutex{},
 		l:      l,
+		c:      c,
 		Data: &Data{
 			Settings: &Settings{
 				AdminPassword: "password",

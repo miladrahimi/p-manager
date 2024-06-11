@@ -7,6 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/miladrahimi/p-manager/internal/utils"
 	"os"
+	"path/filepath"
 	"runtime"
 )
 
@@ -41,6 +42,7 @@ func XrayBinaryPath() string {
 }
 
 type Config struct {
+	AppPath    string
 	HttpServer struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
@@ -73,7 +75,7 @@ func (c *Config) String() string {
 }
 
 func (c *Config) Init() (err error) {
-	content, err := os.ReadFile(defaultConfigPath)
+	content, err := os.ReadFile(filepath.Join(c.AppPath, defaultConfigPath))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -82,8 +84,8 @@ func (c *Config) Init() (err error) {
 		return errors.WithStack(err)
 	}
 
-	if utils.FileExist(envConfigPath) {
-		content, err = os.ReadFile(envConfigPath)
+	if utils.FileExist(filepath.Join(c.AppPath, envConfigPath)) {
+		content, err = os.ReadFile(filepath.Join(c.AppPath, envConfigPath))
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -97,6 +99,8 @@ func (c *Config) Init() (err error) {
 	return errors.WithStack(validator.New().Struct(c))
 }
 
-func New() *Config {
-	return &Config{}
+func New(path string) *Config {
+	return &Config{
+		AppPath: path,
+	}
 }

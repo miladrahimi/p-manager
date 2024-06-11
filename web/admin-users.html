@@ -45,11 +45,9 @@
 <script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
-    let find = function (rowIndex, field) {
-        return table.getRow(rowIndex).getData()[field]
-    }
+    let find = (rowIndex, field) => table.getRow(rowIndex).getData()[field]
 
-    let destroy = function (rowIndex) {
+    let destroy = rowIndex => {
         let confirmed = confirm("Press 'OK' to delete the user.")
         if (!confirmed) {
             return
@@ -59,33 +57,29 @@
         table.getRow(rowIndex).getElement().classList.add("negative")
 
         $.ajax({
+            type: "DELETE",
+            url: `/v1/users/${find(rowIndex, 'id')}`,
             contentType: "application/json",
             dataType: "json",
-            success: function () {
+            processData: true,
+            success: () => {
                 table.alert("User deleted successfully.", "msg")
-                setTimeout(function () {
-                    window.location.reload()
-                }, 1000)
+                setTimeout(() => window.location.reload(), 1000)
             },
-            error: function (response) {
-                console.log(response)
+            error: response => {
+                console.log('ERROR', 'Delete User', response.status, response.responseText)
                 handleAuthError(response)
                 if (response.status === 400) {
                     table.alert(response["responseJSON"]["message"], "error")
                 } else {
                     table.alert("Cannot delete the item.", "error")
                 }
-                setTimeout(function () {
-                    table.clearAlert()
-                }, 2000)
+                setTimeout(() => table.clearAlert(), 2000)
             },
-            processData: true,
-            type: "DELETE",
-            url: `/v1/users/${find(rowIndex, 'id')}`
         })
     }
 
-    let zero = function (rowIndex) {
+    let zero = rowIndex => {
         let confirmed = confirm("Press 'OK' to reset the user's used traffic to zero.")
         if (!confirmed) {
             return
@@ -94,43 +88,35 @@
         table.alert("Zeroing the user...", "msg")
 
         $.ajax({
+            type: "PATCH",
+            url: `/v1/users/${find(rowIndex, 'id')}/zero`,
             contentType: "application/json",
             dataType: "json",
-            success: function () {
+            processData: true,
+            success: () => {
                 table.alert("User zeroed successfully.", "msg")
-                setTimeout(function () {
-                    window.location.reload()
-                }, 1000)
+                setTimeout(() => window.location.reload(), 1000)
             },
-            error: function (response) {
-                console.log(response)
+            error: response => {
+                console.log('ERROR', 'Zero User', response.status, response.responseText)
                 handleAuthError(response)
                 if (response.status === 400) {
                     table.alert(response["responseJSON"]["message"], "error")
                 } else {
                     table.alert("Cannot zero the user.", "error")
                 }
-                setTimeout(function () {
-                    table.clearAlert()
-                }, 2000)
+                setTimeout(() => table.clearAlert(), 2000)
             },
-            processData: true,
-            type: "PATCH",
-            url: `/v1/users/${find(rowIndex, 'id')}/zero`
         })
     }
 
-    let profile = function (rowIndex) {
-        window.open(`/profile?u=${find(rowIndex, 'identity')}`, '_blank')
-    }
+    let profile = rowIndex => window.open(`/profile?u=${find(rowIndex, 'identity')}`, '_blank')
 
-    let actionsFormatter = function (cell) {
-        return [
-            `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`,
-            `<span class="badge bg-success" onclick="zero('${cell.getRow().getIndex()}')" title="Zero">0</span>`,
-            `<span class="badge bg-dark" onclick="profile('${cell.getRow().getIndex()}')" title="Profile">P</span>`,
-        ].join('&nbsp')
-    }
+    let actionsFormatter = cell => [
+        `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`,
+        `<span class="badge bg-success" onclick="zero('${cell.getRow().getIndex()}')" title="Zero">0</span>`,
+        `<span class="badge bg-dark" onclick="profile('${cell.getRow().getIndex()}')" title="Profile">P</span>`,
+    ].join('&nbsp')
 
     let table = new Tabulator("#table", {
         ajaxURL: "/v1/users",
@@ -139,9 +125,8 @@
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
             },
         },
-        ajaxError: function (error) {
-            console.log('here')
-            console.log('ajaxError', error, error.status)
+        ajaxError: error => {
+            console.log('ERROR', 'Load Table', error.status, error)
             handleAuthError(error)
         },
         layout: "fitDataStretch",
@@ -168,27 +153,26 @@
                 resizable: true,
                 sorter: "number",
                 formatter: "progress",
-                formatterParams: function (cell) {
-                    return {
-                        min: 0,
-                        max: cell.getData().quota || cell.getData().used,
-                        color: cell.getData().quota ? ["#3fb449", "#b4a43f", "#b4513f"] : ["#3fb449"],
-                        legend: true,
-                        legendColor: "#000000",
-                        legendAlign: "center",
-                    }
-                }
+                formatterParams: cell => ({
+                    min: 0,
+                    max: cell.getData().quota || cell.getData().used,
+                    color: cell.getData().quota ? ["#3fb449", "#b4a43f", "#b4513f"] : ["#3fb449"],
+                    legend: true,
+                    legendColor: "#000000",
+                    legendAlign: "center",
+                })
             },
             {
-                title: "Created @", field: "created_at", resizable: true, formatter: function (cell) {
-                    return ts2string(cell.getData().created_at)
-                },
+                title: "Created @",
+                field: "created_at",
+                resizable: true,
+                formatter: cell => ts2string(cell.getData().created_at),
             },
             {
                 title: "Actions", field: "actions", formatter: actionsFormatter, hozAlign: "right",
             },
         ],
-        rowFormatter: function (row) {
+        rowFormatter: row => {
             if (row.getData().id === 0) {
                 row.getElement().classList.add("positive")
             }
@@ -197,7 +181,7 @@
 
     table.on("dataLoadError", handleAuthError)
 
-    table.on("cellEdited", function (cell) {
+    table.on("cellEdited", cell => {
         if (!cell.getData()['name']) {
             return
         }
@@ -205,34 +189,30 @@
         table.alert("Saving the user...", "msg")
 
         $.ajax({
+            type: cell.getData().id === 0 ? "POST" : "PUT",
+            url: "/v1/users",
             contentType: "application/json",
             data: JSON.stringify(cell.getData()),
             dataType: "json",
-            success: function () {
+            processData: true,
+            success: () => {
                 table.alert("Item saved successfully.", "msg")
-                setTimeout(function () {
-                    window.location.reload()
-                }, 1000)
+                setTimeout(() => window.location.reload(), 1000)
             },
-            error: function (response) {
-                console.log(response)
+            error: response => {
+                console.log('ERROR', 'Edit/Create User', response.status, response.responseText)
                 handleAuthError(response)
                 if (response.status === 400 || response.status === 403) {
                     table.alert(response["responseJSON"]["message"], "error")
                 } else {
                     table.alert("Cannot save the item.", "error")
                 }
-                setTimeout(function () {
-                    table.clearAlert()
-                }, 3000)
+                setTimeout(() => table.clearAlert(), 3000)
             },
-            processData: true,
-            type: cell.getData().id === 0 ? "POST" : "PUT",
-            url: "/v1/users"
         })
     })
 
-    $("#create").click(function () {
+    $("#create").click(() => {
         table.addRow({
             id: 0,
             identity: "",

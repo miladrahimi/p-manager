@@ -34,12 +34,13 @@ sed -i "s|THE_PATH|$BINARY_PATH|" "$SERVICE_FILE"
 sed -i "s|THE_DIR|$ROOT|" "$SERVICE_FILE"
 
 if systemctl is-enabled --quiet "$SERVICE_NAME"; then
-    echo "$SERVICE_NAME service is already enabled and installed."
+    echo "Service $SERVICE_NAME is already enabled and installed."
 else
+    echo "Installing service $SERVICE_NAME."
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
     systemctl start "$SERVICE_NAME"
-    echo "$SERVICE_NAME service started."
+    echo "Service $SERVICE_NAME installed and started."
 fi
 
 # Setup Cron Jobs

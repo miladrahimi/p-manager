@@ -20,11 +20,16 @@ service_active() {
 
 if service_exists; then
     if service_active; then
+        echo "Restarting service $SERVICE_NAME..."
         systemctl restart "$SERVICE_NAME"
+        echo "Service $SERVICE_NAME restarted."
     else
+        echo "Starting service $SERVICE_NAME..."
         systemctl start "$SERVICE_NAME"
+        echo "Service $SERVICE_NAME started."
     fi
 else
+    echo "Running setup again..."
     "$(dirname "$0")/setup.sh"
 fi
 

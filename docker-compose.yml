@@ -1,7 +1,7 @@
 services:
   app:
     image: ghcr.io/miladrahimi/p-manager:${TAG:-stable}
-    restart: unless-stopped
+    restart: always
     network_mode: host
     volumes:
       - ./configs/:/app/configs/

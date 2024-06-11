@@ -7,11 +7,11 @@
 1. Install the requirements
 
 ```shell
-apt-get -y update && apt-get -y upgrade
-apt-get -y install make wget curl vim git openssl cron
+apt -y update && apt-get -y upgrade
+apt -y install make wget curl vim git openssl cron
 ```
 
-2. Install BBR (Optiona)
+2. Install BBR (Optional)
 
 ```shell
 echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf

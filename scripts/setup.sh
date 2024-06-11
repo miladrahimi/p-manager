@@ -27,17 +27,17 @@ fi
 # Setup service
 SERVICE_NAME=$(basename "$ROOT")
 SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
-
 SERVICE_TEMPLATE="$ROOT/scripts/service.template"
 sed "s|THE_NAME|$SERVICE_NAME|" "$SERVICE_TEMPLATE" > "$SERVICE_FILE"
 sed -i "s|THE_PATH|$BINARY_PATH|" "$SERVICE_FILE"
 sed -i "s|THE_DIR|$ROOT|" "$SERVICE_FILE"
-
+systemctl daemon-reload
 if systemctl is-enabled --quiet "$SERVICE_NAME"; then
     echo "Service $SERVICE_NAME is already enabled and installed."
+    systemctl restart "$SERVICE_NAME"
+    echo "Service $SERVICE_NAME restarted."
 else
     echo "Installing service $SERVICE_NAME."
-    systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
     systemctl start "$SERVICE_NAME"
     echo "Service $SERVICE_NAME installed and started."

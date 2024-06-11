@@ -19,6 +19,11 @@ if [ ! -f "$BINARY_PATH" ]; then
     exit 1
 fi
 
+# Create Config File
+if [ ! -f "$ROOT"/configs/main.json ]; then
+		cp "$ROOT"/configs/main.defaults.json "$ROOT"/configs/main.json;
+fi
+
 # Setup service
 SERVICE_NAME="p-manager"
 SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
@@ -33,11 +38,6 @@ else
     systemctl enable $SERVICE_NAME
     systemctl start $SERVICE_NAME
     echo "$SERVICE_NAME service started."
-fi
-
-# Create Config File
-if [ ! -f "$ROOT"/configs/main.json ]; then
-		cp "$ROOT"/configs/main.defaults.json "$ROOT"/configs/main.json;
 fi
 
 # Setup Cron Jobs

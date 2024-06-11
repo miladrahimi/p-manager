@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>P-Manager</title>
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator_semanticui.min.css">
+    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+</head>
+<body>
+
+<div class="container py-4 text-center">
+    <div class="col">
+        <div class="text-center">
+            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
+        </div>
+
+        <ul class="nav nav-tabs small">
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-users.html">Users</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-nodes.html">Nodes</a>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link px-2 active" aria-current="page">Settings</span>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link px-2" id="exit">Exit</span>
+            </li>
+        </ul>
+
+        <ul class="nav nav-pills small my-3">
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-settings-general.html">General</a>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link px-2 active bg-dark" aria-current="page">Insights</span>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-settings-import.html">Import</a>
+            </li>
+        </ul>
+
+        <div class="card bg-light-subtle text-start">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col col-12 col-md-6">
+                        <div class="my-1">
+                            <span>Total traffic:</span>
+                            <span id="insights-stats-traffic" class="text-muted"></span>
+                            <span class="text-muted">GB</span>
+                        </div>
+                        <div class="my-1">
+                            <span>Last update:</span>
+                            <span id="insights-stats-updated-at" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Total Users:</span>
+                            <span id="insights-users-count" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Active users:</span>
+                            <span id="insights-active-users-count" class="text-muted"></span>
+                        </div>
+                    </div>
+                    <div class="col col-12 col-md-6">
+                        <div class="my-1">
+                            <span>App Name:</span>
+                            <span id="insights-app-name" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>App Version:</span>
+                            <span id="insights-app-version" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>App License:</span>
+                            <span id="insights-app-license" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Core:</span>
+                            <span id="insights-core" class="text-muted"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card text-start mt-3">
+            <div class="card-body">
+                <div class="fw-bold text-center">Actions</div>
+                <div class="d-flex flex-column flex-md-row mt-2">
+                    <button class="btn btn-secondary btn-sm m-1 flex-fill" id="nodes-zero">Zero Nodes</button>
+                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="users-zero">Zero Users</button>
+                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="stats-zero">Zero Stats</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/third_party/jquery-3.7.1.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+<script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
+<script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+<script>
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            $("#insights-stats-traffic").html(parseFloat(response['stats']['traffic']).toFixed(2))
+            $("#insights-stats-updated-at").html(ts2string(response['stats']['updated_at']))
+            $("#insights-users-count").html(response['users_count'])
+            $("#insights-active-users-count").html(response['active_users_count'])
+            $("#insights-app-name").html(response['app_name'])
+            $("#insights-app-version").html(response['app_version'])
+            $("#insights-app-license").html(response['app_licensed'] ? 'Premium' : 'Free')
+            $("#insights-core").html(response['core'])
+        },
+        error: function (response) {
+            console.log(response)
+            handleAuthError(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/settings/insights"
+    })
+
+    $('#nodes-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset traffic for all nodes.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('ZEROING...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/insights/nodes/zero`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Nodes zerod successfully.'),
+            error: response => {
+                console.log('ERROR', 'Zero Nodes', response.status, response.responseText)
+                alert('Cannot zero nodes, see the error in your console.')
+            }
+        })
+    })
+
+    $('#users-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset traffic for all users and activate their accounts.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('ZEROING...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/insights/users/zero`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Users zerod successfully.'),
+            error: response => {
+                console.log('ERROR', 'Zero Users', response.status, response.responseText)
+                alert('Cannot zero users, see the error in your console.')
+            }
+        })
+    })
+
+    $('#stats-zero').click(function () {
+        let confirmed = confirm("Click 'OK' to reset the total traffic.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('ZEROING...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/insights/stats/zero`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => {
+                alert('Stats zerod successfully.')
+                window.location.reload()
+            },
+            error: response => {
+                console.log('ERROR', 'Zero Stats', response.status, response.responseText)
+                alert('Cannot zero stats, see the error in your console.')
+            }
+        })
+    })
+</script>
+
+</body>
+</html>

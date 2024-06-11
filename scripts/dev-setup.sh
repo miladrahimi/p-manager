@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install Xray for Mac
-ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 THIRD_PARTY="$ROOT/third_party"
 DIRECTORY="${THIRD_PARTY}/xray-macos-arm64"
 ZIP_FILE="${DIRECTORY}.zip"

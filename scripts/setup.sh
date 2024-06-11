@@ -7,7 +7,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # Detect root directory
-ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 
 # Configure Git
 git config pull.rebase false

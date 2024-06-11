@@ -55,9 +55,9 @@ func New() (a *App, err error) {
 		return a, errors.WithStack(err)
 	}
 
-	xrayConfigPath := filepath.Join(a.Config.AppPath, config.XrayConfigPath)
-	xrayBinaryPath := filepath.Join(a.Config.AppPath, config.XrayBinaryPath())
-	enigmaKeyPath := filepath.Join(a.Config.AppPath, config.EnigmaKeyPath)
+	xrayConfigPath := filepath.Join(path, config.XrayConfigPath)
+	xrayBinaryPath := filepath.Join(path, config.XrayBinaryPath())
+	enigmaKeyPath := filepath.Join(path, config.EnigmaKeyPath)
 
 	a.Database = database.New(a.Logger, a.Config)
 	a.Xray = xray.New(a.Context, a.Logger, a.Config.Xray.LogLevel, xrayConfigPath, xrayBinaryPath)

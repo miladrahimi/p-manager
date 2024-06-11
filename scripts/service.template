@@ -4,8 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
+WorkingDirectory=THE_DIR
 ExecStart=THE_PATH start
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

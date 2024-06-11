@@ -7,7 +7,7 @@ if type docker >/dev/null 2>&1; then
     docker compose down
 fi
 
-ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 SERVICE_NAME=$(basename "$ROOT")
 SETUP_SCRIPT="$(dirname "$0")/setup.sh"
 

@@ -2,7 +2,7 @@
 
 docker compose down
 
-ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 LAST_BACKUP=$(ls -t "$ROOT/storage/database/backup-"* 2>/dev/null | head -n 1)
 if [ -n "$LAST_BACKUP" ]; then
   cp "$LAST_BACKUP" "$ROOT/storage/database/app.json"

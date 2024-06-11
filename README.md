@@ -11,7 +11,7 @@ apt-get -y update && apt-get -y upgrade
 apt-get -y install make wget curl vim git openssl cron
 ```
 
-2. Install BBR
+2. Install BBR (Optiona)
 
 ```shell
 echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf

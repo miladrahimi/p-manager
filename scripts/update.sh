@@ -9,7 +9,6 @@ fi
 
 ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 SERVICE_NAME=$(basename "$ROOT")
-SETUP_SCRIPT="$(dirname "$0")/setup.sh"
 
 service_exists() {
     systemctl list-units --full -all | grep -Fq "$SERVICE_NAME.service"
@@ -19,6 +18,7 @@ service_active() {
     systemctl is-active --quiet "$SERVICE_NAME"
 }
 
+systemctl daemon-reload
 if service_exists; then
     if service_active; then
         systemctl restart "$SERVICE_NAME"
@@ -26,7 +26,7 @@ if service_exists; then
         systemctl start "$SERVICE_NAME"
     fi
 else
-    $SETUP_SCRIPT
+    "$(dirname "$0")/setup.sh"
 fi
 
 date '+%Y-%m-%d %H:%M:%S Done' >> ./storage/app/update.txt

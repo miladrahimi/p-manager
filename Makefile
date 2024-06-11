@@ -16,6 +16,7 @@ dev-clean:
 	@rm -f storage/logs/*.log
 
 setup:
+	@git pull
 	@./scripts/setup.sh
 
 recover:
@@ -29,5 +30,4 @@ fresh:
 	@docker compose restart
 
 update: setup
-	@git pull
 	@./scripts/update.sh

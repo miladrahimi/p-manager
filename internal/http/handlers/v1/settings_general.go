@@ -10,13 +10,13 @@ import (
 	"net/http"
 )
 
-func SettingsGeneralMainShow(d *database.Database) echo.HandlerFunc {
+func SettingsGeneralShow(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, d.Data.Settings)
 	}
 }
 
-func SettingsGeneralMainUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func SettingsGeneralUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var s database.Settings
 		if err := c.Bind(&s); err != nil {

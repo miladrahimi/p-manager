@@ -64,8 +64,8 @@ func (s *Server) Run() {
 	g2.PUT("/nodes", v1.NodesUpdate(s.coordinator, s.database))
 	g2.DELETE("/nodes/:id", v1.NodesDelete(s.coordinator, s.database))
 
-	g2.GET("/settings/general", v1.SettingsGeneralMainShow(s.database))
-	g2.POST("/settings/general", v1.SettingsGeneralMainUpdate(s.coordinator, s.database))
+	g2.GET("/settings/general", v1.SettingsGeneralShow(s.database))
+	g2.POST("/settings/general", v1.SettingsGeneralUpdate(s.coordinator, s.database))
 	g2.POST("/settings/general/users/delete", v1.SettingsGeneralUsersDelete(s.coordinator, s.database))
 	g2.POST("/settings/general/users/disabled/delete", v1.SettingsGeneralUsersDisabledDelete(s.coordinator, s.database))
 	g2.POST("/settings/general/xray/restart", v1.SettingsGeneralRestartXray(s.coordinator))

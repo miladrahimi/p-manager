@@ -4,7 +4,7 @@ rm -f ./storage/logs/*.log
 date '+%Y-%m-%d %H:%M:%S Started' > ./storage/app/update.txt
 
 if type docker >/dev/null 2>&1; then
-    docker compose down
+    docker compose down --remove-orphans
 fi
 
 ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")

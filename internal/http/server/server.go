@@ -40,7 +40,7 @@ func (s *Server) Run() {
 	s.e.Use(echoMiddleware.CORS())
 
 	s.e.Static("/", "web")
-	s.e.GET("/profile", pages.Profile())
+	s.e.GET("/profile", pages.Profile(s.config))
 
 	g1 := s.e.Group("/v1")
 	g1.POST("/sign-in", v1.SignIn(s.database, s.enigma))

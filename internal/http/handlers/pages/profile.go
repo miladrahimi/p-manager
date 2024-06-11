@@ -2,13 +2,15 @@ package pages
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/p-manager/internal/config"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
-func Profile() echo.HandlerFunc {
+func Profile(config *config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		content, err := os.ReadFile("web/profile.html")
+		content, err := os.ReadFile(filepath.Join(config.AppPath, "web/profile.html"))
 		if err != nil {
 			return err
 		}

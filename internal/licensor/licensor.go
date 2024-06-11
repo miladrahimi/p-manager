@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 const Server = "https://x.miladrahimi.com/p-manager/v1/servers"
@@ -20,7 +21,7 @@ const Token = "Unauthorized"
 
 type Licensor struct {
 	l        *logger.Logger
-	config   *config.Config
+	c        *config.Config
 	database *database.Database
 	hc       *client.Client
 	enigma   *enigma.Enigma
@@ -35,14 +36,14 @@ func (l *Licensor) Init() {
 }
 
 func (l *Licensor) validate() {
-	if !utils.FileExist(config.LicensePath) {
+	if !utils.FileExist(filepath.Join(l.c.AppPath, config.LicensePath)) {
 		l.l.Debug("licensor: no license file found")
 	} else {
-		licenseFile, err := os.ReadFile(config.LicensePath)
+		licenseFile, err := os.ReadFile(filepath.Join(l.c.AppPath, config.LicensePath))
 		if err != nil {
 			l.l.Error("licensor: cannot read license file", zap.Error(errors.WithStack(err)))
 		} else {
-			key := fmt.Sprintf("%s:%d", l.database.Data.Settings.Host, l.config.HttpServer.Port)
+			key := fmt.Sprintf("%s:%d", l.database.Data.Settings.Host, l.c.HttpServer.Port)
 			l.licensed = l.enigma.Verify(key, string(licenseFile))
 			l.l.Info("licensor: license file checked", zap.Bool("valid", l.licensed))
 		}
@@ -52,7 +53,7 @@ func (l *Licensor) validate() {
 func (l *Licensor) fetch() {
 	body := map[string]interface{}{
 		"host": l.database.Data.Settings.Host,
-		"port": l.config.HttpServer.Port,
+		"port": l.c.HttpServer.Port,
 	}
 	if r, err := l.hc.Do(http.MethodPost, Server, Token, body); err != nil {
 		l.l.Debug("licensor: cannot fetch license", zap.Error(errors.WithStack(err)))
@@ -62,7 +63,7 @@ func (l *Licensor) fetch() {
 			l.l.Debug("licensor: cannot unmarshall server response", zap.Error(errors.WithStack(err)))
 		}
 		if license, found := response["license"]; found {
-			if err = os.WriteFile(config.LicensePath, []byte(license), 0755); err != nil {
+			if err = os.WriteFile(filepath.Join(l.c.AppPath, config.LicensePath), []byte(license), 0755); err != nil {
 				l.l.Debug("licensor: cannot save license file", zap.Error(errors.WithStack(err)))
 			}
 		} else {
@@ -85,7 +86,7 @@ func New(
 	return &Licensor{
 		l:        logger,
 		hc:       hc,
-		config:   config,
+		c:        config,
 		database: database,
 		enigma:   enigma,
 		licensed: false,

@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 )
 
@@ -40,7 +41,12 @@ func New() (a *App, err error) {
 	a.Context, a.Cancel = context.WithCancel(context.Background())
 	a.Shutdown = make(chan struct{})
 
-	a.Config = config.New()
+	path, err := os.Getwd()
+	if err != nil {
+		return a, errors.WithStack(err)
+	}
+
+	a.Config = config.New(path)
 	if err = a.Config.Init(); err != nil {
 		return a, errors.WithStack(err)
 	}
@@ -49,10 +55,14 @@ func New() (a *App, err error) {
 		return a, errors.WithStack(err)
 	}
 
-	a.Database = database.New(a.Logger)
-	a.Xray = xray.New(a.Context, a.Logger, a.Config.Xray.LogLevel, config.XrayConfigPath, config.XrayBinaryPath())
+	xrayConfigPath := filepath.Join(a.Config.AppPath, config.XrayConfigPath)
+	xrayBinaryPath := filepath.Join(a.Config.AppPath, config.XrayBinaryPath())
+	enigmaKeyPath := filepath.Join(a.Config.AppPath, config.EnigmaKeyPath)
+
+	a.Database = database.New(a.Logger, a.Config)
+	a.Xray = xray.New(a.Context, a.Logger, a.Config.Xray.LogLevel, xrayConfigPath, xrayBinaryPath)
 	a.HttpClient = client.New(a.Config.HttpClient.Timeout, config.AppName, config.AppVersion)
-	a.Enigma = enigma.New(config.EnigmaKeyPath)
+	a.Enigma = enigma.New(enigmaKeyPath)
 	a.Licensor = licensor.New(a.Config, a.HttpClient, a.Logger, a.Database, a.Enigma)
 	a.Writer = writer.New(a.Logger, a.Config, a.Database, a.Xray)
 	a.Coordinator = coordinator.New(a.Config, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)

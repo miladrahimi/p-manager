@@ -7,7 +7,8 @@ if type docker >/dev/null 2>&1; then
     docker compose down
 fi
 
-SERVICE_NAME="p-manager"
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+SERVICE_NAME=$(basename "$ROOT")
 SETUP_SCRIPT="$(dirname "$0")/setup.sh"
 
 service_exists() {
@@ -15,14 +16,14 @@ service_exists() {
 }
 
 service_active() {
-    systemctl is-active --quiet $SERVICE_NAME
+    systemctl is-active --quiet "$SERVICE_NAME"
 }
 
 if service_exists; then
     if service_active; then
-        systemctl restart $SERVICE_NAME
+        systemctl restart "$SERVICE_NAME"
     else
-        systemctl start $SERVICE_NAME
+        systemctl start "$SERVICE_NAME"
     fi
 else
     $SETUP_SCRIPT

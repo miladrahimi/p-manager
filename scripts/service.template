@@ -1,10 +1,10 @@
 [Unit]
-Description=p-manager Service
+Description=THE_NAME Service
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/path/to/binary start
+ExecStart=THE_PATH start
 Restart=on-failure
 
 [Install]

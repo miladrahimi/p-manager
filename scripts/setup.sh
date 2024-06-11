@@ -6,8 +6,9 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Detect root directory
+# Detect basic variables
 ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
+SERVICE_NAME=$(basename "$ROOT")
 
 # Configure Git
 git config pull.rebase false
@@ -25,7 +26,6 @@ if [ ! -f "$ROOT"/configs/main.json ]; then
 fi
 
 # Setup service
-SERVICE_NAME=$(basename "$ROOT")
 SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 SERVICE_TEMPLATE="$ROOT/scripts/service.template"
 sed "s|THE_NAME|$SERVICE_NAME|" "$SERVICE_TEMPLATE" > "$SERVICE_FILE"
@@ -48,4 +48,6 @@ COMMAND="make -C $ROOT update"
 if ! crontab -l | grep -q "$COMMAND"; then
     (crontab -l 2>/dev/null; echo "0 4 * * * $COMMAND") | crontab -
     echo "The updater cron job configured."
+else
+    echo "The cron job is already configured."
 fi

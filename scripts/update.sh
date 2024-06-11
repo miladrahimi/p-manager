@@ -8,7 +8,6 @@ if type docker >/dev/null 2>&1; then
 fi
 
 SERVICE_NAME="p-manager"
-SETUP_SCRIPT="$(dirname "$0")/setup.sh"
 
 service_exists() {
     systemctl list-units --full -all | grep -Fq "$SERVICE_NAME.service"
@@ -24,8 +23,6 @@ if service_exists; then
     else
         systemctl start $SERVICE_NAME
     fi
-else
-    $SETUP_SCRIPT
 fi
 
 date '+%Y-%m-%d %H:%M:%S Done' >> ./storage/app/update.txt

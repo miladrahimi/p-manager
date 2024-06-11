@@ -8,15 +8,15 @@
     <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator.min.css">
     <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator_semanticui.min.css">
-    <link rel="icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
-    <link rel="apple-touch-icon" href="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb">
+    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
 </head>
 <body>
 
 <div class="container py-4 text-center">
     <div class="col">
         <div class="text-center">
-            <img src="favicon.ico?h=19403eaed4ab7778d1e39b6e197d9fdb" alt="icon" class="img-fluid">
+            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
         </div>
 
         <ul class="nav nav-tabs small">
@@ -24,10 +24,10 @@
                 <a class="nav-link px-2" href="admin-users.html">Users</a>
             </li>
             <li class="nav-item">
-                <span class="nav-link active px-2" aria-current="page">Servers</span>
+                <span class="nav-link active px-2" aria-current="page">Nodes</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link px-2" href="admin-settings.html">Settings</a>
+                <a class="nav-link px-2" href="admin-settings-general.html">Settings</a>
             </li>
             <li class="nav-item">
                 <span class="nav-link px-2" id="exit">Exit</span>
@@ -36,7 +36,7 @@
 
         <div id="table" class="celled striped very compact"></div>
 
-        <div class="btn btn-dark btn-sm d-block" id="create">+ New Server</div>
+        <div class="btn btn-dark btn-sm d-block" id="create">+ Add Node</div>
         <a class="btn btn-outline-dark btn-sm d-block mt-1" href="https://github.com/miladrahimi/p-node" target="_blank">
             P-Node GitHub
         </a>
@@ -66,11 +66,11 @@
     }
 
     let actionsFormatter = function (cell) {
-        return `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`;
+        return `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`
     }
 
     let destroy = function (rowIndex) {
-        let confirmed = confirm("Press 'OK' to delete the server.");
+        let confirmed = confirm("Press 'OK' to delete the node.")
         if (!confirmed) {
             return
         }
@@ -81,13 +81,13 @@
             return
         }
 
-        table.alert("Deleting the server...", "msg");
+        table.alert("Deleting the node...", "msg")
 
         $.ajax({
             contentType: "application/json",
             dataType: "json",
             success: function () {
-                table.alert("Item deleted successfully.", "msg");
+                table.alert("Item deleted successfully.", "msg")
                 setTimeout(function () {
                     window.location.reload()
                 }, 1000)
@@ -97,9 +97,9 @@
                 handleAuthError(response)
                 let t = 2000
                 if (response.status === 400) {
-                    table.alert(response["responseJSON"]["message"], "error");
+                    table.alert(response["responseJSON"]["message"], "error")
                 } else {
-                    table.alert("Cannot delete the item.", "error");
+                    table.alert("Cannot delete the item.", "error")
                     t = 1000
                 }
                 setTimeout(function () {
@@ -108,12 +108,12 @@
             },
             processData: true,
             type: "DELETE",
-            url: `/v1/servers/${rowIndex}`
-        });
+            url: `/v1/nodes/${rowIndex}`
+        })
     }
 
     let table = new Tabulator("#table", {
-        ajaxURL: "/v1/servers",
+        ajaxURL: "/v1/nodes",
         ajaxConfig: {
             headers: {
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -169,9 +169,9 @@
                 title: "Actions", formatter: actionsFormatter, hozAlign: "right",
             },
         ],
-    });
+    })
 
-    table.on("dataLoadError", handleAuthError);
+    table.on("dataLoadError", handleAuthError)
 
     table.on("cellEdited", function (cell) {
         if (
@@ -182,14 +182,14 @@
             return
         }
 
-        table.alert("Saving the server...", "msg");
+        table.alert("Saving the node...", "msg")
 
         $.ajax({
             contentType: "application/json",
             data: JSON.stringify(cell.getData()),
             dataType: "json",
             success: function () {
-                table.alert("Item saved successfully.", "msg");
+                table.alert("Item saved successfully.", "msg")
                 setTimeout(function () {
                     window.location.reload()
                 }, 1000)
@@ -199,9 +199,9 @@
                 handleAuthError(response)
                 let t = 2000
                 if (response.status === 400) {
-                    table.alert(response["responseJSON"]["message"], "error");
+                    table.alert(response["responseJSON"]["message"], "error")
                 } else {
-                    table.alert("Cannot save the item.", "error");
+                    table.alert("Cannot save the item.", "error")
                     t = 1000
                 }
                 setTimeout(function () {
@@ -210,9 +210,9 @@
             },
             processData: true,
             type: cell.getData().id === 0 ? "POST" : "PUT",
-            url: "/v1/servers"
-        });
-    });
+            url: "/v1/nodes"
+        })
+    })
 
     $("#create").click(function () {
         table.addRow({

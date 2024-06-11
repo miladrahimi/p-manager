@@ -10,26 +10,26 @@ import (
 	"strconv"
 )
 
-type ServersStoreRequest struct {
+type NodesStoreRequest struct {
 	Host      string `json:"host" validate:"required,max=64"`
 	HttpToken string `json:"http_token" validate:"required"`
 	HttpPort  int    `json:"http_port" validate:"required,min=1,max=65536"`
 }
 
-type ServersUpdateRequest struct {
-	ServersStoreRequest
+type NodesUpdateRequest struct {
+	NodesStoreRequest
 	Id int `json:"id"`
 }
 
-func ServersIndex(d *database.Database) echo.HandlerFunc {
+func NodesIndex(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, d.Data.Servers)
 	}
 }
 
-func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var r ServersStoreRequest
+		var r NodesStoreRequest
 		if err := c.Bind(&r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Cannot parse the request body.",
@@ -50,26 +50,26 @@ func ServersStore(coordinator *coordinator.Coordinator, d *database.Database) ec
 			})
 		}
 
-		server := &database.Server{}
-		server.Id = d.GenerateServerId()
-		server.Status = database.ServerStatusProcessing
-		server.Traffic = 0
-		server.HttpToken = r.HttpToken
-		server.Host = r.Host
-		server.HttpPort = r.HttpPort
+		node := &database.Server{}
+		node.Id = d.GenerateServerId()
+		node.Status = database.ServerStatusProcessing
+		node.Traffic = 0
+		node.HttpToken = r.HttpToken
+		node.Host = r.Host
+		node.HttpPort = r.HttpPort
 
-		d.Data.Servers = append(d.Data.Servers, server)
+		d.Data.Servers = append(d.Data.Servers, node)
 		d.Save()
 
 		go coordinator.SyncConfigs()
 
-		return c.JSON(http.StatusCreated, server)
+		return c.JSON(http.StatusCreated, node)
 	}
 }
 
-func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var r ServersUpdateRequest
+		var r NodesUpdateRequest
 		if err := c.Bind(&r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Cannot parse the request body.",
@@ -84,29 +84,29 @@ func ServersUpdate(coordinator *coordinator.Coordinator, d *database.Database) e
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		var server *database.Server
-		for _, s := range d.Data.Servers {
-			if s.Id == r.Id {
-				server = s
+		var node *database.Server
+		for _, n := range d.Data.Servers {
+			if n.Id == r.Id {
+				node = n
 			}
 		}
-		if server == nil {
+		if node == nil {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
 		}
 
-		server.Host = r.Host
-		server.HttpToken = r.HttpToken
-		server.HttpPort = r.HttpPort
+		node.Host = r.Host
+		node.HttpToken = r.HttpToken
+		node.HttpPort = r.HttpPort
 		d.Save()
 
 		go coordinator.SyncConfigs()
 
-		return c.JSON(http.StatusOK, server)
+		return c.JSON(http.StatusOK, node)
 
 	}
 }
 
-func ServersDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {

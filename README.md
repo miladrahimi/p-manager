@@ -84,6 +84,20 @@ The application logs will be stored in the following directory:
 ./storage/logs
 ```
 
+### Backups and Recovery
+
+The application performs hourly backups and saves them to the path `./storage/database/backup-%weekday-%hour.json`.
+This results in a total of 7 x 24 (168) backup files, providing a full week's coverage.
+Any backups older than one week are not available, as indicated by the file path structure.
+
+To restore the most recent backup, execute the following command:
+
+```
+make recover
+```
+
+You can manually replace the backup file with `./storage/database/app.json` and restart the application.
+
 ### Requirements
 
  * Operating systems: Debian or Ubuntu

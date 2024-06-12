@@ -64,7 +64,8 @@ make update
 
 ### Status and Logs
 
-The application uses its directory name (default `p-manager`) in Systemd, allowing multiple instances to run on a single server.
+The application service is named after its directory, with `p-manager` as the default in `systemd`.
+It allows running multiple instances on a single server by placing the application in different directories.
 
 To check the status of the application, execute the following command:
 
@@ -86,9 +87,14 @@ The application logs will be stored in the following directory:
 
 ### Backups and Recovery
 
-The application performs hourly backups and saves them to the path `./storage/database/backup-%weekday-%hour.json`.
-This results in a total of 7 x 24 (168) backup files, providing a full week's coverage.
-Any backups older than one week are not available, as indicated by the file path structure.
+The application performs hourly database backups and saves them to the path below.
+
+```
+./storage/database/backup-%weekday-%hour.json
+```
+
+It creates a total of 168 backup files (7 days x 24 hours), covering a full week.
+Backups older than one week are unavailable due to the file path structure.
 
 To restore the most recent backup, execute the following command:
 
@@ -96,7 +102,7 @@ To restore the most recent backup, execute the following command:
 make recover
 ```
 
-You can manually replace the backup file with `./storage/database/app.json` and restart the application.
+You can manually replace the backup file with `./storage/database/app.json` and restart the application service.
 
 ### Requirements
 

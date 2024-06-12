@@ -62,6 +62,42 @@ For earlier updates, run the command below:
 make update
 ```
 
+### Status and Logs
+
+The application uses its directory name (default `p-manager`) in Systemd, allowing multiple instances to run on a single server.
+
+To check the status of the application, execute the following command:
+
+```shell
+systemctl status p-manager
+```
+
+To view the application's standard outputs, execute the command below:
+
+```shell
+journalctl -f -u p-manager
+```
+
+The application logs will be stored in the following directory:
+
+```shell
+./storage/logs
+```
+
+### Backups and Recovery
+
+The application performs hourly backups and saves them to the path `./storage/database/backup-%weekday-%hour.json`.
+This results in a total of 7 x 24 (168) backup files, providing a full week's coverage.
+Any backups older than one week are not available, as indicated by the file path structure.
+
+To restore the most recent backup, execute the following command:
+
+```
+make recover
+```
+
+You can manually replace the backup file with `./storage/database/app.json` and restart the application.
+
 ### Requirements
 
  * Operating systems: Debian or Ubuntu

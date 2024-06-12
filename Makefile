@@ -1,19 +1,10 @@
-.PHONY: dev-setup dev-run dev-fresh dev-clean setup recover fresh update
+.PHONY: dev-setup dev-run setup recover clean fresh update
 
 dev-setup:
 	@./scripts/dev-setup.sh
 
 dev-run:
 	@go run main.go start
-
-dev-fresh:
-	@rm -f storage/app/*.txt
-	@rm -f storage/app/*.json
-	@rm -f storage/database/*.json
-	@rm -f storage/logs/*.log
-
-dev-clean:
-	@rm -f storage/logs/*.log
 
 setup:
 	@git pull
@@ -22,12 +13,14 @@ setup:
 recover:
 	@./scripts/recover.sh
 
+clean:
+	@rm -f storage/logs/*.log
+
 fresh:
 	@rm -f storage/app/*.txt
 	@rm -f storage/app/*.json
 	@rm -f storage/database/*.json
 	@rm -f storage/logs/*.log
-	@docker compose restart
 
 update: setup
 	@./scripts/update.sh

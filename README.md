@@ -62,6 +62,28 @@ For earlier updates, run the command below:
 make update
 ```
 
+### Status and Logs
+
+The application uses its directory name (default `p-manager`) in Systemd, allowing multiple instances to run on a single server.
+
+To check the status of the application, execute the following command:
+
+```shell
+systemctl status p-manager
+```
+
+To view the application's standard outputs, execute the command below:
+
+```shell
+journalctl -f -u p-manager
+```
+
+The application logs will be stored in the following directory:
+
+```shell
+./storage/logs
+```
+
 ### Requirements
 
  * Operating systems: Debian or Ubuntu

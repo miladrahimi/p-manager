@@ -27,6 +27,4 @@ COPY --from=build /app/third_party/xray-linux-64/xray third_party/xray-linux-64/
 RUN tar -xvf web.tar.gz
 RUN rm web.tar.gz
 
-EXPOSE 8080
-
 ENTRYPOINT ["./p-manager", "start"]

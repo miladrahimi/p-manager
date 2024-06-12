@@ -1,13 +1,13 @@
-name: Build Stable
+name: Build Latest
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, dev ]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: miladrahimi/p-manager
-  TAG: stable
+  TAG: test
 
 jobs:
   build:

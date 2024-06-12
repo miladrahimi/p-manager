@@ -35,7 +35,7 @@ sed -i "s|THE_DIR|$ROOT|" "$SERVICE_FILE"
 systemctl daemon-reload
 
 if systemctl is-enabled --quiet "$SERVICE_NAME"; then
-    echo "Service $SERVICE_NAME is already enabled and installed."
+    echo "Service $SERVICE_NAME is already enabled."
     echo "Restarting service $SERVICE_NAME..."
     systemctl restart "$SERVICE_NAME"
     echo "Service $SERVICE_NAME restarted."

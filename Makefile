@@ -6,6 +6,9 @@ dev-setup:
 dev-run:
 	@go run main.go start
 
+build:
+	@GOOS=linux GOARCH=amd64 go build -o p-manager
+
 setup:
 	@git pull
 	@./scripts/setup.sh

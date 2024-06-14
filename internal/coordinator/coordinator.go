@@ -53,6 +53,13 @@ func (c *Coordinator) Run() {
 	}, func() {
 		c.l.Debug("coordinator: worker for backup database stopped")
 	}).Start()
+
+	go newWorker(c.context, time.Hour*4, func() {
+		c.l.Info("coordinator: rebooting xray...")
+		c.xray.Restart()
+	}, func() {
+		c.l.Debug("coordinator: worker for xray booting stopped")
+	}).Start()
 }
 
 func (c *Coordinator) SyncConfigs() {

@@ -51,7 +51,7 @@ func (l *Licensor) fetch() {
 		"host": l.database.Data.Settings.Host,
 		"port": l.c.HttpServer.Port,
 	}
-	if r, err := l.hc.Do(http.MethodPost, config.LicenseToken, config.LicenseToken, body); err != nil {
+	if r, err := l.hc.Do(http.MethodPost, config.LicenseServer, config.LicenseToken, body); err != nil {
 		l.l.Debug("licensor: cannot fetch license", zap.Error(errors.WithStack(err)))
 	} else {
 		var response map[string]string

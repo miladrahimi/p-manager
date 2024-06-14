@@ -1,4 +1,4 @@
-.PHONY: dev-setup dev-run setup recover clean fresh update
+.PHONY: dev-setup dev-run build setup recover clean fresh update
 
 dev-setup:
 	@./scripts/dev-setup.sh

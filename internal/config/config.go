@@ -7,12 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/miladrahimi/p-manager/internal/utils"
 	"os"
-	"path/filepath"
-	"runtime"
 )
-
-const defaultConfigPath = "configs/main.defaults.json"
-const envConfigPath = "configs/main.json"
 
 const AppName = "P-Manager"
 const AppVersion = "v1.5.2"
@@ -25,24 +20,11 @@ const FreeUsersCount = 16
 const MaxUsersCount = 256
 const MaxActiveUsersCount = 128
 
-const LicensePath = "storage/app/license.txt"
-const EnigmaKeyPath = "assets/ed25519_public_key.txt"
-const XrayConfigPath = "storage/app/xray.json"
-
-var xrayBinaryPaths = map[string]string{
-	"darwin": "third_party/xray-macos-arm64/xray",
-	"linux":  "third_party/xray-linux-64/xray",
-}
-
-func XrayBinaryPath() string {
-	if path, found := xrayBinaryPaths[runtime.GOOS]; found {
-		return path
-	}
-	return xrayBinaryPaths["linux"]
-}
+const LicenseServer = "https://x.miladrahimi.com/p-manager/v1/servers"
+const LicenseToken = "Unauthorized"
 
 type Config struct {
-	AppPath    string
+	Env        *Env `json:"-"`
 	HttpServer struct {
 		Host string `json:"host"`
 		Port int    `json:"port"`
@@ -75,7 +57,7 @@ func (c *Config) String() string {
 }
 
 func (c *Config) Init() (err error) {
-	content, err := os.ReadFile(filepath.Join(c.AppPath, defaultConfigPath))
+	content, err := os.ReadFile(c.Env.DefaultConfigPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -84,8 +66,8 @@ func (c *Config) Init() (err error) {
 		return errors.WithStack(err)
 	}
 
-	if utils.FileExist(filepath.Join(c.AppPath, envConfigPath)) {
-		content, err = os.ReadFile(filepath.Join(c.AppPath, envConfigPath))
+	if utils.FileExist(c.Env.LocalConfigPath) {
+		content, err = os.ReadFile(c.Env.LocalConfigPath)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -99,8 +81,8 @@ func (c *Config) Init() (err error) {
 	return errors.WithStack(validator.New().Struct(c))
 }
 
-func New(path string) *Config {
+func New(e *Env) *Config {
 	return &Config{
-		AppPath: path,
+		Env: e,
 	}
 }

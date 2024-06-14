@@ -16,7 +16,6 @@ import (
 	"go.uber.org/zap"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 )
 
@@ -41,12 +40,14 @@ func New() (a *App, err error) {
 	a.Context, a.Cancel = context.WithCancel(context.Background())
 	a.Shutdown = make(chan struct{})
 
-	path, err := os.Getwd()
+	wd, err := os.Getwd()
 	if err != nil {
 		return a, errors.WithStack(err)
 	}
 
-	a.Config = config.New(path)
+	env := config.NewEnv(wd)
+
+	a.Config = config.New(env)
 	if err = a.Config.Init(); err != nil {
 		return a, errors.WithStack(err)
 	}
@@ -55,18 +56,17 @@ func New() (a *App, err error) {
 		return a, errors.WithStack(err)
 	}
 
-	xrayConfigPath := filepath.Join(path, config.XrayConfigPath)
-	xrayBinaryPath := filepath.Join(path, config.XrayBinaryPath())
-	enigmaKeyPath := filepath.Join(path, config.EnigmaKeyPath)
+	c := a.Config
+	e := a.Config.Env
 
-	a.Database = database.New(a.Logger, a.Config)
-	a.Xray = xray.New(a.Context, a.Logger, a.Config.Xray.LogLevel, xrayConfigPath, xrayBinaryPath)
-	a.HttpClient = client.New(a.Config.HttpClient.Timeout, config.AppName, config.AppVersion)
-	a.Enigma = enigma.New(enigmaKeyPath)
-	a.Licensor = licensor.New(a.Config, a.HttpClient, a.Logger, a.Database, a.Enigma)
+	a.Database = database.New(a.Logger, c)
+	a.Xray = xray.New(a.Context, a.Logger, c.Xray.LogLevel, e.XrayConfigPath, e.XrayBinaryPath)
+	a.HttpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
+	a.Enigma = enigma.New(e.EnigmaKeyPath)
+	a.Licensor = licensor.New(c, a.HttpClient, a.Logger, a.Database, a.Enigma)
 	a.Writer = writer.New(a.Logger, a.Config, a.Database, a.Xray)
-	a.Coordinator = coordinator.New(a.Config, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)
-	a.HttpServer = server.New(a.Config, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor, a.HttpClient)
+	a.Coordinator = coordinator.New(c, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)
+	a.HttpServer = server.New(c, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor, a.HttpClient)
 
 	a.Logger.Info("app: constructed successfully")
 

@@ -11,14 +11,10 @@ import (
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"go.uber.org/zap"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
-
-const Path = "storage/database/app.json"
-const BackupPath = "storage/database/backup-%s.json"
 
 type Data struct {
 	Settings *Settings `json:"settings"`
@@ -38,7 +34,7 @@ func (d *Database) Init() {
 	d.Locker.Lock()
 	defer d.Locker.Unlock()
 
-	if !utils.FileExist(filepath.Join(d.c.AppPath, Path)) {
+	if !utils.FileExist(d.c.Env.DatabasePath) {
 		d.Save()
 	} else {
 		d.Load()
@@ -46,7 +42,7 @@ func (d *Database) Init() {
 }
 
 func (d *Database) Load() {
-	content, err := os.ReadFile(filepath.Join(d.c.AppPath, Path))
+	content, err := os.ReadFile(d.c.Env.DatabasePath)
 	if err != nil {
 		d.l.Fatal("database: cannot load file", zap.Error(errors.WithStack(err)))
 	}
@@ -67,7 +63,7 @@ func (d *Database) Save() {
 		d.l.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
 
-	if err = os.WriteFile(filepath.Join(d.c.AppPath, Path), content, 0755); err != nil {
+	if err = os.WriteFile(d.c.Env.DatabasePath, content, 0755); err != nil {
 		d.l.Fatal("database: cannot save file", zap.Error(errors.WithStack(err)))
 	}
 }
@@ -81,8 +77,8 @@ func (d *Database) Backup() {
 		d.l.Error("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
 
-	path := strings.ToLower(fmt.Sprintf(BackupPath, time.Now().Format("Mon-15")))
-	if err = os.WriteFile(filepath.Join(d.c.AppPath, path), content, 0755); err != nil {
+	path := strings.ToLower(fmt.Sprintf(d.c.Env.DatabaseBackupPath, time.Now().Format("Mon-15")))
+	if err = os.WriteFile(path, content, 0755); err != nil {
 		d.l.Fatal(
 			"database: cannot save backup file", zap.String("file", path), zap.Error(errors.WithStack(err)),
 		)

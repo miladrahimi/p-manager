@@ -13,17 +13,13 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"os"
-	"path/filepath"
 )
-
-const Server = "https://x.miladrahimi.com/p-manager/v1/servers"
-const Token = "Unauthorized"
 
 type Licensor struct {
 	l        *logger.Logger
 	c        *config.Config
-	database *database.Database
 	hc       *client.Client
+	database *database.Database
 	enigma   *enigma.Enigma
 	licensed bool
 }
@@ -36,10 +32,10 @@ func (l *Licensor) Init() {
 }
 
 func (l *Licensor) validate() {
-	if !utils.FileExist(filepath.Join(l.c.AppPath, config.LicensePath)) {
+	if !utils.FileExist(l.c.Env.LicensePath) {
 		l.l.Debug("licensor: no license file found")
 	} else {
-		licenseFile, err := os.ReadFile(filepath.Join(l.c.AppPath, config.LicensePath))
+		licenseFile, err := os.ReadFile(l.c.Env.LicensePath)
 		if err != nil {
 			l.l.Error("licensor: cannot read license file", zap.Error(errors.WithStack(err)))
 		} else {
@@ -55,7 +51,7 @@ func (l *Licensor) fetch() {
 		"host": l.database.Data.Settings.Host,
 		"port": l.c.HttpServer.Port,
 	}
-	if r, err := l.hc.Do(http.MethodPost, Server, Token, body); err != nil {
+	if r, err := l.hc.Do(http.MethodPost, config.LicenseToken, config.LicenseToken, body); err != nil {
 		l.l.Debug("licensor: cannot fetch license", zap.Error(errors.WithStack(err)))
 	} else {
 		var response map[string]string
@@ -63,7 +59,7 @@ func (l *Licensor) fetch() {
 			l.l.Debug("licensor: cannot unmarshall server response", zap.Error(errors.WithStack(err)))
 		}
 		if license, found := response["license"]; found {
-			if err = os.WriteFile(filepath.Join(l.c.AppPath, config.LicensePath), []byte(license), 0755); err != nil {
+			if err = os.WriteFile(l.c.Env.LicensePath, []byte(license), 0755); err != nil {
 				l.l.Debug("licensor: cannot save license file", zap.Error(errors.WithStack(err)))
 			}
 		} else {

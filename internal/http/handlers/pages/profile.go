@@ -10,7 +10,7 @@ import (
 
 func Profile(config *config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		content, err := os.ReadFile(filepath.Join(config.AppPath, "web/profile.html"))
+		content, err := os.ReadFile(filepath.Join(config.Env.AppDirectory, "web/profile.html"))
 		if err != nil {
 			return err
 		}

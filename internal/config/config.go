@@ -26,26 +26,26 @@ const LicenseToken = "Unauthorized"
 type Config struct {
 	Env        *Env `json:"-"`
 	HttpServer struct {
-		Host string `json:"host"`
-		Port int    `json:"port"`
-	} `json:"http_server"`
+		Host string `json:"host" validate:"required,ip"`
+		Port int    `json:"port" validate:"required,min=1,max=65536"`
+	} `json:"http_server" validate:"required"`
 
 	HttpClient struct {
-		Timeout int `json:"timeout"`
-	} `json:"http_client"`
+		Timeout int `json:"timeout" validate:"required,min=10,max=60000"`
+	} `json:"http_client" validate:"required"`
 
 	Logger struct {
-		Level  string `json:"level"`
-		Format string `json:"format"`
-	} `json:"logger"`
+		Level  string `json:"level" validate:"required,oneof=debug info warn error"`
+		Format string `json:"format" validate:"required,oneof='2006-01-02 15:04:05.000'"`
+	} `json:"logger" validate:"required"`
 
 	Worker struct {
-		Interval int `json:"interval"`
-	} `json:"worker"`
+		Interval int `json:"interval" validate:"required,min=10,max=60000"`
+	} `json:"worker" validate:"required"`
 
 	Xray struct {
-		LogLevel string `json:"log_level"`
-	} `json:"xray"`
+		LogLevel string `json:"log_level" validate:"required,oneof=debug info warning error none"`
+	} `json:"xray" validate:"required"`
 }
 
 func (c *Config) String() string {
@@ -72,6 +72,15 @@ func (c *Config) Init() (err error) {
 			return errors.WithStack(err)
 		}
 		if err = json.Unmarshal(content, &c); err != nil {
+			return errors.WithStack(err)
+		}
+
+		var contentBytes []byte
+		contentBytes, err = json.MarshalIndent(c, "", "  ")
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if err = os.WriteFile(c.Env.LocalConfigPath, contentBytes, 0755); err != nil {
 			return errors.WithStack(err)
 		}
 	}

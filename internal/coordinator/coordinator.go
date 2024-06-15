@@ -142,6 +142,7 @@ func (c *Coordinator) SyncStats() {
 			if u.Quota > 0 && u.Used > u.Quota {
 				u.Enabled = false
 				shouldSync = true
+				c.l.Debug("coordinator: user disabled", zap.Int("id", u.Id))
 			}
 		}
 	}

@@ -13,6 +13,9 @@ setup:
 	@git pull
 	@./scripts/setup.sh
 
+schedule-reboot:
+	@./scripts/schedule-reboot.sh
+
 recover:
 	@./scripts/recover.sh
 

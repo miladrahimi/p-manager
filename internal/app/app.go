@@ -45,9 +45,7 @@ func New() (a *App, err error) {
 		return a, errors.WithStack(err)
 	}
 
-	env := config.NewEnv(wd)
-
-	a.Config = config.New(env)
+	a.Config = config.New(config.NewEnv(wd))
 	if err = a.Config.Init(); err != nil {
 		return a, errors.WithStack(err)
 	}

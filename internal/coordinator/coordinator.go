@@ -33,11 +33,18 @@ func (c *Coordinator) Run() {
 
 	c.SyncConfigs()
 
-	go newWorker(c.context, time.Duration(c.config.Worker.Interval)*time.Second, func() {
+	go newWorker(c.context, time.Duration(c.config.Workers.SyncStatsInterval)*time.Second, func() {
 		c.l.Info("coordinator: running worker for sync stats...")
 		c.SyncStats()
 	}, func() {
 		c.l.Debug("coordinator: worker for sync stats stopped")
+	}).Start()
+
+	go newWorker(c.context, time.Duration(c.config.Workers.RestartXrayInterval)*time.Second, func() {
+		c.l.Info("coordinator: rebooting xray...")
+		c.xray.Restart()
+	}, func() {
+		c.l.Debug("coordinator: worker for xray booting stopped")
 	}).Start()
 
 	go newWorker(c.context, time.Minute, func() {
@@ -52,13 +59,6 @@ func (c *Coordinator) Run() {
 		c.database.Backup()
 	}, func() {
 		c.l.Debug("coordinator: worker for backup database stopped")
-	}).Start()
-
-	go newWorker(c.context, time.Hour*4, func() {
-		c.l.Info("coordinator: rebooting xray...")
-		c.xray.Restart()
-	}, func() {
-		c.l.Debug("coordinator: worker for xray booting stopped")
 	}).Start()
 }
 

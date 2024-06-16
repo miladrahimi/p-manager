@@ -10,7 +10,7 @@ import (
 )
 
 const AppName = "P-Manager"
-const AppVersion = "v1.5.5"
+const AppVersion = "v1.5.6"
 const CoreVersion = "Xray v1.8.8"
 
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
@@ -39,9 +39,10 @@ type Config struct {
 		Format string `json:"format" validate:"required,oneof='2006-01-02 15:04:05.000'"`
 	} `json:"logger" validate:"required"`
 
-	Worker struct {
-		Interval int `json:"interval" validate:"required,min=10,max=60000"`
-	} `json:"worker" validate:"required"`
+	Workers struct {
+		SyncStatsInterval   int `json:"sync_stats_interval" validate:"required,min=10,max=3600"`
+		RestartXrayInterval int `json:"restart_xray_interval" validate:"required,min=10,max=86400"`
+	} `json:"workers" validate:"required"`
 
 	Xray struct {
 		LogLevel string `json:"log_level" validate:"required,oneof=debug info warning error none"`

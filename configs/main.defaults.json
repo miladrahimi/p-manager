@@ -10,8 +10,9 @@
     "level": "warn",
     "format": "2006-01-02 15:04:05.000"
   },
-  "worker": {
-    "interval": 300
+  "workers": {
+    "sync_stats_interval": 300,
+    "restart_xray_interval": 300
   },
   "xray": {
     "log_level": "info"

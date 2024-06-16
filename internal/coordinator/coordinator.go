@@ -40,11 +40,11 @@ func (c *Coordinator) Run() {
 		c.l.Debug("coordinator: worker for sync stats stopped")
 	}).Start()
 
-	go newWorker(c.context, time.Duration(c.config.Workers.RestartXrayInterval)*time.Second, func() {
-		c.l.Info("coordinator: rebooting xray...")
-		c.xray.Restart()
+	go newWorker(c.context, time.Duration(c.config.Workers.SyncConfigsInterval)*time.Second, func() {
+		c.l.Info("coordinator: running worker for sync configs...")
+		c.SyncConfigs()
 	}, func() {
-		c.l.Debug("coordinator: worker for xray booting stopped")
+		c.l.Debug("coordinator: worker for sync configs stopped")
 	}).Start()
 
 	go newWorker(c.context, time.Minute, func() {

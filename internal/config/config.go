@@ -10,7 +10,7 @@ import (
 )
 
 const AppName = "P-Manager"
-const AppVersion = "v1.5.6"
+const AppVersion = "v1.5.7"
 const CoreVersion = "Xray v1.8.8"
 
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
@@ -41,7 +41,7 @@ type Config struct {
 
 	Workers struct {
 		SyncStatsInterval   int `json:"sync_stats_interval" validate:"required,min=10,max=3600"`
-		RestartXrayInterval int `json:"restart_xray_interval" validate:"required,min=10,max=86400"`
+		SyncConfigsInterval int `json:"sync_configs_interval" validate:"required,min=10,max=86400"`
 	} `json:"workers" validate:"required"`
 
 	Xray struct {

@@ -6,12 +6,12 @@ toolchain go1.22.1
 
 require (
 	github.com/cockroachdb/errors v1.11.3
-	github.com/go-playground/validator/v10 v10.21.0
+	github.com/go-playground/validator/v10 v10.22.0
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/labstack/gommon v0.4.2
-	github.com/miladrahimi/p-node v0.0.0-20240611162936-430e94553d6c
-	github.com/spf13/cobra v1.8.0
+	github.com/miladrahimi/p-node v0.0.0-20240614101733-03b33b489782
+	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.27.0
 )
 
@@ -19,7 +19,7 @@ require (
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
-	github.com/getsentry/sentry-go v0.28.0 // indirect
+	github.com/getsentry/sentry-go v0.28.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

@@ -12,7 +12,7 @@
   },
   "workers": {
     "sync_stats_interval": 300,
-    "restart_xray_interval": 14400
+    "sync_configs_interval": 14400
   },
   "xray": {
     "log_level": "info"

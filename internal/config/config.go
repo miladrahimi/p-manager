@@ -17,8 +17,8 @@ const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-128-gcm"
 
 const FreeUsersCount = 16
-const MaxUsersCount = 256
-const MaxActiveUsersCount = 128
+const MaxUsersCount = 512
+const MaxActiveUsersCount = 256
 
 const LicenseServer = "https://x.miladrahimi.com/p-manager/v1/servers"
 const LicenseToken = "Unauthorized"

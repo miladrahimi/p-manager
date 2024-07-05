@@ -113,6 +113,9 @@ func (a *App) Close() {
 	if a.Xray != nil {
 		a.Xray.Close()
 	}
+	if a.Database != nil {
+		a.Database.Close()
+	}
 	if a.Logger != nil {
 		a.Logger.Close()
 	}

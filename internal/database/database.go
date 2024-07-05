@@ -68,6 +68,17 @@ func (d *Database) Save() {
 	}
 }
 
+func (d *Database) Close() {
+	content, err := json.Marshal(d.Data)
+	if err != nil {
+		d.l.Error("database: close: cannot marshal data", zap.Error(errors.WithStack(err)))
+	}
+
+	if err = os.WriteFile(d.c.Env.DatabasePath, content, 0755); err != nil {
+		d.l.Error("database: close: cannot save file", zap.Error(errors.WithStack(err)))
+	}
+}
+
 func (d *Database) Backup() {
 	d.Locker.Lock()
 	defer d.Locker.Unlock()

@@ -54,7 +54,8 @@
                         <div class="link small overflow-auto d-flex">
                             <a type="text" href="#" id="ss-relay-link"
                                class="text-nowrap align-self-center overflow-auto">---</a>
-                            <input type="button" class="copy btn btn-dark" value="Copy">
+                            <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
+                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copied!">
                         </div>
                     </div>
                     <div id="ss-reverse" class="d-none my-1">
@@ -62,7 +63,8 @@
                         <div class="link small overflow-auto d-flex">
                             <a type="text" href="#" id="ss-reverse-link"
                                class="text-nowrap align-self-center overflow-auto">---</a>
-                            <input type="button" class="copy btn btn-dark" value="Copy">
+                            <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
+                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copied!">
                         </div>
                     </div>
                     <div id="ss-direct" class="d-none my-1">
@@ -70,22 +72,23 @@
                         <div class="link small overflow-auto d-flex">
                             <a type="text" href="#" id="ss-direct-link"
                                class="text-nowrap align-self-center overflow-auto">---</a>
-                            <input type="button" class="copy btn btn-dark" value="Copy">
+                            <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
+                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copied!">
                         </div>
                     </div>
                 </div>
-                <div class="mt-3 text-center text-secondary">
+                <div class="text-center text-secondary">
                     <small>Registered @</small>
                     <small id="created_at">-</small>
                 </div>
-                <button class="btn btn-danger d-block w-100 mt-3 btn-sm" id="update">UPDATE LINKS</button>
+                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="update">UPDATE LINKS</button>
             </div>
         </div>
     </div>
 </div>
 
 <script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     jQuery(() => {
@@ -151,12 +154,15 @@
             document.execCommand('copy')
             document.body.removeChild(ta)
 
+            me.tooltip('show')
+            setTimeout(() => me.tooltip('hide'), 1000)
+
             me.removeClass('btn-dark').addClass('btn-success')
             setTimeout(() => me.removeClass('btn-success').addClass('btn-dark').blur(), 1000)
         })
 
         $('#update').click(function () {
-            let confirmed = confirm("Click 'OK' to update links.")
+            let confirmed = confirm("Click 'OK' to delete current links and create new ones.")
             if (!confirmed) {
                 return
             }
@@ -177,7 +183,7 @@
                     }, 2000)
                 },
                 error: response => {
-                    console.log('ERROR', 'Update Links', response.status, response.responseText)
+                    console.log('ERROR', 'UPDATE LINKS', response.status, response.responseText)
                     me.val('Error!')
                     setTimeout(() => me.val('UPDATE LINKS').removeAttr('disabled'), 2000)
                 }

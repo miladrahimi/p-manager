@@ -106,10 +106,10 @@ You can manually stop the application service, replace the backup file with `./s
 
 ### Requirements
 
- * Operating systems: Debian or Ubuntu
- * Architecture: `amd64`
- * RAM: 1 GB or more
- * CPU: 1 Core or more
+* Operating systems: Debian or Ubuntu
+* Architecture: `amd64`
+* RAM: 1 GB or more
+* CPU: 1 Core or more
 
 ## Links
 

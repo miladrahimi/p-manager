@@ -65,7 +65,7 @@ make update
 ### Status and Logs
 
 The application service is named after its directory, with `p-manager` as the default in `systemd`.
-It allows running multiple instances on a single server by placing the application in different directories.
+It allows running multiple instances on a single server by placing the application in different directories with different names (like `p-manager-2` and `p-manager-3`).
 
 To check the status of the application, execute the following command:
 
@@ -102,7 +102,7 @@ To restore the most recent backup, execute the following command:
 make recover
 ```
 
-You can manually replace the backup file with `./storage/database/app.json` and restart the application service.
+You can manually stop the application service, replace the backup file with `./storage/database/app.json`, and start the service again.
 
 ### Requirements
 

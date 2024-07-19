@@ -55,7 +55,7 @@
                             <a type="text" href="#" id="ss-relay-link"
                                class="text-nowrap align-self-center overflow-auto">---</a>
                             <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
-                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copied!">
+                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
                         </div>
                     </div>
                     <div id="ss-reverse" class="d-none my-1">
@@ -64,7 +64,7 @@
                             <a type="text" href="#" id="ss-reverse-link"
                                class="text-nowrap align-self-center overflow-auto">---</a>
                             <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
-                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copied!">
+                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
                         </div>
                     </div>
                     <div id="ss-direct" class="d-none my-1">
@@ -73,7 +73,7 @@
                             <a type="text" href="#" id="ss-direct-link"
                                class="text-nowrap align-self-center overflow-auto">---</a>
                             <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
-                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copied!">
+                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
                         </div>
                     </div>
                 </div>
@@ -154,8 +154,11 @@
             document.execCommand('copy')
             document.body.removeChild(ta)
 
-            me.tooltip('show')
-            setTimeout(() => me.tooltip('hide'), 1000)
+            const tooltip = bootstrap.Tooltip.getOrCreateInstance(this)
+            tooltip.setContent({ '.tooltip-inner': 'Copied!' })
+            tooltip.show()
+            //tooltip.attr('title', 'Copied!').tooltip('show')
+            setTimeout(() => tooltip.hide() && tooltip.setContent({ '.tooltip-inner': 'Copy' }), 1000)
 
             me.removeClass('btn-dark').addClass('btn-success')
             setTimeout(() => me.removeClass('btn-success').addClass('btn-dark').blur(), 1000)

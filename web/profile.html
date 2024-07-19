@@ -157,7 +157,6 @@
             const tooltip = bootstrap.Tooltip.getOrCreateInstance(this)
             tooltip.setContent({ '.tooltip-inner': 'Copied!' })
             tooltip.show()
-            //tooltip.attr('title', 'Copied!').tooltip('show')
             setTimeout(() => tooltip.hide() && tooltip.setContent({ '.tooltip-inner': 'Copy' }), 1000)
 
             me.removeClass('btn-dark').addClass('btn-success')

@@ -13,6 +13,9 @@ SERVICE_NAME=$(basename "$ROOT")
 # Configure Git
 git config pull.rebase false
 
+# Configure storage permissions
+chmod 0777 "$ROOT/storage"
+
 # Validate the binary file
 BINARY_PATH="$ROOT/p-manager"
 if [ ! -f "$BINARY_PATH" ]; then

@@ -96,6 +96,8 @@ func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 	proxied := false
 	success := false
 
+	c.l.Info("coordinator: syncing remote config...", zap.String("url", url), zap.String("proxy", proxy))
+
 	_, err := c.hc.Do(http.MethodPost, url, s.HttpToken, xc)
 	if err == nil {
 		success = true

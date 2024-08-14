@@ -11,8 +11,7 @@
     "format": "2006-01-02 15:04:05.000"
   },
   "workers": {
-    "sync_stats_interval": 300,
-    "sync_configs_interval": 14400
+    "sync_stats_interval": 300
   },
   "xray": {
     "log_level": "info"

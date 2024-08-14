@@ -40,8 +40,7 @@ type Config struct {
 	} `json:"logger" validate:"required"`
 
 	Workers struct {
-		SyncStatsInterval   int `json:"sync_stats_interval" validate:"required,min=10,max=3600"`
-		SyncConfigsInterval int `json:"sync_configs_interval" validate:"required,min=10,max=86400"`
+		SyncStatsInterval int `json:"sync_stats_interval" validate:"required,min=10,max=3600"`
 	} `json:"workers" validate:"required"`
 
 	Xray struct {

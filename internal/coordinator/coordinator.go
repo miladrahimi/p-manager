@@ -40,13 +40,6 @@ func (c *Coordinator) Run() {
 		c.l.Debug("coordinator: worker for sync stats stopped")
 	}).Start()
 
-	go newWorker(c.context, time.Duration(c.config.Workers.SyncConfigsInterval)*time.Second, func() {
-		c.l.Info("coordinator: running worker for sync configs...")
-		c.SyncConfigs()
-	}, func() {
-		c.l.Debug("coordinator: worker for sync configs stopped")
-	}).Start()
-
 	go newWorker(c.context, time.Minute, func() {
 		c.l.Info("coordinator: running worker to sync outdated configs...")
 		c.syncOutdatedConfigs()
@@ -84,7 +77,7 @@ func (c *Coordinator) syncRemoteConfigs() {
 func (c *Coordinator) syncOutdatedConfigs() {
 	c.l.Info("coordinator: syncing outdated configs...")
 	for _, s := range c.database.Data.Servers {
-		if s.Status != database.ServerStatusAvailable {
+		if s.Status == database.ServerStatusUnavailable || s.Status == database.ServerStatusProcessing {
 			go c.syncRemoteConfig(s, c.writer.RemoteConfig(s))
 		}
 	}

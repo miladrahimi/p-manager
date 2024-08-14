@@ -74,6 +74,10 @@ func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error)
 	return nil, errors.Errorf("unknown respose received, %s", info)
 }
 
+func (c *Client) DoThrough(proxy, method, url, token string, body interface{}) ([]byte, error) {
+	return c.Do(method, fmt.Sprintf("%s/?url=%s", proxy, url), token, body)
+}
+
 func New(timeout int, appName, appVersion string) *Client {
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}

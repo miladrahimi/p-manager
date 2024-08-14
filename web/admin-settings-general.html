@@ -76,6 +76,7 @@
         AdminPassword: {k: "admin_password", v: "Admin Password"},
         TrafficRatio: {k: "traffic_ratio", v: "Traffic Ratio"},
         Host: {k: "host", v: "Host"},
+        SingetServer: {k: "singet_server", v: "Singet Server"},
         SsReversePort: {k: "ss_reverse_port", v: "Reverse Port"},
         SsRelayPort: {k: "ss_relay_port", v: "Relay Port"},
         SsDirectPort: {k: "ss_direct_port", v: "Direct Port"}
@@ -101,6 +102,9 @@
                 break
             case COLUMNS.Host.v:
                 el.innerText = "Host to use in proxy links."
+                break
+            case COLUMNS.SingetServer.v:
+                el.innerText = "Signet (proxy) server to route calls to nodes."
                 break
             case COLUMNS.SsReversePort.v:
                 el.innerText = "Shadowsocks reverse port."
@@ -186,6 +190,7 @@
             {"key": COLUMNS.AdminPassword.v, "value": response[COLUMNS.AdminPassword.k]},
             {"key": COLUMNS.TrafficRatio.v, "value": response[COLUMNS.TrafficRatio.k]},
             {"key": COLUMNS.Host.v, "value": response[COLUMNS.Host.k]},
+            {"key": COLUMNS.SingetServer.v, "value": response[COLUMNS.SingetServer.k]},
             {"key": COLUMNS.SsReversePort.v, "value": response[COLUMNS.SsReversePort.k]},
             {"key": COLUMNS.SsRelayPort.v, "value": response[COLUMNS.SsRelayPort.k]},
             {"key": COLUMNS.SsDirectPort.v, "value": response[COLUMNS.SsDirectPort.k]},

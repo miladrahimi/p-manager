@@ -5,6 +5,7 @@ type ServerStatus string
 const (
 	ServerStatusProcessing  ServerStatus = "processing"
 	ServerStatusAvailable                = "available"
+	ServerStatusDirty                    = "dirty"
 	ServerStatusUnavailable              = "unavailable"
 )
 

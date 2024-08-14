@@ -92,15 +92,44 @@ func (c *Coordinator) syncOutdatedConfigs() {
 
 func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
-	c.l.Info("coordinator: syncing remote config...", zap.String("url", url))
+	proxy := c.database.Data.Settings.SingetServer
+	proxied := false
+	success := false
+
+	c.l.Info("coordinator: syncing remote config...", zap.String("url", url), zap.String("proxy", proxy))
 
 	_, err := c.hc.Do(http.MethodPost, url, s.HttpToken, xc)
-	if err != nil {
-		c.l.Error("coordinator: cannot sync remote config", zap.Error(err), zap.String("url", url))
-		s.Status = database.ServerStatusUnavailable
+	if err == nil {
+		success = true
+	} else if proxy != "" {
+		proxied = true
+		_, err = c.hc.DoThrough(proxy, http.MethodPost, url, s.HttpToken, xc)
+		if err == nil {
+			success = true
+		}
+	}
+
+	if success {
+		if proxied {
+			s.Status = database.ServerStatusDirty
+		} else {
+			s.Status = database.ServerStatusAvailable
+		}
+		c.l.Debug(
+			"coordinator: remote config synced",
+			zap.String("url", url),
+			zap.String("proxy", proxy),
+			zap.Bool("proxied", proxied),
+		)
 	} else {
-		s.Status = database.ServerStatusAvailable
-		c.l.Debug("coordinator: remote config synced", zap.String("url", url))
+		s.Status = database.ServerStatusUnavailable
+		c.l.Error(
+			"coordinator: cannot sync remote config",
+			zap.String("url", url),
+			zap.String("proxy", proxy),
+			zap.Bool("proxied", proxied),
+			zap.Error(err),
+		)
 	}
 }
 

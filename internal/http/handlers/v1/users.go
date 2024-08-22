@@ -54,11 +54,6 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database, l *l
 				"message": "You have already reached the maximum number of users.",
 			})
 		}
-		if d.CountActiveUsers() >= config.MaxActiveUsersCount && request.Enabled {
-			return c.JSON(http.StatusForbidden, map[string]string{
-				"message": "You have already reached the maximum number of active users.",
-			})
-		}
 		if len(d.Data.Users) >= config.FreeUsersCount && !l.Licensed() {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": "You cannot add more users without license.",
@@ -110,12 +105,6 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
-
-		if d.CountActiveUsers() >= config.MaxActiveUsersCount && request.Enabled {
-			return c.JSON(http.StatusForbidden, map[string]string{
-				"message": "You have already reached the maximum number of active users.",
-			})
-		}
 
 		var user *database.User
 		for i, u := range d.Data.Users {

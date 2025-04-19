@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/database"
@@ -65,7 +66,9 @@ func ImportsStore(d *database.Database, hc *client.Client) echo.HandlerFunc {
 			results = append(results, fmt.Sprintf("Imported #%d: ID=%d Name=%s", users[i].Id, u.Id, u.Name))
 		}
 
-		d.Save()
+		if err = d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		return c.JSON(http.StatusOK, results)
 	}

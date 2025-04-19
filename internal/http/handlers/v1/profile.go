@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
@@ -71,7 +72,10 @@ func ProfileRegenerate(coordinator *coordinator.Coordinator, d *database.Databas
 		}
 
 		user.ShadowsocksPassword = d.GenerateUserPassword()
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 

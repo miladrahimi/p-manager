@@ -18,8 +18,6 @@ func init() {
 			if err = a.Init(); err != nil {
 				panic(fmt.Sprintf("%+v\n", err))
 			}
-			a.Coordinator.Run()
-			a.HttpServer.Run()
 			a.Wait()
 		},
 	})

@@ -7,14 +7,11 @@ import (
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/http/client"
 	"github.com/miladrahimi/p-manager/internal/utils"
-	"github.com/miladrahimi/p-node/pkg/logger"
 	"github.com/miladrahimi/p-node/pkg/xray"
-	"go.uber.org/zap"
 	"strconv"
 )
 
 type Writer struct {
-	l        *logger.Logger
 	c        *config.Config
 	hc       *client.Client
 	database *database.Database
@@ -36,22 +33,27 @@ func (w *Writer) clients() []*xray.Client {
 	return clients
 }
 
-func (w *Writer) LocalConfig() *xray.Config {
+func (w *Writer) LocalConfig() (*xray.Config, error) {
 	clients := w.clients()
 
 	apiPort, err := utils.FreePort()
 	if err != nil {
-		w.l.Fatal("writer: cannot find port for xray api", zap.Error(errors.WithStack(err)))
+		return nil, errors.WithStack(err)
 	}
 
 	xc := xray.NewConfig(w.c.Xray.LogLevel)
 	xc.FindInbound("api").Port = apiPort
 
+	var key string
+
 	if len(clients) > 0 {
 		if w.database.Content.Settings.SsRelayPort > 0 {
+			if key, err = utils.Key32(); err != nil {
+				return nil, err
+			}
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"relay",
-				utils.Key32(),
+				key,
 				config.ShadowsocksMethod,
 				"tcp,udp",
 				w.database.Content.Settings.SsRelayPort,
@@ -59,9 +61,12 @@ func (w *Writer) LocalConfig() *xray.Config {
 			))
 		}
 		if w.database.Content.Settings.SsReversePort > 0 {
+			if key, err = utils.Key32(); err != nil {
+				return nil, err
+			}
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"reverse",
-				utils.Key32(),
+				key,
 				config.ShadowsocksMethod,
 				"tcp,udp",
 				w.database.Content.Settings.SsReversePort,
@@ -69,9 +74,12 @@ func (w *Writer) LocalConfig() *xray.Config {
 			))
 		}
 		if w.database.Content.Settings.SsDirectPort > 0 {
+			if key, err = utils.Key32(); err != nil {
+				return nil, err
+			}
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"direct",
-				utils.Key32(),
+				key,
 				config.ShadowsocksMethod,
 				"tcp,udp",
 				w.database.Content.Settings.SsDirectPort,
@@ -118,13 +126,16 @@ func (w *Writer) LocalConfig() *xray.Config {
 	for _, s := range w.database.Content.Nodes {
 		inboundPort, err := utils.FreePort()
 		if err != nil {
-			w.l.Fatal("writer: cannot find port for foreign inbound", zap.Error(errors.WithStack(err)))
+			return nil, errors.WithStack(err)
 		}
 
 		if w.database.Content.Settings.SsReversePort > 0 {
+			if key, err = utils.Key32(); err != nil {
+				return nil, err
+			}
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				fmt.Sprintf("foreign-%d", s.Id),
-				utils.Key32(),
+				key,
 				config.Shadowsocks2022Method,
 				"tcp",
 				inboundPort,
@@ -148,12 +159,15 @@ func (w *Writer) LocalConfig() *xray.Config {
 		if w.database.Content.Settings.SsRelayPort > 0 {
 			outboundRelayPort, err := utils.FreePort()
 			if err != nil {
-				w.l.Fatal("writer: cannot find port for relay outbound", zap.Error(errors.WithStack(err)))
+				return nil, errors.WithStack(err)
+			}
+			if key, err = utils.Key32(); err != nil {
+				return nil, err
 			}
 			xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 				fmt.Sprintf("relay-%d", s.Id),
 				s.Host,
-				utils.Key32(),
+				key,
 				config.Shadowsocks2022Method,
 				outboundRelayPort,
 			))
@@ -164,7 +178,7 @@ func (w *Writer) LocalConfig() *xray.Config {
 		}
 	}
 
-	return xc
+	return xc, nil
 }
 
 func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
@@ -222,6 +236,6 @@ func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 	return xc
 }
 
-func New(logger *logger.Logger, config *config.Config, database *database.Database, xray *xray.Xray) *Writer {
-	return &Writer{l: logger, c: config, database: database, xray: xray}
+func New(config *config.Config, database *database.Database, xray *xray.Xray) *Writer {
+	return &Writer{c: config, database: database, xray: xray}
 }

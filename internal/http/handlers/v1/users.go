@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/config"
@@ -85,7 +86,10 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database, l *l
 		user.Enabled = request.Enabled
 
 		d.Content.Users = append(d.Content.Users, user)
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -129,7 +133,10 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 		user.Name = request.Name
 		user.Quota = request.Quota
 		user.Enabled = request.Enabled
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -172,7 +179,9 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Databa
 			user.Enabled = true
 		}
 
-		d.Save()
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -207,7 +216,9 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 			}
 		}
 
-		d.Save()
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -223,7 +234,9 @@ func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) ech
 		for i, u := range d.Content.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
 				d.Content.Users = slices.Delete(d.Content.Users, i, i+1)
-				d.Save()
+				if err := d.Save(); err != nil {
+					return errors.WithStack(err)
+				}
 				go coordinator.SyncConfigs()
 				break
 			}
@@ -267,7 +280,10 @@ func UsersDeleteBatch(coordinator *coordinator.Coordinator, d *database.Database
 		}
 
 		d.Content.Users = newUsers
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 

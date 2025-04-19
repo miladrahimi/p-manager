@@ -68,11 +68,9 @@ func (s *Server) Run() {
 	g2.DELETE("/nodes/:id", v1.NodesDelete(s.coordinator, s.database))
 
 	g2.GET("/stats", v1.StatsIndex(s.database))
-	g2.POST("/stats/total-usage/reset", v1.StatsTotalUsageReset(s.database)) // TODO: update
+	g2.PATCH("/stats", v1.StatsUpdatePartial(s.database))
 
-	g2.GET("/info", v1.InfoIndex(s.licensor))
-
-	g2.GET("/insights", v1.InsightsIndex(s.database))
+	g2.GET("/information", v1.InformationIndex(s.licensor))
 
 	g2.GET("/settings", v1.SettingsShow(s.database))
 	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))

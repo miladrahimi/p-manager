@@ -17,7 +17,7 @@ WORKDIR /app
 
 COPY --from=build /app/p-manager p-manager
 COPY --from=build /app/web.tar.gz web.tar.gz
-COPY --from=build /app/assets/ed25519_public_key.txt assets/ed25519_public_key.txt
+COPY --from=build /app/resources/ed25519_public_key.txt resources/ed25519_public_key.txt
 COPY --from=build /app/configs/main.defaults.json configs/main.defaults.json
 COPY --from=build /app/storage/app/.gitignore storage/app/.gitignore
 COPY --from=build /app/storage/database/.gitignore storage/app/.gitignore

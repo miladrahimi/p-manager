@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func InfoIndex(l *licensor.Licensor) echo.HandlerFunc {
+func InformationIndex(l *licensor.Licensor) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			AppName     string `json:"app_name"`

@@ -34,7 +34,7 @@ func NewEnv(appDirectory string) *Env {
 		DefaultConfigPath:  filepath.Join(appDirectory, "configs/main.defaults.json"),
 		LocalConfigPath:    filepath.Join(appDirectory, "configs/main.json"),
 		LicensePath:        filepath.Join(appDirectory, "storage/app/license.txt"),
-		EnigmaKeyPath:      filepath.Join(appDirectory, "assets/ed25519_public_key.txt"),
+		EnigmaKeyPath:      filepath.Join(appDirectory, "resources/ed25519_public_key.txt"),
 		XrayConfigPath:     filepath.Join(appDirectory, "storage/app/xray.json"),
 		DatabasePath:       filepath.Join(appDirectory, "storage/database/app.json"),
 		DatabaseBackupPath: filepath.Join(appDirectory, "storage/database/backup-%s.json"),

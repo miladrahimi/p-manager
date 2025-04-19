@@ -24,7 +24,7 @@ type Licensor struct {
 	licensed bool
 }
 
-func (l *Licensor) Init() {
+func (l *Licensor) Run() {
 	go func() {
 		l.fetch()
 		l.validate()

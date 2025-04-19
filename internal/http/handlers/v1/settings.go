@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
@@ -57,7 +58,10 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		}
 
 		d.Content.Settings = &input
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 

@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/http/client"
@@ -35,7 +36,9 @@ func (c *Coordinator) Run() {
 
 	go newWorker(c.context, time.Duration(c.config.Workers.SyncStatsInterval)*time.Second, func() {
 		c.l.Info("coordinator: running worker for sync stats...")
-		c.SyncStats()
+		if err := c.SyncStats(); err != nil {
+			c.l.Error("coordinator: cannot sync stats", zap.Error(errors.WithStack(err)))
+		}
 	}, func() {
 		c.l.Debug("coordinator: worker for sync stats stopped")
 	}).Start()
@@ -56,7 +59,9 @@ func (c *Coordinator) Run() {
 
 	go newWorker(c.context, time.Hour, func() {
 		c.l.Info("coordinator: running worker to reset users...")
-		c.resetUsers()
+		if err := c.resetUserUsages(); err != nil {
+			c.l.Error("coordinator: cannot reset users usages", zap.Error(errors.WithStack(err)))
+		}
 	}, func() {
 		c.l.Debug("coordinator: worker for reset users stopped")
 	}).Start()
@@ -64,14 +69,24 @@ func (c *Coordinator) Run() {
 
 func (c *Coordinator) SyncConfigs() {
 	c.l.Info("coordinator: syncing configs...")
-	c.syncLocalConfig()
+	if err := c.syncLocalConfig(); err != nil {
+		c.l.Fatal("coordinator: cannot sync local configs", zap.Error(errors.WithStack(err)))
+	}
 	c.syncRemoteConfigs()
 }
 
-func (c *Coordinator) syncLocalConfig() {
+func (c *Coordinator) syncLocalConfig() error {
 	c.l.Info("coordinator: syncing local configs...")
-	c.xray.SetConfig(c.writer.LocalConfig())
+
+	localConfig, err := c.writer.LocalConfig()
+	if err != nil {
+		return err
+	}
+
+	c.xray.SetConfig(localConfig)
 	c.xray.Restart()
+
+	return nil
 }
 
 func (c *Coordinator) syncRemoteConfigs() {
@@ -133,7 +148,7 @@ func (c *Coordinator) syncRemoteConfig(s *database.Node, xc *xray.Config) {
 	}
 }
 
-func (c *Coordinator) SyncStats() {
+func (c *Coordinator) SyncStats() error {
 	c.l.Info("coordinator: syncing stats...")
 
 	queryStats := c.xray.QueryStats()
@@ -180,15 +195,16 @@ func (c *Coordinator) SyncStats() {
 		go c.SyncConfigs()
 	}
 
-	c.database.Save()
+	err := c.database.Save()
+	return errors.WithStack(err)
 }
 
-func (c *Coordinator) resetUsers() {
+func (c *Coordinator) resetUserUsages() error {
 	if c.database.Content.Settings.ResetPolicy != "monthly" {
-		return
+		return nil
 	}
 
-	c.l.Info("coordinator: resetting users...")
+	c.l.Info("coordinator: resetting users usages...")
 
 	for _, u := range c.database.Content.Users {
 		if time.Unix(u.UsageResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
@@ -200,8 +216,13 @@ func (c *Coordinator) resetUsers() {
 		u.UsageResetAt = time.Now().Unix()
 	}
 
-	c.database.Save()
+	if err := c.database.Save(); err != nil {
+		return errors.WithStack(err)
+	}
+
 	go c.SyncConfigs()
+
+	return nil
 }
 
 func New(

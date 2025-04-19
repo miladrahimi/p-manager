@@ -62,7 +62,7 @@ func New() (a *App, err error) {
 	a.HttpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
 	a.Enigma = enigma.New(e.EnigmaKeyPath)
 	a.Licensor = licensor.New(c, a.HttpClient, a.Logger, a.Database, a.Enigma)
-	a.Writer = writer.New(a.Logger, a.Config, a.Database, a.Xray)
+	a.Writer = writer.New(a.Config, a.Database, a.Xray)
 	a.Coordinator = coordinator.New(c, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)
 	a.HttpServer = server.New(c, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor, a.HttpClient)
 
@@ -74,11 +74,17 @@ func New() (a *App, err error) {
 }
 
 func (a *App) Init() error {
-	a.Database.Init()
+	if err := a.Database.Init(); err != nil {
+		return errors.WithStack(err)
+	}
 	if err := a.Enigma.Init(); err != nil {
 		return errors.WithStack(err)
 	}
-	a.Licensor.Init()
+
+	a.Licensor.Run()
+	a.Coordinator.Run()
+	a.HttpServer.Run()
+
 	a.Logger.Info("app: initialized successfully")
 	return nil
 }

@@ -30,42 +30,42 @@ type Database struct {
 	c       *config.Config
 }
 
-func (d *Database) Init() {
+func (d *Database) Init() error {
 	d.Locker.Lock()
 	defer d.Locker.Unlock()
 
-	if !utils.FileExist(d.c.Env.DatabasePath) {
-		d.Save()
-	} else {
-		d.Load()
+	if utils.FileExist(d.c.Env.DatabasePath) {
+		err := d.Load()
+		return errors.WithStack(err)
 	}
+
+	err := d.Save()
+	return errors.WithStack(err)
 }
 
-func (d *Database) Load() {
+func (d *Database) Load() error {
 	content, err := os.ReadFile(d.c.Env.DatabasePath)
 	if err != nil {
-		d.l.Fatal("database: cannot load file", zap.Error(errors.WithStack(err)))
+		return errors.WithStack(err)
 	}
 
 	err = json.Unmarshal(content, d.Content)
 	if err != nil {
-		d.l.Fatal("database: cannot unmarshal data", zap.Error(errors.WithStack(err)))
+		return errors.WithStack(err)
 	}
 
-	if err = validator.New().Struct(d); err != nil {
-		d.l.Fatal("database: cannot validate data", zap.Error(errors.WithStack(err)))
-	}
+	err = validator.New().Struct(d)
+	return errors.WithStack(err)
 }
 
-func (d *Database) Save() {
+func (d *Database) Save() error {
 	content, err := json.Marshal(d.Content)
 	if err != nil {
-		d.l.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
+		return errors.WithStack(err)
 	}
 
-	if err = os.WriteFile(d.c.Env.DatabasePath, content, 0755); err != nil {
-		d.l.Fatal("database: cannot save file", zap.Error(errors.WithStack(err)))
-	}
+	err = os.WriteFile(d.c.Env.DatabasePath, content, 0755)
+	return errors.WithStack(err)
 }
 
 func (d *Database) Close() {

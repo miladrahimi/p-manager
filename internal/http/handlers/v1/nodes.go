@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
@@ -62,7 +63,10 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 		node.HttpPort = r.HttpPort
 
 		d.Content.Nodes = append(d.Content.Nodes, node)
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -100,7 +104,10 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 		node.Host = r.Host
 		node.HttpToken = r.HttpToken
 		node.HttpPort = r.HttpPort
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -132,7 +139,9 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 			}
 		}
 
-		d.Save()
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -148,7 +157,9 @@ func NodesDelete(coordinator *coordinator.Coordinator, d *database.Database) ech
 		for i, s := range d.Content.Nodes {
 			if strconv.Itoa(s.Id) == c.Param("id") {
 				d.Content.Nodes = append(d.Content.Nodes[:i], d.Content.Nodes[i+1:]...)
-				d.Save()
+				if err := d.Save(); err != nil {
+					return errors.WithStack(err)
+				}
 				go coordinator.SyncConfigs()
 				break
 			}

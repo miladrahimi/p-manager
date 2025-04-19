@@ -92,7 +92,7 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 		if w.database.Content.Settings.SsDirectPort > 0 {
 			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 				InboundTag:  []string{"direct"},
-				OutboundTag: "freedom",
+				OutboundTag: "out",
 				Type:        "field",
 			})
 		}
@@ -143,7 +143,7 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 			))
 			xc.Reverse.Portals = append(xc.Reverse.Portals, &xray.ReverseItem{
 				Tag:    fmt.Sprintf("portal-%d", s.Id),
-				Domain: fmt.Sprintf("s%d.google.com", s.Id),
+				Domain: fmt.Sprintf("s%d.reverse.proxy", s.Id),
 			})
 			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 				InboundTag:  []string{fmt.Sprintf("foreign-%d", s.Id)},
@@ -199,7 +199,7 @@ func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 			&xray.Rule{
 				Type:        "field",
 				InboundTag:  []string{"direct"},
-				OutboundTag: "freedom",
+				OutboundTag: "out",
 			},
 		)
 	}
@@ -207,7 +207,7 @@ func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 	if w.database.Content.Settings.SsReversePort > 0 {
 		foreignOutbound := w.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
 		xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
-			"foreign",
+			"internal",
 			w.database.Content.Settings.Host,
 			foreignOutbound.Settings.Password,
 			foreignOutbound.Settings.Method,
@@ -215,20 +215,20 @@ func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 		))
 		xc.Reverse.Bridges = append(xc.Reverse.Bridges, &xray.ReverseItem{
 			Tag:    "bridge",
-			Domain: fmt.Sprintf("s%d.google.com", s.Id),
+			Domain: fmt.Sprintf("s%d.reverse.proxy", s.Id),
 		})
 		xc.Routing.Settings.Rules = append(
 			xc.Routing.Settings.Rules,
 			&xray.Rule{
 				Type:        "field",
 				InboundTag:  []string{"bridge"},
-				Domain:      []string{fmt.Sprintf("full:s%d.google.com", s.Id)},
-				OutboundTag: "foreign",
+				Domain:      []string{fmt.Sprintf("full:s%d.reverse.proxy", s.Id)},
+				OutboundTag: "internal",
 			},
 			&xray.Rule{
 				Type:        "field",
 				InboundTag:  []string{"bridge"},
-				OutboundTag: "freedom",
+				OutboundTag: "out",
 			},
 		)
 	}

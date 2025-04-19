@@ -54,6 +54,13 @@ func (d *Database) Load() error {
 		return errors.WithStack(err)
 	}
 
+	// TODO: Remove this when we have a proper migration system
+	for _, user := range d.Content.Users {
+		if user.UsageResetAt == 0 {
+			user.UsageResetAt = time.Now().UnixMilli()
+		}
+	}
+
 	err = validator.New().Struct(d)
 	return errors.WithStack(err)
 }

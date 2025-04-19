@@ -73,7 +73,7 @@ func New() (a *App, err error) {
 	return a, nil
 }
 
-func (a *App) Init() error {
+func (a *App) Start() error {
 	if err := a.Database.Init(); err != nil {
 		return errors.WithStack(err)
 	}
@@ -117,7 +117,9 @@ func (a *App) Close() {
 		a.HttpServer.Close()
 	}
 	if a.Xray != nil {
-		a.Xray.Close()
+		if err := a.Xray.Close(); err != nil {
+			a.Logger.Error("xray: cannot close", zap.Error(errors.WithStack(err)))
+		}
 	}
 	if a.Database != nil {
 		a.Database.Close()

@@ -15,7 +15,7 @@ func init() {
 			if err != nil {
 				panic(fmt.Sprintf("%+v\n", err))
 			}
-			if err = a.Init(); err != nil {
+			if err = a.Start(); err != nil {
 				panic(fmt.Sprintf("%+v\n", err))
 			}
 			a.Wait()

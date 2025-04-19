@@ -19,7 +19,7 @@ type ProfileResponse struct {
 func ProfileShow(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var user *database.User
-		for _, u := range d.Data.Users {
+		for _, u := range d.Content.Users {
 			if u.Identity == c.QueryParam("u") {
 				user = u
 			}
@@ -31,10 +31,10 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 		}
 
 		r := ProfileResponse{User: *user}
-		r.User.Used = r.User.Used * d.Data.Settings.TrafficRatio
-		r.User.Quota = r.User.Quota * d.Data.Settings.TrafficRatio
+		r.User.Used = r.User.Used * d.Content.Settings.TrafficRatio
+		r.User.Quota = r.User.Quota * d.Content.Settings.TrafficRatio
 
-		s := d.Data.Settings
+		s := d.Content.Settings
 		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
 
 		if s.SsReversePort > 0 {
@@ -53,13 +53,13 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 	}
 }
 
-func ProfileReset(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func ProfileRegenerate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
 		var user *database.User
-		for _, u := range d.Data.Users {
+		for _, u := range d.Content.Users {
 			if u.Identity == c.QueryParam("u") {
 				user = u
 			}

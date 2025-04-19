@@ -23,7 +23,7 @@ type Writer struct {
 
 func (w *Writer) clients() []*xray.Client {
 	var clients []*xray.Client
-	for _, u := range w.database.Data.Users {
+	for _, u := range w.database.Content.Users {
 		if !u.Enabled {
 			continue
 		}
@@ -48,55 +48,55 @@ func (w *Writer) LocalConfig() *xray.Config {
 	xc.FindInbound("api").Port = apiPort
 
 	if len(clients) > 0 {
-		if w.database.Data.Settings.SsRelayPort > 0 {
+		if w.database.Content.Settings.SsRelayPort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"relay",
 				utils.Key32(),
 				config.ShadowsocksMethod,
 				"tcp,udp",
-				w.database.Data.Settings.SsRelayPort,
+				w.database.Content.Settings.SsRelayPort,
 				clients,
 			))
 		}
-		if w.database.Data.Settings.SsReversePort > 0 {
+		if w.database.Content.Settings.SsReversePort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"reverse",
 				utils.Key32(),
 				config.ShadowsocksMethod,
 				"tcp,udp",
-				w.database.Data.Settings.SsReversePort,
+				w.database.Content.Settings.SsReversePort,
 				clients,
 			))
 		}
-		if w.database.Data.Settings.SsDirectPort > 0 {
+		if w.database.Content.Settings.SsDirectPort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				"direct",
 				utils.Key32(),
 				config.ShadowsocksMethod,
 				"tcp,udp",
-				w.database.Data.Settings.SsDirectPort,
+				w.database.Content.Settings.SsDirectPort,
 				clients,
 			))
 		}
 	}
 
 	if len(clients) > 0 {
-		if w.database.Data.Settings.SsDirectPort > 0 {
+		if w.database.Content.Settings.SsDirectPort > 0 {
 			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 				InboundTag:  []string{"direct"},
 				OutboundTag: "freedom",
 				Type:        "field",
 			})
 		}
-		if len(w.database.Data.Servers) > 0 {
-			if w.database.Data.Settings.SsRelayPort > 0 {
+		if len(w.database.Content.Nodes) > 0 {
+			if w.database.Content.Settings.SsRelayPort > 0 {
 				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 					InboundTag:  []string{"relay"},
 					BalancerTag: "relay",
 					Type:        "field",
 				})
 			}
-			if w.database.Data.Settings.SsReversePort > 0 {
+			if w.database.Content.Settings.SsReversePort > 0 {
 				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
 					InboundTag:  []string{"reverse"},
 					BalancerTag: "portal",
@@ -106,22 +106,22 @@ func (w *Writer) LocalConfig() *xray.Config {
 		}
 	}
 
-	if len(w.database.Data.Servers) > 0 {
-		if w.database.Data.Settings.SsRelayPort > 0 {
+	if len(w.database.Content.Nodes) > 0 {
+		if w.database.Content.Settings.SsRelayPort > 0 {
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &xray.Balancer{Tag: "relay", Selector: []string{}})
 		}
-		if w.database.Data.Settings.SsReversePort > 0 {
+		if w.database.Content.Settings.SsReversePort > 0 {
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &xray.Balancer{Tag: "portal", Selector: []string{}})
 		}
 	}
 
-	for _, s := range w.database.Data.Servers {
+	for _, s := range w.database.Content.Nodes {
 		inboundPort, err := utils.FreePort()
 		if err != nil {
 			w.l.Fatal("writer: cannot find port for foreign inbound", zap.Error(errors.WithStack(err)))
 		}
 
-		if w.database.Data.Settings.SsReversePort > 0 {
+		if w.database.Content.Settings.SsReversePort > 0 {
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 				fmt.Sprintf("foreign-%d", s.Id),
 				utils.Key32(),
@@ -145,7 +145,7 @@ func (w *Writer) LocalConfig() *xray.Config {
 			)
 		}
 
-		if w.database.Data.Settings.SsRelayPort > 0 {
+		if w.database.Content.Settings.SsRelayPort > 0 {
 			outboundRelayPort, err := utils.FreePort()
 			if err != nil {
 				w.l.Fatal("writer: cannot find port for relay outbound", zap.Error(errors.WithStack(err)))
@@ -167,10 +167,10 @@ func (w *Writer) LocalConfig() *xray.Config {
 	return xc
 }
 
-func (w *Writer) RemoteConfig(s *database.Server) *xray.Config {
+func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 	xc := xray.NewConfig(w.c.Xray.LogLevel)
 
-	if w.database.Data.Settings.SsRelayPort > 0 {
+	if w.database.Content.Settings.SsRelayPort > 0 {
 		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", s.Id))
 		xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 			"direct",
@@ -190,11 +190,11 @@ func (w *Writer) RemoteConfig(s *database.Server) *xray.Config {
 		)
 	}
 
-	if w.database.Data.Settings.SsReversePort > 0 {
+	if w.database.Content.Settings.SsReversePort > 0 {
 		foreignOutbound := w.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
 		xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 			"foreign",
-			w.database.Data.Settings.Host,
+			w.database.Content.Settings.Host,
 			foreignOutbound.Settings.Password,
 			foreignOutbound.Settings.Method,
 			foreignOutbound.Port,

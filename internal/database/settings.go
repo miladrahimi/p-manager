@@ -8,4 +8,5 @@ type Settings struct {
 	SsDirectPort  int     `json:"ss_direct_port" validate:"min=0,max=65536"`
 	TrafficRatio  float64 `json:"traffic_ratio" validate:"min=1,max=1024"`
 	SingetServer  string  `json:"singet_server" validate:"omitempty,url"`
+	ResetPolicy   string  `json:"reset_policy" validate:"omitempty,oneof=monthly"`
 }

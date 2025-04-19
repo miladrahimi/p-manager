@@ -1,6 +1,6 @@
 package database
 
 type Stats struct {
-	UpdatedAt int64   `json:"updated_at"`
-	Traffic   float64 `json:"traffic"`
+	TotalUsageResetAt int64   `json:"total_usage_reset_at"`
+	TotalUsage        float64 `json:"total_usage"`
 }

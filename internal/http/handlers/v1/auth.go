@@ -26,15 +26,15 @@ func SignIn(d *database.Database, e *enigma.Enigma) echo.HandlerFunc {
 			})
 		}
 
-		if r.Username == "admin" && r.Password == d.Data.Settings.AdminPassword {
+		if r.Username == "admin" && r.Password == d.Content.Settings.AdminPassword {
 			return c.JSON(http.StatusOK, map[string]string{
-				"token": d.Data.Settings.AdminPassword,
+				"token": d.Content.Settings.AdminPassword,
 			})
 		}
 
-		if r.Username == "admin" && e.Verify(d.Data.Settings.Host, r.Password) {
+		if r.Username == "admin" && e.Verify(d.Content.Settings.Host, r.Password) {
 			return c.JSON(http.StatusOK, map[string]string{
-				"token": d.Data.Settings.AdminPassword,
+				"token": d.Content.Settings.AdminPassword,
 			})
 		}
 

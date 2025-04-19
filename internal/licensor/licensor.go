@@ -39,7 +39,7 @@ func (l *Licensor) validate() {
 		if err != nil {
 			l.l.Error("licensor: cannot read license file", zap.Error(errors.WithStack(err)))
 		} else {
-			key := fmt.Sprintf("%s:%d", l.database.Data.Settings.Host, l.c.HttpServer.Port)
+			key := fmt.Sprintf("%s:%d", l.database.Content.Settings.Host, l.c.HttpServer.Port)
 			l.licensed = l.enigma.Verify(key, string(licenseFile))
 			l.l.Info("licensor: license file checked", zap.Bool("valid", l.licensed))
 		}
@@ -48,7 +48,7 @@ func (l *Licensor) validate() {
 
 func (l *Licensor) fetch() {
 	body := map[string]interface{}{
-		"host": l.database.Data.Settings.Host,
+		"host": l.database.Content.Settings.Host,
 		"port": l.c.HttpServer.Port,
 	}
 	if r, err := l.hc.Do(http.MethodPost, config.LicenseServer, config.LicenseToken, body); err != nil {

@@ -16,18 +16,18 @@ import (
 	"time"
 )
 
-type Data struct {
+type Content struct {
 	Settings *Settings `json:"settings"`
 	Stats    *Stats    `json:"stats"`
 	Users    []*User   `json:"users"`
-	Servers  []*Server `json:"servers"`
+	Nodes    []*Node   `json:"servers"`
 }
 
 type Database struct {
-	Data   *Data
-	Locker *sync.Mutex
-	l      *logger.Logger
-	c      *config.Config
+	Content *Content
+	Locker  *sync.Mutex
+	l       *logger.Logger
+	c       *config.Config
 }
 
 func (d *Database) Init() {
@@ -47,7 +47,7 @@ func (d *Database) Load() {
 		d.l.Fatal("database: cannot load file", zap.Error(errors.WithStack(err)))
 	}
 
-	err = json.Unmarshal(content, d.Data)
+	err = json.Unmarshal(content, d.Content)
 	if err != nil {
 		d.l.Fatal("database: cannot unmarshal data", zap.Error(errors.WithStack(err)))
 	}
@@ -58,7 +58,7 @@ func (d *Database) Load() {
 }
 
 func (d *Database) Save() {
-	content, err := json.Marshal(d.Data)
+	content, err := json.Marshal(d.Content)
 	if err != nil {
 		d.l.Fatal("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
@@ -69,7 +69,7 @@ func (d *Database) Save() {
 }
 
 func (d *Database) Close() {
-	content, err := json.Marshal(d.Data)
+	content, err := json.Marshal(d.Content)
 	if err != nil {
 		d.l.Error("database: close: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
@@ -83,7 +83,7 @@ func (d *Database) Backup() {
 	d.Locker.Lock()
 	defer d.Locker.Unlock()
 
-	content, err := json.Marshal(d.Data)
+	content, err := json.Marshal(d.Content)
 	if err != nil {
 		d.l.Error("database: cannot marshal data", zap.Error(errors.WithStack(err)))
 	}
@@ -97,8 +97,8 @@ func (d *Database) Backup() {
 }
 
 func (d *Database) CountActiveUsers() int {
-	activeUsersCount := len(d.Data.Users)
-	for _, u := range d.Data.Users {
+	activeUsersCount := len(d.Content.Users)
+	for _, u := range d.Content.Users {
 		if !u.Enabled {
 			activeUsersCount--
 		}
@@ -107,8 +107,8 @@ func (d *Database) CountActiveUsers() int {
 }
 
 func (d *Database) GenerateUserId() int {
-	if len(d.Data.Users) > 0 {
-		return d.Data.Users[len(d.Data.Users)-1].Id + 1
+	if len(d.Content.Users) > 0 {
+		return d.Content.Users[len(d.Content.Users)-1].Id + 1
 	} else {
 		return 1
 	}
@@ -122,7 +122,7 @@ func (d *Database) GenerateUserPassword() string {
 	for {
 		r := random.String(16)
 		isUnique := true
-		for _, user := range d.Data.Users {
+		for _, user := range d.Content.Users {
 			if user.ShadowsocksPassword == r {
 				isUnique = false
 				break
@@ -135,8 +135,8 @@ func (d *Database) GenerateUserPassword() string {
 }
 
 func (d *Database) GenerateServerId() int {
-	if len(d.Data.Servers) > 0 {
-		return d.Data.Servers[len(d.Data.Servers)-1].Id + 1
+	if len(d.Content.Nodes) > 0 {
+		return d.Content.Nodes[len(d.Content.Nodes)-1].Id + 1
 	} else {
 		return 1
 	}
@@ -147,7 +147,7 @@ func New(l *logger.Logger, c *config.Config) *Database {
 		Locker: &sync.Mutex{},
 		l:      l,
 		c:      c,
-		Data: &Data{
+		Content: &Content{
 			Settings: &Settings{
 				AdminPassword: "password",
 				Host:          "127.0.0.1",
@@ -156,11 +156,11 @@ func New(l *logger.Logger, c *config.Config) *Database {
 				TrafficRatio:  1,
 			},
 			Stats: &Stats{
-				Traffic:   0,
-				UpdatedAt: time.Now().UnixMilli(),
+				TotalUsage:        0,
+				TotalUsageResetAt: time.Now().UnixMilli(),
 			},
-			Users:   []*User{},
-			Servers: []*Server{},
+			Users: []*User{},
+			Nodes: []*Node{},
 		},
 	}
 }

@@ -53,6 +53,13 @@ func (c *Coordinator) Run() {
 	}, func() {
 		c.l.Debug("coordinator: worker for backup database stopped")
 	}).Start()
+
+	go newWorker(c.context, time.Second*10, func() {
+		c.l.Info("coordinator: running worker to reset users...")
+		c.resetUsers()
+	}, func() {
+		c.l.Debug("coordinator: worker for reset users stopped")
+	}).Start()
 }
 
 func (c *Coordinator) SyncConfigs() {
@@ -69,23 +76,23 @@ func (c *Coordinator) syncLocalConfig() {
 
 func (c *Coordinator) syncRemoteConfigs() {
 	c.l.Info("coordinator: syncing remote configs...")
-	for _, s := range c.database.Data.Servers {
+	for _, s := range c.database.Content.Nodes {
 		go c.syncRemoteConfig(s, c.writer.RemoteConfig(s))
 	}
 }
 
 func (c *Coordinator) syncOutdatedConfigs() {
 	c.l.Info("coordinator: syncing outdated configs...")
-	for _, s := range c.database.Data.Servers {
-		if s.Status == database.ServerStatusUnavailable || s.Status == database.ServerStatusProcessing {
+	for _, s := range c.database.Content.Nodes {
+		if s.Status == database.NodeStatusUnavailable || s.Status == database.NodeStatusProcessing {
 			go c.syncRemoteConfig(s, c.writer.RemoteConfig(s))
 		}
 	}
 }
 
-func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
+func (c *Coordinator) syncRemoteConfig(s *database.Node, xc *xray.Config) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
-	proxy := c.database.Data.Settings.SingetServer
+	proxy := c.database.Content.Settings.SingetServer
 	proxied := false
 	success := false
 
@@ -104,9 +111,9 @@ func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 
 	if success {
 		if proxied {
-			s.Status = database.ServerStatusDirty
+			s.Status = database.NodeStatusDirty
 		} else {
-			s.Status = database.ServerStatusAvailable
+			s.Status = database.NodeStatusAvailable
 		}
 		c.l.Debug(
 			"coordinator: remote config synced",
@@ -115,7 +122,7 @@ func (c *Coordinator) syncRemoteConfig(s *database.Server, xc *xray.Config) {
 			zap.Bool("proxied", proxied),
 		)
 	} else {
-		s.Status = database.ServerStatusUnavailable
+		s.Status = database.NodeStatusUnavailable
 		c.l.Error(
 			"coordinator: cannot sync remote config",
 			zap.String("url", url),
@@ -146,18 +153,18 @@ func (c *Coordinator) SyncStats() {
 		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
 			servers[parts[1][6:]] += qs.GetValue()
 		} else if parts[0] == "inbound" && slices.Contains([]string{"reverse", "relay", "direct"}, parts[1]) {
-			c.database.Data.Stats.Traffic += float64(qs.GetValue()) / 1000 / 1000 / 1000
+			c.database.Content.Stats.TotalUsage += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
 	}
 
-	for _, s := range c.database.Data.Servers {
+	for _, s := range c.database.Content.Nodes {
 		if bytes, found := servers[strconv.Itoa(s.Id)]; found {
-			s.Traffic += utils.RoundFloat(float64(bytes)/1000/1000/1000, 2)
+			s.Usage += utils.RoundFloat(float64(bytes)/1000/1000/1000, 2)
 		}
 	}
 
 	shouldSync := false
-	for _, u := range c.database.Data.Users {
+	for _, u := range c.database.Content.Users {
 		if bytes, found := users[strconv.Itoa(u.Id)]; found {
 			u.UsedBytes += bytes
 			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
@@ -174,6 +181,27 @@ func (c *Coordinator) SyncStats() {
 	}
 
 	c.database.Save()
+}
+
+func (c *Coordinator) resetUsers() {
+	if c.database.Content.Settings.ResetPolicy != "monthly" {
+		return
+	}
+
+	c.l.Info("coordinator: resetting users...")
+
+	for _, u := range c.database.Content.Users {
+		if time.Unix(u.ResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
+			continue
+		}
+		u.Used = 0
+		u.UsedBytes = 0
+		u.Enabled = true
+		u.ResetAt = time.Now().Unix()
+	}
+
+	c.database.Save()
+	go c.SyncConfigs()
 }
 
 func New(

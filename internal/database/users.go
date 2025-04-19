@@ -8,7 +8,8 @@ type User struct {
 	Used                float64 `json:"used" validate:"min=0"`
 	UsedBytes           int64   `json:"used_bytes" validate:"min=0"`
 	Enabled             bool    `json:"enabled"`
-	CreatedAt           int64   `json:"created_at"`
 	ShadowsocksPassword string  `json:"shadowsocks_password" validate:"required,min=1,max=64"`
 	ShadowsocksMethod   string  `json:"shadowsocks_method" validate:"required"`
+	CreatedAt           int64   `json:"created_at"`
+	ResetAt             int64   `json:"reset_at"`
 }

@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>P-Manager</title>
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator_semanticui.min.css">
+    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+</head>
+<body>
+
+<div class="container py-4 text-center">
+    <div class="col">
+        <div class="text-center">
+            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
+        </div>
+
+        <ul class="nav nav-tabs small">
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-users.html">Users</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-2" href="admin-nodes.html">Nodes</a>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link px-2 active" aria-current="page">System</span>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link px-2" id="exit">Exit</span>
+            </li>
+        </ul>
+
+        <div class="card text-start mt-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col col-12 col-md-6">
+                        <div class="card-title fw-bold">Stats</div>
+                        <div class="my-1">
+                            <span>Total usage:</span>
+                            <span id="stats-total-usage" class="text-muted"></span>
+                            <span class="text-muted">GB</span>
+                        </div>
+                        <div class="my-1">
+                            <span>Last total usage reset:</span>
+                            <span id="stats-last-total-usage-reset" class="text-muted"></span>
+                        </div>
+
+                        <div class="card-title fw-bold mt-3">Insights</div>
+                        <div class="my-1">
+                            <span>Total Users:</span>
+                            <span id="insights-total-users" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Active users:</span>
+                            <span id="insights-active-users" class="text-muted"></span>
+                        </div>
+                    </div>
+                    <div class="col col-12 col-md-6">
+                        <div class="card-title fw-bold">Information</div>
+                        <div class="my-1">
+                            <span>App Name:</span>
+                            <span id="info-app-name" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>App Version:</span>
+                            <span id="info-app-version" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>App Licensed:</span>
+                            <span id="info-app-licensed" class="text-muted"></span>
+                        </div>
+                        <div class="my-1">
+                            <span>Core:</span>
+                            <span id="info-core" class="text-muted"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-light text-start mt-3">
+            <div class="card-body">
+                <div class="card-title fw-bold text-center">Actions</div>
+                <div class="d-flex flex-column flex-md-row mt-2">
+                    <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="reset-total-usage">
+                        Reset Total Usage
+                    </button>
+                    <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="reset-node-usages">
+                        Reset Node Usages
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm m-1 flex-fill" id="reset-user-usages">
+                        Reset User Usages
+                    </button>
+                </div>
+                <div class="d-flex flex-column flex-md-row mt-2">
+                    <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="restart-xray">
+                        Restart Xray Core
+                    </button>
+                    <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="delete-disabled-users">
+                        Delete Disabled Users
+                    </button>
+                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="delete-all-users">
+                        Delete All of Users
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-title fw-bold pt-3">Settings</div>
+            <div class="card-body text-start">
+                <table class="table table-striped table-borderless table-sm">
+                    <tr>
+                        <td class="align-middle px-2">Admin Password</td>
+                        <td>
+                            <input id="admin_password" type="text" class="form-control" title="Admin Password"
+                                   required="required" data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Admin panel password.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">Host</td>
+                        <td>
+                            <input id="host" type="text" class="form-control" title="Host" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Host to use as shadowsocks server and profile links.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">Shadowsocks Reverse Port</td>
+                        <td>
+                            <input id="ss_reverse_port" type="number" class="form-control"
+                                   title="Shadowsocks Reverse Port"
+                                   min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Shadowsocks reverse port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">Shadowsocks Relay Port</td>
+                        <td>
+                            <input id="ss_relay_port" type="number" class="form-control"
+                                   title="SShadowsocks Relay Port"
+                                   min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Shadowsocks relay port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">Shadowsocks Direct Port</td>
+                        <td>
+                            <input id="ss_direct_port" type="number" class="form-control"
+                                   title="Shadowsocks Direct Port" min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Shadowsocks direct port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">Reset Policy</td>
+                        <td>
+                            <select id="reset_policy" type="text" class="form-select" title="Reset Policy"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    data-bs-title="User usage reset policy.">
+                                <option value="" selected="selected">Disabled</option>
+                                <option value="monthly">First of each month</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">Usage Ratio</td>
+                        <td>
+                            <input id="usage_ratio" type="number" step="0.01" class="form-control"
+                                   title="Usage Ratio"
+                                   required="required" data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Usage multiplier for displaying to users!">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">
+                            <a href="https://github.com/miladrahimi/singet" target="_blank">Singet</a> Server
+                        </td>
+                        <td>
+                            <input id="singet_server" type="url" class="form-control" title="Singet Server"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Signet (proxy server) URL to communication with banned nodes.">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="d-flex flex-column flex-md-row px-3 pb-3">
+                <button class="btn btn-dark btn-sm m-1 flex-fill" id="save-settings">Save Settings</button>
+            </div>
+        </div>
+
+        <div class="card bg-light pt-3 mt-3">
+            <div class="card-title fw-bold text-center">Import users from another P-Manager</div>
+            <div class="card-body text-start">
+                <div class="d-flex flex-column mt-2">
+                    <input type="url" placeholder="https://domain-or-ip" id="pm-url" title="URL"
+                           class="form-control my-1">
+                    <input type="text" placeholder="Admin Password" id="pm-password" title="Admin Password"
+                           class="form-control my-1">
+                    <button class="btn btn-outline-dark btn-sm my-1" id="import-users">Import Users</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/third_party/jquery-3.7.1.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
+<script src="assets/third_party/tabulator-6.3.1/dist/js/tabulator.min.js"></script>
+<script src="assets/third_party/popper.min.js"></script>
+<script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+<script>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    _ = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            $("#stats-total-usage").html(parseFloat(response['total_usage']).toFixed(2))
+            $("#stats-last-total-usage-reset").html(ts2string(response['total_usage_reset_at']))
+        },
+        error: function (response) {
+            console.log(response)
+            handleAuthError(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/stats"
+    })
+
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            $("#insights-total-users").html(response['total_users'])
+            $("#insights-active-users").html(response['active_users'])
+        },
+        error: function (response) {
+            console.log(response)
+            handleAuthError(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/insights"
+    })
+
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            $("#info-app-name").html(response['app_name'])
+            $("#info-app-version").html(response['app_version'])
+            $("#info-app-licensed").html(response['app_licensed'] ? 'Yes' : 'No')
+            $("#info-core").html(response['core'])
+        },
+        error: function (response) {
+            console.log(response)
+            handleAuthError(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/info"
+    })
+
+    $.ajax({
+        dataType: "json",
+        success: function (response) {
+            $('#admin_password').val(response['admin_password'])
+            $('#usage_ratio').val(response['traffic_ratio'])
+            $('#host').val(response['host'])
+            $('#singet_server').val(response['singet_server'])
+            $('#ss_reverse_port').val(response['ss_reverse_port'])
+            $('#ss_relay_port').val(response['ss_relay_port'])
+            $('#ss_direct_port').val(response['ss_direct_port'])
+            $('#reset_policy').val(response['reset_policy'])
+        },
+        error: function (response) {
+            console.log(response)
+            handleAuthError(response)
+        },
+        processData: true,
+        type: "GET",
+        url: "/v1/settings"
+    })
+
+    $('#save-settings').click(function () {
+        let confirmed = confirm("Click 'OK' to save the settings.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'POST',
+            url: "/v1/settings",
+            data: JSON.stringify({
+                admin_password: $('#admin_password').val(),
+                traffic_ratio: parseFloat($('#usage_ratio').val()),
+                host: $('#host').val(),
+                singet_server: $('#singet_server').val(),
+                ss_reverse_port: parseInt($('#ss_reverse_port').val()),
+                ss_relay_port: parseInt($('#ss_relay_port').val()),
+                ss_direct_port: parseInt($('#ss_direct_port').val()),
+                reset_policy: $('#reset_policy').val(),
+            }),
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Settings saved successfully.'),
+            error: response => {
+                console.log('ERROR', 'Save Settings', response.status, response.responseText)
+                alert('Cannot save settings, see the error in your console.')
+            },
+        })
+    })
+
+    $('#reset-node-usages').click(function () {
+        let confirmed = confirm("Click 'OK' to reset usage for all nodes.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('RESETTING...')
+
+        $.ajax({
+            type: 'PATCH',
+            url: `/v1/nodes`,
+            data: JSON.stringify({usage: 0}),
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Nodes has been reset successfully.'),
+            error: response => {
+                console.log('ERROR', 'Reset Nodes', response.status, response.responseText)
+                alert('Cannot reset nodes, see the error in your console.')
+            }
+        })
+    })
+
+    $('#reset-user-usages').click(function () {
+        let confirmed = confirm("Click 'OK' to reset usage for all users and activate their accounts.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('RESETTING...')
+
+        $.ajax({
+            type: 'PATCH',
+            url: `/v1/users`,
+            data: JSON.stringify({
+                used: 0,
+                enabled: true,
+            }),
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Users has been reset successfully.'),
+            error: response => {
+                console.log('ERROR', 'Reset Users', response.status, response.responseText)
+                alert('Cannot reset users, see the error in your console.')
+            },
+        })
+    })
+
+    $('#reset-total-usage').click(function () {
+        let confirmed = confirm("Click 'OK' to reset the total usage.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled').val('RESETTING...')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/stats/total-usage/reset`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => {
+                alert('Stats has been reset successfully.')
+                window.location.reload()
+            },
+            error: response => {
+                console.log('ERROR', 'Reset Stats', response.status, response.responseText)
+                alert('Cannot reset stats, see the error in your console.')
+            }
+        })
+    })
+
+    $('#restart-xray').click(function () {
+        let confirmed = confirm("Click 'OK' to restart the Xray core.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/settings/xray/restart`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Xray restarted successfully.'),
+            error: response => {
+                console.log('ERROR', 'Restart Xray', response.status, response.responseText)
+                alert('Cannot restart Xray, see the error in your console.')
+            },
+        })
+    })
+
+    $('#delete-disabled-users').click(function () {
+        let confirmed = confirm("Click 'OK' to delete disabled users.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'DELETE',
+            url: `/v1/users?enabled=false`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Disabled users deleted successfully.'),
+            error: response => {
+                console.log('ERROR', 'Delete Disabled Users', response.status, response.responseText)
+                alert('Cannot delete disabled users, see the error in your console.')
+            },
+        })
+    })
+
+    $('#delete-all-users').click(function () {
+        let confirmed = confirm("Click 'OK' to delete all users.")
+        if (!confirmed) {
+            return
+        }
+
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'DELETE',
+            url: `/v1/users`,
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('All users deleted successfully.'),
+            error: response => {
+                console.log('ERROR', 'Delete All Users', response.status, response.responseText)
+                alert('Cannot delete all users, see the error in your console.')
+            },
+        })
+    })
+
+    $('#import-users').click(function () {
+        let me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'POST',
+            url: `/v1/imports`,
+            contentType: 'application/json',
+            processData: true,
+            dataType: 'json',
+            data: JSON.stringify({
+                url: $('#pm-url').val(),
+                password: $('#pm-password').val(),
+            }),
+            complete: () => me.removeAttr('disabled'),
+            success: response => {
+                console.log('Import from P-Manager: Import Users', response)
+                $('#pm-url').val('')
+                $('#pm-password').val('')
+                alert('Users imported successfully, See the results in your console.')
+            },
+            error: response => {
+                console.log('ERROR', 'Import from P-Manager: Import Users', response.status, response.responseText)
+                alert('Cannot import users, see the error in your console.')
+            },
+        })
+    })
+</script>
+
+</body>
+</html>

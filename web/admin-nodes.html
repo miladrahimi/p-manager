@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-6.2.0/dist/css/tabulator_semanticui.min.css">
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator_semanticui.min.css">
     <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
     <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
 </head>
@@ -27,7 +27,7 @@
                 <span class="nav-link active px-2" aria-current="page">Nodes</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link px-2" href="admin-settings-general.html">Settings</a>
+                <a class="nav-link px-2" href="admin-system.html">System</a>
             </li>
             <li class="nav-item">
                 <span class="nav-link px-2" id="exit">Exit</span>
@@ -45,8 +45,8 @@
 </div>
 
 <script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.min.js"></script>
-<script src="assets/third_party/tabulator-6.2.0/dist/js/tabulator.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.min.js"></script>
+<script src="assets/third_party/tabulator-6.3.1/dist/js/tabulator.min.js"></script>
 <script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     let statusFormatter = cell => {
@@ -157,12 +157,12 @@
                 editable: true,
             },
             {
-                title: "Traffic (GB)",
-                field: "traffic",
+                title: "Usage (GB)",
+                field: "usage",
                 visible: true,
                 widthGrow: 1,
                 editable: false,
-                formatter: cell => parseFloat(cell.getData()['traffic']).toFixed(2)
+                formatter: cell => parseFloat(cell.getData()['usage']).toFixed(2)
             },
             {
                 title: "Status", field: "status", widthGrow: 1, resizable: true, formatter: statusFormatter,
@@ -182,9 +182,12 @@
 
         table.alert("Saving the node...", "msg")
 
+        let method = cell.getData().id === 0 ? "POST" : "PUT"
+        let url = cell.getData().id === 0 ? "/v1/nodes" : `/v1/nodes/${cell.getData().id}`
+
         $.ajax({
-            type: cell.getData().id === 0 ? "POST" : "PUT",
-            url: "/v1/nodes",
+            type: method,
+            url: url,
             contentType: "application/json",
             data: JSON.stringify(cell.getData()),
             dataType: "json",
@@ -215,7 +218,7 @@
             host: "",
             http_token: "",
             http_port: "",
-            traffic: 0,
+            usage: 0,
         })
     })
 </script>

@@ -23,12 +23,16 @@ type UsersStoreRequest struct {
 
 type UsersUpdateRequest struct {
 	UsersStoreRequest
-	Id int `json:"id"`
+}
+
+type UsersUpdatePartialRequest struct {
+	Used    *float64 `json:"used"`
+	Enabled *bool    `json:"enabled"`
 }
 
 func UsersIndex(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, d.Data.Users)
+		return c.JSON(http.StatusOK, d.Content.Users)
 	}
 }
 
@@ -49,18 +53,18 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database, l *l
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		if len(d.Data.Users) >= config.MaxUsersCount {
+		if len(d.Content.Users) >= config.MaxUsersCount {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": "You have already reached the maximum number of users.",
 			})
 		}
-		if len(d.Data.Users) >= config.FreeUsersCount && !l.Licensed() {
+		if len(d.Content.Users) >= config.FreeUsersCount && !l.Licensed() {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": "You cannot add more users without license.",
 			})
 		}
 
-		for _, u := range d.Data.Users {
+		for _, u := range d.Content.Users {
 			if u.Name == request.Name {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"message": "The name is already taken.",
@@ -80,7 +84,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database, l *l
 		user.Quota = request.Quota
 		user.Enabled = request.Enabled
 
-		d.Data.Users = append(d.Data.Users, user)
+		d.Content.Users = append(d.Content.Users, user)
 		d.Save()
 
 		go coordinator.SyncConfigs()
@@ -107,9 +111,9 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 		defer d.Locker.Unlock()
 
 		var user *database.User
-		for i, u := range d.Data.Users {
-			if u.Id == request.Id {
-				user = d.Data.Users[i]
+		for i, u := range d.Content.Users {
+			if strconv.Itoa(u.Id) == c.Param("id") {
+				user = d.Content.Users[i]
 			} else {
 				if u.Name == request.Name {
 					return c.JSON(http.StatusBadRequest, map[string]string{
@@ -133,23 +137,81 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 	}
 }
 
-func UsersZero(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		var request UsersUpdatePartialRequest
+		if err := c.Bind(&request); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Cannot parse the request body.",
+			})
+		}
+		if err := validator.New().Struct(request); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Validation error: %v", err.Error()),
+			})
+		}
+
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		for _, u := range d.Data.Users {
+		var user *database.User
+		for i, u := range d.Content.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
-				u.Used = 0
-				u.UsedBytes = 0
-				u.Enabled = true
-				d.Save()
-				go coordinator.SyncConfigs()
-				return c.NoContent(http.StatusNoContent)
+				user = d.Content.Users[i]
+			}
+		}
+		if user == nil {
+			return c.NoContent(http.StatusNotFound)
+		}
+
+		if request.Used != nil {
+			user.Used = *request.Used
+			user.UsedBytes = int64(*request.Used * 1000 * 1000 * 1000)
+		}
+		if request.Enabled != nil {
+			user.Enabled = true
+		}
+
+		d.Save()
+
+		go coordinator.SyncConfigs()
+
+		return c.JSON(http.StatusOK, user)
+	}
+}
+
+func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var request UsersUpdatePartialRequest
+		if err := c.Bind(&request); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Cannot parse the request body.",
+			})
+		}
+		if err := validator.New().Struct(request); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Validation error: %v", err.Error()),
+			})
+		}
+
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
+		for _, user := range d.Content.Users {
+			if request.Used != nil {
+				user.Used = *request.Used
+				user.UsedBytes = int64(*request.Used * 1000 * 1000 * 1000)
+			}
+			if request.Enabled != nil {
+				user.Enabled = *request.Enabled
 			}
 		}
 
-		return c.NoContent(http.StatusNotFound)
+		d.Save()
+
+		go coordinator.SyncConfigs()
+
+		return c.NoContent(http.StatusNoContent)
 	}
 }
 
@@ -158,14 +220,56 @@ func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database) ech
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		for i, u := range d.Data.Users {
+		for i, u := range d.Content.Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
-				d.Data.Users = slices.Delete(d.Data.Users, i, i+1)
+				d.Content.Users = slices.Delete(d.Content.Users, i, i+1)
 				d.Save()
 				go coordinator.SyncConfigs()
 				break
 			}
 		}
+
+		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+func UsersDeleteBatch(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		enabledParam := c.QueryParam("enabled")
+		if enabledParam != "" && enabledParam != "true" && enabledParam != "false" {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Invalid query parameter.",
+			})
+		}
+
+		var enabled *bool
+		if enabledParam != "" {
+			enabledBool := enabledParam == "true"
+			enabled = &enabledBool
+		}
+
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
+		var newUsers []*database.User
+
+		if enabled != nil {
+			for _, u := range d.Content.Users {
+				if u.Enabled != *enabled {
+					newUsers = append(newUsers, u)
+				}
+			}
+			d.Content.Users = newUsers
+		}
+
+		if newUsers == nil {
+			newUsers = []*database.User{}
+		}
+
+		d.Content.Users = newUsers
+		d.Save()
+
+		go coordinator.SyncConfigs()
 
 		return c.NoContent(http.StatusNoContent)
 	}

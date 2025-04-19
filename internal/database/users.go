@@ -11,5 +11,5 @@ type User struct {
 	ShadowsocksPassword string  `json:"shadowsocks_password" validate:"required,min=1,max=64"`
 	ShadowsocksMethod   string  `json:"shadowsocks_method" validate:"required"`
 	CreatedAt           int64   `json:"created_at"`
-	ResetAt             int64   `json:"reset_at"`
+	UsageResetAt        int64   `json:"usage_reset_at"`
 }

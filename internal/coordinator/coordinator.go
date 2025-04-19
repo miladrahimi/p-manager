@@ -191,13 +191,13 @@ func (c *Coordinator) resetUsers() {
 	c.l.Info("coordinator: resetting users...")
 
 	for _, u := range c.database.Content.Users {
-		if time.Unix(u.ResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
+		if time.Unix(u.UsageResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
 			continue
 		}
 		u.Used = 0
 		u.UsedBytes = 0
 		u.Enabled = true
-		u.ResetAt = time.Now().Unix()
+		u.UsageResetAt = time.Now().Unix()
 	}
 
 	c.database.Save()

@@ -54,7 +54,7 @@ func (c *Coordinator) Run() {
 		c.l.Debug("coordinator: worker for backup database stopped")
 	}).Start()
 
-	go newWorker(c.context, time.Second*10, func() {
+	go newWorker(c.context, time.Hour, func() {
 		c.l.Info("coordinator: running worker to reset users...")
 		c.resetUsers()
 	}, func() {

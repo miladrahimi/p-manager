@@ -12,7 +12,6 @@ build:
 
 .PHONY: setup
 setup:
-	@git pull
 	@./scripts/setup.sh
 
 .PHONY: schedule-reboot

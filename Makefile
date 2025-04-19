@@ -1,6 +1,6 @@
 .PHONY: local-setup
 local-setup:
-	@./scripts/dev-setup.sh
+	@./scripts/local-setup.sh
 
 .PHONY: local-run
 local-run:

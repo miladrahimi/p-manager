@@ -166,7 +166,7 @@ func (c *Coordinator) SyncStats() error {
 		parts := strings.Split(qs.GetName(), ">>>")
 		if parts[0] == "user" {
 			users[parts[1]] += qs.GetValue()
-		} else if parts[0] == "inbound" && strings.HasPrefix(parts[1], "foreign-") {
+		} else if parts[0] == "inbound" && strings.HasPrefix(parts[1], "internal-") {
 			servers[parts[1][8:]] += qs.GetValue()
 		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
 			servers[parts[1][6:]] += qs.GetValue()

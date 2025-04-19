@@ -134,7 +134,7 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 				return nil, err
 			}
 			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				fmt.Sprintf("foreign-%d", s.Id),
+				fmt.Sprintf("internal-%d", s.Id),
 				key,
 				config.Shadowsocks2022Method,
 				"tcp",
@@ -146,7 +146,7 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 				Domain: fmt.Sprintf("s%d.reverse.proxy", s.Id),
 			})
 			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
-				InboundTag:  []string{fmt.Sprintf("foreign-%d", s.Id)},
+				InboundTag:  []string{fmt.Sprintf("internal-%d", s.Id)},
 				OutboundTag: fmt.Sprintf("portal-%d", s.Id),
 				Type:        "field",
 			})
@@ -205,13 +205,13 @@ func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 	}
 
 	if w.database.Content.Settings.SsReversePort > 0 {
-		foreignOutbound := w.xray.Config().FindInbound(fmt.Sprintf("foreign-%d", s.Id))
+		internalOutbound := w.xray.Config().FindInbound(fmt.Sprintf("internal-%d", s.Id))
 		xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 			"internal",
 			w.database.Content.Settings.Host,
-			foreignOutbound.Settings.Password,
-			foreignOutbound.Settings.Method,
-			foreignOutbound.Port,
+			internalOutbound.Settings.Password,
+			internalOutbound.Settings.Method,
+			internalOutbound.Port,
 		))
 		xc.Reverse.Bridges = append(xc.Reverse.Bridges, &xray.ReverseItem{
 			Tag:    "bridge",

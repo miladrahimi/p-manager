@@ -151,7 +151,10 @@ func (c *Coordinator) syncRemoteConfig(s *database.Node, xc *xray.Config) {
 func (c *Coordinator) SyncStats() error {
 	c.l.Info("coordinator: syncing stats...")
 
-	queryStats := c.xray.QueryStats()
+	queryStats, err := c.xray.QueryStats()
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	c.database.Locker.Lock()
 	defer c.database.Locker.Unlock()
@@ -195,7 +198,7 @@ func (c *Coordinator) SyncStats() error {
 		go c.SyncConfigs()
 	}
 
-	err := c.database.Save()
+	err = c.database.Save()
 	return errors.WithStack(err)
 }
 

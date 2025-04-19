@@ -91,7 +91,7 @@
             type: "PATCH",
             url: `/v1/users/${find(rowIndex, 'id')}`,
             data: JSON.stringify({
-                used: 0,
+                usage: 0,
                 enabled: true,
             }),
             contentType: "application/json",
@@ -153,13 +153,13 @@
             },
             {
                 title: "Usage (GB)",
-                field: "used",
+                field: "usage",
                 resizable: true,
                 sorter: "number",
                 formatter: "progress",
                 formatterParams: cell => ({
                     min: 0,
-                    max: cell.getData().quota || cell.getData().used,
+                    max: cell.getData().quota || cell.getData().usage,
                     color: cell.getData().quota ? ["#3fb449", "#b4a43f", "#b4513f"] : ["#3fb449"],
                     legend: true,
                     legendColor: "#000000",
@@ -225,7 +225,7 @@
             identity: "",
             name: "",
             quota: 0,
-            used: 0,
+            usage: 0,
             enabled: true,
             created_at: new Date().getTime(),
         })

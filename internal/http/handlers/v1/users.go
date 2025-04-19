@@ -19,7 +19,7 @@ type UsersStoreRequest struct {
 	Name    string  `json:"name" validate:"required,min=1,max=32"`
 	Enabled bool    `json:"enabled"`
 	Quota   float64 `json:"quota" validate:"min=0"`
-	Used    float64 `json:"used"`
+	Usage   float64 `json:"usage"`
 }
 
 type UsersUpdateRequest struct {
@@ -27,7 +27,7 @@ type UsersUpdateRequest struct {
 }
 
 type UsersUpdatePartialRequest struct {
-	Used    *float64 `json:"used"`
+	Usage   *float64 `json:"usage"`
 	Enabled *bool    `json:"enabled"`
 }
 
@@ -79,8 +79,8 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database, l *l
 		user.CreatedAt = time.Now().UnixMilli()
 		user.ShadowsocksMethod = config.ShadowsocksMethod
 		user.ShadowsocksPassword = d.GenerateUserPassword()
-		user.Used = request.Used
-		user.UsedBytes = int64(request.Used * 1000 * 1000 * 1000)
+		user.Usage = request.Usage
+		user.UsageBytes = int64(request.Usage * 1000 * 1000 * 1000)
 		user.Name = request.Name
 		user.Quota = request.Quota
 		user.Enabled = request.Enabled
@@ -171,9 +171,9 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Databa
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		if request.Used != nil {
-			user.Used = *request.Used
-			user.UsedBytes = int64(*request.Used * 1000 * 1000 * 1000)
+		if request.Usage != nil {
+			user.Usage = *request.Usage
+			user.UsageBytes = int64(*request.Usage * 1000 * 1000 * 1000)
 		}
 		if request.Enabled != nil {
 			user.Enabled = true
@@ -207,9 +207,9 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 		defer d.Locker.Unlock()
 
 		for _, user := range d.Content.Users {
-			if request.Used != nil {
-				user.Used = *request.Used
-				user.UsedBytes = int64(*request.Used * 1000 * 1000 * 1000)
+			if request.Usage != nil {
+				user.Usage = *request.Usage
+				user.UsageBytes = int64(*request.Usage * 1000 * 1000 * 1000)
 			}
 			if request.Enabled != nil {
 				user.Enabled = *request.Enabled

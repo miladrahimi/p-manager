@@ -5,11 +5,13 @@ type User struct {
 	Identity            string  `json:"identity" validate:"required"`
 	Name                string  `json:"name" validate:"required,min=1,max=64"`
 	Quota               float64 `json:"quota" validate:"min=0"`
-	Used                float64 `json:"used" validate:"min=0"`
-	UsedBytes           int64   `json:"used_bytes" validate:"min=0"`
+	Used                float64 `json:"used" validate:"min=0"`       // Deprecated
+	UsedBytes           int64   `json:"used_bytes" validate:"min=0"` // Deprecated
+	Usage               float64 `json:"usage" validate:"min=0"`
+	UsageBytes          int64   `json:"usage_bytes" validate:"min=0"`
+	UsageResetAt        int64   `json:"usage_reset_at"`
 	Enabled             bool    `json:"enabled"`
 	ShadowsocksPassword string  `json:"shadowsocks_password" validate:"required,min=1,max=64"`
 	ShadowsocksMethod   string  `json:"shadowsocks_method" validate:"required"`
 	CreatedAt           int64   `json:"created_at"`
-	UsageResetAt        int64   `json:"usage_reset_at"`
 }

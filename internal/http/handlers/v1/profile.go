@@ -32,7 +32,7 @@ func ProfileShow(d *database.Database) echo.HandlerFunc {
 		}
 
 		r := ProfileResponse{User: *user}
-		r.User.Used = r.User.Used * d.Content.Settings.TrafficRatio
+		r.User.Usage = r.User.Usage * d.Content.Settings.TrafficRatio
 		r.User.Quota = r.User.Quota * d.Content.Settings.TrafficRatio
 
 		s := d.Content.Settings

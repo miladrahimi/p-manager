@@ -184,9 +184,9 @@ func (c *Coordinator) SyncStats() error {
 	shouldSync := false
 	for _, u := range c.database.Content.Users {
 		if bytes, found := users[strconv.Itoa(u.Id)]; found {
-			u.UsedBytes += bytes
-			u.Used = utils.RoundFloat(float64(u.UsedBytes)/1000/1000/1000, 2)
-			if u.Quota > 0 && u.Used > u.Quota {
+			u.UsageBytes += bytes
+			u.Usage = utils.RoundFloat(float64(u.UsageBytes)/1000/1000/1000, 2)
+			if u.Quota > 0 && u.Usage > u.Quota {
 				u.Enabled = false
 				shouldSync = true
 				c.l.Debug("coordinator: user disabled", zap.Int("id", u.Id))
@@ -213,8 +213,8 @@ func (c *Coordinator) resetUserUsages() error {
 		if time.Unix(u.UsageResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
 			continue
 		}
-		u.Used = 0
-		u.UsedBytes = 0
+		u.Usage = 0
+		u.UsageBytes = 0
 		u.Enabled = true
 		u.UsageResetAt = time.Now().Unix()
 	}

@@ -35,5 +35,8 @@ fresh:
 	@rm -f storage/logs/*.log
 
 .PHONY: update
-update: setup
+update:
+	@git reset --hard HEAD^
+	@git pull
+	@./scripts/setup.sh
 	@./scripts/update.sh

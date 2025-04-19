@@ -110,7 +110,7 @@
 
         <div class="card mt-3">
             <div class="card-title fw-bold pt-3">Settings</div>
-            <div class="card-body text-start">
+            <form class="card-body text-start">
                 <table class="table table-striped table-borderless table-sm">
                     <tr>
                         <td class="align-middle px-2">Admin Password</td>
@@ -188,7 +188,7 @@
                         </td>
                     </tr>
                 </table>
-            </div>
+            </form>
             <div class="d-flex flex-column flex-md-row px-3 pb-3">
                 <button class="btn btn-dark btn-sm m-1 flex-fill" id="save-settings">Save Settings</button>
             </div>
@@ -196,15 +196,15 @@
 
         <div class="card bg-light pt-3 mt-3">
             <div class="card-title fw-bold text-center">Import users from another P-Manager</div>
-            <div class="card-body text-start">
+            <form class="card-body text-start">
                 <div class="d-flex flex-column mt-2">
                     <input type="url" placeholder="https://domain-or-ip" id="import-url" title="URL"
-                           class="form-control my-1">
+                           class="form-control my-1" required="required">
                     <input type="text" placeholder="Admin Password" id="import-password" title="Admin Password"
-                           class="form-control my-1">
+                           class="form-control my-1" required="required">
                     <button class="btn btn-outline-dark btn-sm my-1" id="import-users">Import Users</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
@@ -293,6 +293,10 @@
                 window.location.reload()
             },
             error: response => {
+                handleAuthError(response)
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
+                }
                 console.log('ERROR', 'Reset Total Usage', response.status, response.responseText)
                 alert('Cannot reset total usage, see the error in your console.')
             }
@@ -317,6 +321,10 @@
             complete: () => me.removeAttr('disabled'),
             success: () => alert('Node usages has been reset successfully.'),
             error: response => {
+                handleAuthError(response)
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
+                }
                 console.log('ERROR', 'Reset Nodes', response.status, response.responseText)
                 alert('Cannot reset node usages, see the error in your console.')
             }
@@ -344,6 +352,10 @@
             complete: () => me.removeAttr('disabled'),
             success: () => alert('User usages has been reset successfully.'),
             error: response => {
+                handleAuthError(response)
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
+                }
                 console.log('ERROR', 'Reset Users', response.status, response.responseText)
                 alert('Cannot reset user usages, see the error in your console.')
             },
@@ -367,6 +379,10 @@
             complete: () => me.removeAttr('disabled'),
             success: () => alert('Xray core restarted successfully.'),
             error: response => {
+                handleAuthError(response)
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
+                }
                 console.log('ERROR', 'Restart Xray', response.status, response.responseText)
                 alert('Cannot restart Xray core, see the error in your console.')
             },
@@ -390,6 +406,10 @@
             complete: () => me.removeAttr('disabled'),
             success: () => alert('Disabled users deleted successfully.'),
             error: response => {
+                handleAuthError(response)
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
+                }
                 console.log('ERROR', 'Delete Disabled Users', response.status, response.responseText)
                 alert('Cannot delete disabled users, see the error in your console.')
             },
@@ -413,6 +433,10 @@
             complete: () => me.removeAttr('disabled'),
             success: () => alert('All users deleted successfully.'),
             error: response => {
+                handleAuthError(response)
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
+                }
                 console.log('ERROR', 'Delete All Users', response.status, response.responseText)
                 alert('Cannot delete all users, see the error in your console.')
             },
@@ -420,8 +444,9 @@
     })
 
     $('#save-settings').click(function () {
-        let confirmed = confirm("Click 'OK' to save the settings.")
-        if (!confirmed) {
+        const form = document.querySelector('#admin_password').closest('form');
+        if (!form.checkValidity()) {
+            form.reportValidity()
             return
         }
 
@@ -447,10 +472,8 @@
             success: () => alert('Settings saved successfully.'),
             error: response => {
                 handleAuthError(response)
-                if (response.status < 500 && response.status >= 400) {
-                    const error = JSON.parse(response.responseText)?.message
-                    error && alert(error)
-                    return
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
                 }
                 console.log('ERROR', 'Save Settings', response.status, response.responseText)
                 alert('Cannot save settings, see the error in your console.')
@@ -459,6 +482,12 @@
     })
 
     $('#import-users').click(function () {
+        const form = document.querySelector('#import-users').closest('form');
+        if (!form.checkValidity()) {
+            form.reportValidity()
+            return
+        }
+
         let me = $(this)
         me.attr('disabled', 'disabled')
 
@@ -480,6 +509,10 @@
                 alert('Users imported successfully, See the results in your console.')
             },
             error: response => {
+                handleAuthError(response)
+                if (response.status === 400) {
+                    return alert(JSON.parse(response.responseText).message)
+                }
                 console.log('ERROR', 'Import from P-Manager: Import Users', response.status, response.responseText)
                 alert('Cannot import users, see the error in your console.')
             },

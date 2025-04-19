@@ -50,12 +50,12 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 
 		if len(d.Content.Nodes) > 5 {
 			return c.JSON(http.StatusForbidden, map[string]string{
-				"message": fmt.Sprintf("Cannot add more servers!"),
+				"message": fmt.Sprintf("Cannot add more nodes!"),
 			})
 		}
 
 		node := &database.Node{}
-		node.Id = d.GenerateServerId()
+		node.Id = d.GenerateNodeId()
 		node.Status = database.NodeStatusProcessing
 		node.Usage = 0
 		node.HttpToken = r.HttpToken

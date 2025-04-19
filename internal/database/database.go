@@ -155,7 +155,7 @@ func (d *Database) GenerateUserPassword() string {
 	}
 }
 
-func (d *Database) GenerateServerId() int {
+func (d *Database) GenerateNodeId() int {
 	if len(d.Content.Nodes) > 0 {
 		return d.Content.Nodes[len(d.Content.Nodes)-1].Id + 1
 	} else {

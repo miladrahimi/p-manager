@@ -78,6 +78,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/miladrahimi/p-node v0.0.0-20250419192130-981009da926f h1:20gDDcIliP8BjY2IeJk/dvUoQt4iOchbvVgdT3LunKw=
 github.com/miladrahimi/p-node v0.0.0-20250419192130-981009da926f/go.mod h1:78Yac9HdYPjDPWZRB7qSVVtAW7JgegYzoPb6k4YwqsM=
+github.com/miladrahimi/p-node v0.0.0-20250419203054-e648cfeb6a7d h1:MKLGNlARyPRQPMwWApuJRkNnhs/21a8TVGiBaom/kM8=
+github.com/miladrahimi/p-node v0.0.0-20250419203054-e648cfeb6a7d/go.mod h1:78Yac9HdYPjDPWZRB7qSVVtAW7JgegYzoPb6k4YwqsM=
 github.com/onsi/ginkgo/v2 v2.19.0 h1:9Cnnf7UHo57Hy3k6/m5k3dRfGTMXGvxhHFvkDTCTpvA=
 github.com/onsi/ginkgo/v2 v2.19.0/go.mod h1:rlwLi9PilAFJ8jCg9UE1QP6VBpd6/xj3SRC0d6TU0To=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=

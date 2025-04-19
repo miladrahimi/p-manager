@@ -159,7 +159,7 @@ func (c *Coordinator) SyncStats() error {
 	c.database.Locker.Lock()
 	defer c.database.Locker.Unlock()
 
-	servers := map[string]int64{}
+	nodes := map[string]int64{}
 	users := map[string]int64{}
 
 	for _, qs := range queryStats {
@@ -167,16 +167,16 @@ func (c *Coordinator) SyncStats() error {
 		if parts[0] == "user" {
 			users[parts[1]] += qs.GetValue()
 		} else if parts[0] == "inbound" && strings.HasPrefix(parts[1], "internal-") {
-			servers[parts[1][8:]] += qs.GetValue()
+			nodes[parts[1][8:]] += qs.GetValue()
 		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
-			servers[parts[1][6:]] += qs.GetValue()
+			nodes[parts[1][6:]] += qs.GetValue()
 		} else if parts[0] == "inbound" && slices.Contains([]string{"reverse", "relay", "direct"}, parts[1]) {
 			c.database.Content.Stats.TotalUsage += float64(qs.GetValue()) / 1000 / 1000 / 1000
 		}
 	}
 
 	for _, s := range c.database.Content.Nodes {
-		if bytes, found := servers[strconv.Itoa(s.Id)]; found {
+		if bytes, found := nodes[strconv.Itoa(s.Id)]; found {
 			s.Usage += utils.RoundFloat(float64(bytes)/1000/1000/1000, 2)
 		}
 	}

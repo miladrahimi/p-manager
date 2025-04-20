@@ -41,7 +41,7 @@
 </div>
 
 <script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.min.js"></script>
+<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
 <script src="assets/third_party/tabulator-6.3.1/dist/js/tabulator.min.js"></script>
 <script src="assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
@@ -66,16 +66,8 @@
                 table.alert("User deleted successfully.", "msg")
                 setTimeout(() => window.location.reload(), 1000)
             },
-            error: response => {
-                console.log('ERROR', 'Delete User', response.status, response.responseText)
-                handleAuthError(response)
-                if (response.status === 400) {
-                    table.alert(response["responseJSON"]["message"], "error")
-                } else {
-                    table.alert("Cannot delete the item.", "error")
-                }
-                setTimeout(() => table.clearAlert(), 2000)
-            },
+            error: makeErrorHandler(message => table.alert(message, "error")),
+            complete: () => setTimeout(() => table.clearAlert(), 1500),
         })
     }
 
@@ -101,16 +93,8 @@
                 table.alert("User has been reset successfully.", "msg")
                 setTimeout(() => window.location.reload(), 1000)
             },
-            error: response => {
-                console.log('ERROR', 'Reset User', response.status, response.responseText)
-                handleAuthError(response)
-                if (response.status === 400) {
-                    table.alert(response["responseJSON"]["message"], "error")
-                } else {
-                    table.alert("Cannot reset the user.", "error")
-                }
-                setTimeout(() => table.clearAlert(), 2000)
-            },
+            error: makeErrorHandler(message => table.alert(message, "error")),
+            complete: () => setTimeout(() => table.clearAlert(), 1500),
         })
     }
 
@@ -128,10 +112,6 @@
             headers: {
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
             },
-        },
-        ajaxError: error => {
-            console.log('ERROR', 'Load Table', error.status, error)
-            handleAuthError(error)
         },
         layout: "fitDataStretch",
         initialSort: [{column: "name", dir: "asc"}],
@@ -183,7 +163,7 @@
         },
     })
 
-    table.on("dataLoadError", handleAuthError)
+    table.on("dataLoadError", makeErrorHandler())
 
     table.on("cellEdited", cell => {
         if (!cell.getData()['name']) {
@@ -206,16 +186,8 @@
                 table.alert("Item saved successfully.", "msg")
                 setTimeout(() => window.location.reload(), 1000)
             },
-            error: response => {
-                console.log('ERROR', 'Edit/Create User', response.status, response.responseText)
-                handleAuthError(response)
-                if (response.status === 400 || response.status === 403) {
-                    table.alert(response["responseJSON"]["message"], "error")
-                } else {
-                    table.alert("Cannot save the item.", "error")
-                }
-                setTimeout(() => table.clearAlert(), 3000)
-            },
+            error: makeErrorHandler(message => table.alert(message, "error")),
+            complete: () => setTimeout(() => table.clearAlert(), 1500),
         })
     })
 

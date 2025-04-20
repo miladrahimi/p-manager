@@ -18,6 +18,36 @@ function handleAuthError(response) {
     }
 }
 
+function makeErrorHandler(onMessageReceived = alert) {
+    return function (jqXHR) {
+        handleError(jqXHR, onMessageReceived)
+    }
+}
+
+function handleError(response, onMessageReceived) {
+    console.log('ERROR', response.status, response.responseText)
+
+    const error = parseErrorMessage(response)
+    if (error === "Unauthorized") {
+        onMessageReceived('Your session has expired, please sign in again.')
+        exit()
+    } else {
+        onMessageReceived(error || 'Cannot process the request, see the error in your console.')
+    }
+}
+
+function parseErrorMessage(response) {
+    if (response.status === 401) {
+        return "Unauthorized"
+    }
+
+    if ([400, 403, 404].includes(response.status)) {
+        return response?.["responseJSON"]?.["message"] || ""
+    }
+
+    return ""
+}
+
 function ts2string(timestamp) {
     if (!timestamp) {
         return "-"

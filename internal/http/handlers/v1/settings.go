@@ -19,19 +19,19 @@ func SettingsShow(d *database.Database) echo.HandlerFunc {
 
 func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var input database.Settings
-		if err := c.Bind(&input); err != nil {
+		var r database.Settings
+		if err := c.Bind(&r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Cannot parse the request body.",
 			})
 		}
-		if err := validator.New().Struct(input); err != nil {
+		if err := validator.New().Struct(r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
 			})
 		}
 
-		if !utils.PortsUnique([]int{input.SsRelayPort, input.SsReversePort, input.SsDirectPort}) {
+		if !utils.PortsUnique([]int{r.SsRelayPort, r.SsReversePort, r.SsDirectPort}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Proxy ports must be the unique.",
 			})
@@ -40,24 +40,24 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		old := d.Content.Settings
-		if input.SsRelayPort > 0 && input.SsRelayPort != old.SsRelayPort && !utils.PortFree(input.SsRelayPort) {
+		current := d.Content.Settings
+		if r.SsRelayPort > 0 && r.SsRelayPort != current.SsRelayPort && !utils.PortFree(r.SsRelayPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", input.SsRelayPort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.SsRelayPort),
 			})
 		}
-		if input.SsReversePort > 0 && input.SsReversePort != old.SsReversePort && !utils.PortFree(input.SsReversePort) {
+		if r.SsReversePort > 0 && r.SsReversePort != current.SsReversePort && !utils.PortFree(r.SsReversePort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", input.SsReversePort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.SsReversePort),
 			})
 		}
-		if input.SsDirectPort > 0 && input.SsDirectPort != old.SsDirectPort && !utils.PortFree(input.SsDirectPort) {
+		if r.SsDirectPort > 0 && r.SsDirectPort != current.SsDirectPort && !utils.PortFree(r.SsDirectPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", input.SsDirectPort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.SsDirectPort),
 			})
 		}
 
-		d.Content.Settings = &input
+		d.Content.Settings = &r
 
 		if err := d.Save(); err != nil {
 			return errors.WithStack(err)
@@ -65,7 +65,7 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 
 		go coordinator.SyncConfigs()
 
-		return c.JSON(http.StatusOK, input)
+		return c.JSON(http.StatusOK, r)
 	}
 }
 

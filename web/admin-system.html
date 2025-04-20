@@ -225,10 +225,7 @@
             $("#stats-total-users").html(response['total_users'])
             $("#stats-active-users").html(response['active_users'])
         },
-        error: function (response) {
-            console.log(response)
-            handleAuthError(response)
-        },
+        error: makeErrorHandler(),
         processData: true,
         type: "GET",
         url: "/v1/stats"
@@ -242,10 +239,7 @@
             $("#information-app-licensed").html(response['app_licensed'] ? 'Yes' : 'No')
             $("#information-core").html(response['core'])
         },
-        error: function (response) {
-            console.log(response)
-            handleAuthError(response)
-        },
+        error: makeErrorHandler(),
         processData: true,
         type: "GET",
         url: "/v1/information"
@@ -263,10 +257,7 @@
             $('#ss_direct_port').val(response['ss_direct_port'])
             $('#reset_policy').val(response['reset_policy'])
         },
-        error: function (response) {
-            console.log(response)
-            handleAuthError(response)
-        },
+        error: makeErrorHandler(),
         processData: true,
         type: "GET",
         url: "/v1/settings"
@@ -292,14 +283,7 @@
                 alert('Stats has been reset successfully.')
                 window.location.reload()
             },
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Reset Total Usage', response.status, response.responseText)
-                alert('Cannot reset total usage, see the error in your console.')
-            }
+            error: makeErrorHandler(),
         })
     })
 
@@ -320,14 +304,7 @@
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
             success: () => alert('Node usages has been reset successfully.'),
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Reset Nodes', response.status, response.responseText)
-                alert('Cannot reset node usages, see the error in your console.')
-            }
+            error: makeErrorHandler(),
         })
     })
 
@@ -351,14 +328,7 @@
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
             success: () => alert('User usages has been reset successfully.'),
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Reset Users', response.status, response.responseText)
-                alert('Cannot reset user usages, see the error in your console.')
-            },
+            error: makeErrorHandler(),
         })
     })
 
@@ -378,14 +348,7 @@
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
             success: () => alert('Xray core restarted successfully.'),
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Restart Xray', response.status, response.responseText)
-                alert('Cannot restart Xray core, see the error in your console.')
-            },
+            error: makeErrorHandler(),
         })
     })
 
@@ -405,14 +368,7 @@
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
             success: () => alert('Disabled users deleted successfully.'),
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Delete Disabled Users', response.status, response.responseText)
-                alert('Cannot delete disabled users, see the error in your console.')
-            },
+            error: makeErrorHandler(),
         })
     })
 
@@ -432,14 +388,7 @@
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
             success: () => alert('All users deleted successfully.'),
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Delete All Users', response.status, response.responseText)
-                alert('Cannot delete all users, see the error in your console.')
-            },
+            error: makeErrorHandler(),
         })
     })
 
@@ -470,14 +419,7 @@
             dataType: 'json',
             complete: () => window.location.reload(),
             success: () => alert('Settings saved successfully.'),
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Save Settings', response.status, response.responseText)
-                alert('Cannot save settings, see the error in your console.')
-            },
+            error: makeErrorHandler(),
         })
     })
 
@@ -508,14 +450,7 @@
                 $('#import-password').val('')
                 alert('Users imported successfully, See the results in your console.')
             },
-            error: response => {
-                handleAuthError(response)
-                if (response.status === 400) {
-                    return alert(JSON.parse(response.responseText).message)
-                }
-                console.log('ERROR', 'Import from P-Manager: Import Users', response.status, response.responseText)
-                alert('Cannot import users, see the error in your console.')
-            },
+            error: makeErrorHandler(),
         })
     })
 </script>

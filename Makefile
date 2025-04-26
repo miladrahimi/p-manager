@@ -1,6 +1,6 @@
 .PHONY: local-setup
 local-setup:
-	@./scripts/dev-setup.sh
+	@./scripts/local-setup.sh
 
 .PHONY: local-run
 local-run:
@@ -12,7 +12,6 @@ build:
 
 .PHONY: setup
 setup:
-	@git pull
 	@./scripts/setup.sh
 
 .PHONY: schedule-reboot

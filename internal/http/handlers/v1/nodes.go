@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
@@ -18,12 +19,15 @@ type NodesStoreRequest struct {
 
 type NodesUpdateRequest struct {
 	NodesStoreRequest
-	Id int `json:"id"`
+}
+
+type NodesUpdatePartialRequest struct {
+	Usage *float64 `json:"usage"`
 }
 
 func NodesIndex(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, d.Data.Servers)
+		return c.JSON(http.StatusOK, d.Content.Nodes)
 	}
 }
 
@@ -44,22 +48,25 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		if len(d.Data.Servers) > 5 {
+		if len(d.Content.Nodes) > 5 {
 			return c.JSON(http.StatusForbidden, map[string]string{
-				"message": fmt.Sprintf("Cannot add more servers!"),
+				"message": fmt.Sprintf("Cannot add more nodes!"),
 			})
 		}
 
-		node := &database.Server{}
-		node.Id = d.GenerateServerId()
-		node.Status = database.ServerStatusProcessing
-		node.Traffic = 0
+		node := &database.Node{}
+		node.Id = d.GenerateNodeId()
+		node.Status = database.NodeStatusProcessing
+		node.Usage = 0
 		node.HttpToken = r.HttpToken
 		node.Host = r.Host
 		node.HttpPort = r.HttpPort
 
-		d.Data.Servers = append(d.Data.Servers, node)
-		d.Save()
+		d.Content.Nodes = append(d.Content.Nodes, node)
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -84,9 +91,9 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		var node *database.Server
-		for _, n := range d.Data.Servers {
-			if n.Id == r.Id {
+		var node *database.Node
+		for _, n := range d.Content.Nodes {
+			if strconv.Itoa(n.Id) == c.Param("id") {
 				node = n
 			}
 		}
@@ -97,7 +104,10 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 		node.Host = r.Host
 		node.HttpToken = r.HttpToken
 		node.HttpPort = r.HttpPort
-		d.Save()
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
 
 		go coordinator.SyncConfigs()
 
@@ -106,22 +116,50 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 	}
 }
 
-func NodesDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
+		var request NodesUpdatePartialRequest
+		if err := c.Bind(&request); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Cannot parse the id parameter.",
+				"message": "Cannot parse the request body.",
+			})
+		}
+		if err := validator.New().Struct(request); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Validation error: %v", err.Error()),
 			})
 		}
 
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
 
-		for i, s := range d.Data.Servers {
-			if s.Id == id {
-				d.Data.Servers = append(d.Data.Servers[:i], d.Data.Servers[i+1:]...)
-				d.Save()
+		for _, node := range d.Content.Nodes {
+			if request.Usage != nil {
+				node.Usage = *request.Usage
+			}
+		}
+
+		if err := d.Save(); err != nil {
+			return errors.WithStack(err)
+		}
+
+		go coordinator.SyncConfigs()
+
+		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+func NodesDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
+		for i, s := range d.Content.Nodes {
+			if strconv.Itoa(s.Id) == c.Param("id") {
+				d.Content.Nodes = append(d.Content.Nodes[:i], d.Content.Nodes[i+1:]...)
+				if err := d.Save(); err != nil {
+					return errors.WithStack(err)
+				}
 				go coordinator.SyncConfigs()
 				break
 			}

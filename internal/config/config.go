@@ -10,8 +10,8 @@ import (
 )
 
 const AppName = "P-Manager"
-const AppVersion = "v1.5.8"
-const CoreVersion = "Xray v1.8.8"
+const AppVersion = "v1.6.0"
+const CoreVersion = "Xray v1.8.24"
 
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-128-gcm"

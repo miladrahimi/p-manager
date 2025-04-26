@@ -20,13 +20,13 @@ func FileExist(path string) bool {
 }
 
 // Key32 generates 32-bit keys.
-func Key32() string {
+func Key32() (string, error) {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(key)
+	return base64.StdEncoding.EncodeToString(key), nil
 }
 
 // UUID generates UUID without the '-' character.

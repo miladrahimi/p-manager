@@ -46,42 +46,43 @@ func (s *Server) Run() {
 	g1.POST("/sign-in", v1.SignIn(s.database, s.enigma))
 
 	g1.GET("/profile", v1.ProfileShow(s.database))
-	g1.POST("/profile/reset", v1.ProfileReset(s.coordinator, s.database))
+	g1.POST("/profile/links/regenerate", v1.ProfileRegenerate(s.coordinator, s.database))
 
 	g2 := s.e.Group("/v1")
 	g2.Use(middleware.Authorize(func() string {
-		return s.database.Data.Settings.AdminPassword
+		return s.database.Content.Settings.AdminPassword
 	}))
 
 	g2.GET("/users", v1.UsersIndex(s.database))
 	g2.POST("/users", v1.UsersStore(s.coordinator, s.database, s.licensor))
-	g2.PUT("/users", v1.UsersUpdate(s.coordinator, s.database))
+	g2.PATCH("/users", v1.UsersUpdatePartialBatch(s.coordinator, s.database))
+	g2.PUT("/users/:id", v1.UsersUpdate(s.coordinator, s.database))
+	g2.PATCH("/users/:id", v1.UsersUpdatePartial(s.coordinator, s.database))
 	g2.DELETE("/users/:id", v1.UsersDelete(s.coordinator, s.database))
-	g2.PATCH("/users/:id/zero", v1.UsersZero(s.coordinator, s.database))
+	g2.DELETE("/users", v1.UsersDeleteBatch(s.coordinator, s.database))
 
 	g2.GET("/nodes", v1.NodesIndex(s.database))
 	g2.POST("/nodes", v1.NodesStore(s.coordinator, s.database))
-	g2.PUT("/nodes", v1.NodesUpdate(s.coordinator, s.database))
+	g2.PATCH("/nodes", v1.NodesUpdatePartialBatch(s.coordinator, s.database))
+	g2.PUT("/nodes/:id", v1.NodesUpdate(s.coordinator, s.database))
 	g2.DELETE("/nodes/:id", v1.NodesDelete(s.coordinator, s.database))
 
-	g2.GET("/settings/general", v1.SettingsGeneralShow(s.database))
-	g2.POST("/settings/general", v1.SettingsGeneralUpdate(s.coordinator, s.database))
-	g2.POST("/settings/general/users/delete", v1.SettingsGeneralUsersDelete(s.coordinator, s.database))
-	g2.POST("/settings/general/users/disabled/delete", v1.SettingsGeneralUsersDisabledDelete(s.coordinator, s.database))
-	g2.POST("/settings/general/xray/restart", v1.SettingsGeneralRestartXray(s.coordinator))
+	g2.GET("/stats", v1.StatsIndex(s.database))
+	g2.PATCH("/stats", v1.StatsUpdatePartial(s.database))
 
-	g2.GET("/settings/insights", v1.SettingsInsightsShow(s.database, s.licensor))
-	g2.POST("/settings/insights/stats/zero", v1.SettingsInsightsStatsZero(s.database))
-	g2.POST("/settings/insights/nodes/zero", v1.SettingsInsightsNodesZero(s.database))
-	g2.POST("/settings/insights/users/zero", v1.SettingsInsightsUsersZero(s.coordinator, s.database))
+	g2.GET("/information", v1.InformationIndex(s.licensor))
 
-	g2.POST("/settings/tools/import/pm", v1.SettingsImportPM(s.database, s.hc))
+	g2.GET("/settings", v1.SettingsShow(s.database))
+	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))
+	g2.POST("/settings/xray/restart", v1.SettingsXrayRestart(s.coordinator))
+
+	g2.POST("/imports", v1.ImportsStore(s.database, s.hc))
 
 	go func() {
 		address := fmt.Sprintf("%s:%d", s.config.HttpServer.Host, s.config.HttpServer.Port)
 		if err := s.e.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.l.Fatal(
-				"http: server: cannot start",
+				"http server:  cannot start",
 				zap.String("address", address),
 				zap.Error(errors.WithStack(err)),
 			)
@@ -95,9 +96,9 @@ func (s *Server) Close() {
 	defer cancel()
 
 	if err := s.e.Shutdown(c); err != nil {
-		s.l.Error("http: server: cannot close", zap.Error(errors.WithStack(err)))
+		s.l.Error("http server:  cannot close", zap.Error(errors.WithStack(err)))
 	} else {
-		s.l.Info("http: server: closed successfully")
+		s.l.Info("http server:  closed successfully")
 	}
 }
 

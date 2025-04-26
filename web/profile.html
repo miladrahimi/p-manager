@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Profile</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
     <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
     <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
     <style>
@@ -41,11 +41,11 @@
                     <strong id="name">Loading...</strong>
                     <span class="badge bg-danger d-none" id="disabled-badge">Disabled</span>
                 </div>
-                <div class="progress mt-3" role="progressbar" aria-label="Traffic used"
+                <div class="progress mt-3" role="progressbar" aria-label="Usage"
                      aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                     <div class="progress-bar bg-dark" style="width: 0" id="progressbar">0%</div>
                 </div>
-                <div class="text-muted small">
+                <div class="text-muted small mt-2">
                     <span id="used">0</span> / <span id="quota">0</span> GB
                 </div>
                 <div class="mt-3 text-start">
@@ -81,15 +81,17 @@
                     <small>Registered @</small>
                     <small id="created_at">-</small>
                 </div>
-                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="update">UPDATE LINKS</button>
+                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="regenerate">
+                    REGENERATE LINKS
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.3/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/scripts.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     jQuery(() => {
         $.ajax({
@@ -155,39 +157,41 @@
             document.body.removeChild(ta)
 
             const tooltip = bootstrap.Tooltip.getOrCreateInstance(this)
-            tooltip.setContent({ '.tooltip-inner': 'Copied!' })
+            tooltip.setContent({'.tooltip-inner': 'Copied!'})
             tooltip.show()
-            setTimeout(() => tooltip.hide() && tooltip.setContent({ '.tooltip-inner': 'Copy' }), 1000)
+            setTimeout(() => tooltip.hide() && tooltip.setContent({'.tooltip-inner': 'Copy'}), 1000)
 
             me.removeClass('btn-dark').addClass('btn-success')
             setTimeout(() => me.removeClass('btn-success').addClass('btn-dark').blur(), 1000)
         })
 
-        $('#update').click(function () {
-            let confirmed = confirm("Click 'OK' to delete current links and create new ones.")
+        $('#regenerate').click(function () {
+            let confirmed = confirm('Click "OK" to delete current links and generate new ones.')
             if (!confirmed) {
                 return
             }
 
             let me = $(this)
-            me.attr('disabled', 'disabled').val('UPDATING...')
+            me.attr('disabled', 'disabled').html('REGENERATING...')
 
             $.ajax({
                 type: 'POST',
-                url: `/v1/profile/reset${window.location.search}`,
+                url: `/v1/profile/links/regenerate${window.location.search}`,
                 dataType: 'json',
                 processData: true,
                 success: () => {
-                    me.html('DONE!').removeClass('btn-danger').addClass('btn-success')
                     setTimeout(() => {
                         me.html('LOADING NEW LINKS...')
-                        setTimeout(() => window.location.reload(), 2000)
+                        setTimeout(() => {
+                            alert('Press "OK" to refresh the page and get new links.')
+                            window.location.reload()
+                        }, 2000)
                     }, 2000)
                 },
                 error: response => {
-                    console.log('ERROR', 'UPDATE LINKS', response.status, response.responseText)
-                    me.val('Error!')
-                    setTimeout(() => me.val('UPDATE LINKS').removeAttr('disabled'), 2000)
+                    console.log('ERROR', 'REGENERATE LINKS', response.status, response.responseText)
+                    me.html('Error!')
+                    setTimeout(() => me.html('REGENERATE LINKS').removeAttr('disabled'), 2000)
                 }
             })
         })

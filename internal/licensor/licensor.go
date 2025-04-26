@@ -24,31 +24,19 @@ type Licensor struct {
 	licensed bool
 }
 
-func (l *Licensor) Init() {
+func (l *Licensor) Run() {
 	go func() {
 		l.fetch()
-		l.validate()
-	}()
-}
 
-func (l *Licensor) validate() {
-	if !utils.FileExist(l.c.Env.LicensePath) {
-		l.l.Debug("licensor: no license file found")
-	} else {
-		licenseFile, err := os.ReadFile(l.c.Env.LicensePath)
-		if err != nil {
-			l.l.Error("licensor: cannot read license file", zap.Error(errors.WithStack(err)))
-		} else {
-			key := fmt.Sprintf("%s:%d", l.database.Data.Settings.Host, l.c.HttpServer.Port)
-			l.licensed = l.enigma.Verify(key, string(licenseFile))
-			l.l.Info("licensor: license file checked", zap.Bool("valid", l.licensed))
+		if err := l.validate(); err != nil {
+			l.l.Error("licensor: cannot validate license", zap.Error(errors.WithStack(err)))
 		}
-	}
+	}()
 }
 
 func (l *Licensor) fetch() {
 	body := map[string]interface{}{
-		"host": l.database.Data.Settings.Host,
+		"host": l.database.Content.Settings.Host,
 		"port": l.c.HttpServer.Port,
 	}
 	if r, err := l.hc.Do(http.MethodPost, config.LicenseServer, config.LicenseToken, body); err != nil {
@@ -66,6 +54,24 @@ func (l *Licensor) fetch() {
 			l.l.Debug("licensor: license is not issued")
 		}
 	}
+}
+
+func (l *Licensor) validate() error {
+	if !utils.FileExist(l.c.Env.LicensePath) {
+		l.l.Debug("licensor: no license file found")
+		return nil
+	}
+
+	licenseFile, err := os.ReadFile(l.c.Env.LicensePath)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	key := fmt.Sprintf("%s:%d", l.database.Content.Settings.Host, l.c.HttpServer.Port)
+	l.licensed = l.enigma.Verify(key, string(licenseFile))
+	l.l.Info("licensor: license file checked", zap.Bool("valid", l.licensed))
+
+	return nil
 }
 
 func (l *Licensor) Licensed() bool {

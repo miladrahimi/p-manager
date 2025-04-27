@@ -46,7 +46,7 @@
                     <div class="progress-bar bg-dark" style="width: 0" id="progressbar">0%</div>
                 </div>
                 <div class="text-muted small mt-2">
-                    <span id="used">0</span> / <span id="quota">0</span> GB
+                    <span id="usage">0</span> / <span id="quota">0</span> GB
                 </div>
                 <div class="mt-3 text-start">
                     <div id="ss-relay" class="d-none my-1">
@@ -101,7 +101,7 @@
             dataType: "json",
             success: r => {
                 $("#name").html(r['user']['name'])
-                $("#used").html(r['user']['used'])
+                $("#usage").html(r['user']['usage'])
                 $("#created_at").html(ts2string(r['user']['created_at']))
 
                 if (r['user']["enabled"] === false) {
@@ -126,7 +126,7 @@
                 let progressBar = $("#progressbar")
                 if (r['user']['quota'] !== 0) {
                     $("#quota").html(r['user']['quota'])
-                    let percent = Math.floor(r['user']['used'] / r['user']['quota'] * 100)
+                    let percent = Math.floor(r['user']['usage'] / r['user']['quota'] * 100)
                     progressBar.css("width", String(percent) + "%").html(String(percent) + "%")
                     if (percent > 90) {
                         progressBar.removeClass('bg-dark').addClass('bg-danger')

@@ -21,7 +21,6 @@ type Content struct {
 	Stats    *Stats    `json:"stats"`
 	Users    []*User   `json:"users"`
 	Nodes    []*Node   `json:"nodes"`
-	Servers  []*Node   `json:"servers"` // Deprecated
 }
 
 type Database struct {
@@ -66,16 +65,6 @@ func (d *Database) modify() {
 		if user.UsageResetAt == 0 {
 			user.UsageResetAt = time.Now().UnixMilli()
 		}
-		if user.Usage == 0 && user.UsageBytes == 0 {
-			user.Usage = user.Used
-			user.UsageBytes = user.UsedBytes
-			user.Used = 0
-			user.UsedBytes = 0
-		}
-	}
-	if d.Content.Nodes == nil || len(d.Content.Nodes) == 0 {
-		d.Content.Nodes = d.Content.Servers
-		d.Content.Servers = []*Node{}
 	}
 }
 

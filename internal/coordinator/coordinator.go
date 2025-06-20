@@ -98,9 +98,9 @@ func (c *Coordinator) syncRemoteConfigs() {
 
 func (c *Coordinator) syncOutdatedConfigs() {
 	c.l.Info("coordinator: syncing outdated configs...")
-	for _, s := range c.database.Content.Nodes {
-		if s.Status == database.NodeStatusUnavailable || s.Status == database.NodeStatusProcessing {
-			go c.syncRemoteConfig(s, c.writer.RemoteConfig(s))
+	for _, n := range c.database.Content.Nodes {
+		if n.Status == database.NodeStatusUnavailable || n.Status == database.NodeStatusProcessing {
+			go c.syncRemoteConfig(n, c.writer.RemoteConfig(n))
 		}
 	}
 }

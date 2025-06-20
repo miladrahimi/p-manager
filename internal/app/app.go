@@ -64,7 +64,7 @@ func New() (a *App, err error) {
 	a.Licensor = licensor.New(c, a.HttpClient, a.Logger, a.Database, a.Enigma)
 	a.Writer = writer.New(a.Config, a.Database, a.Xray)
 	a.Coordinator = coordinator.New(c, a.Context, a.HttpClient, a.Logger, a.Database, a.Xray, a.Writer)
-	a.HttpServer = server.New(c, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor, a.HttpClient)
+	a.HttpServer = server.New(c, a.Logger, a.Coordinator, a.Database, a.Enigma, a.Licensor, a.Writer, a.HttpClient)
 
 	a.Logger.Info("app: constructed successfully")
 

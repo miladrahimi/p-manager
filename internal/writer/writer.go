@@ -181,11 +181,11 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 	return xc, nil
 }
 
-func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
+func (w *Writer) RemoteConfig(node *database.Node) *xray.Config {
 	xc := xray.NewConfig(w.c.Xray.LogLevel)
 
 	if w.database.Content.Settings.SsRelayPort > 0 {
-		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", s.Id))
+		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", node.Id))
 		xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
 			"direct",
 			relayOutbound.Settings.Servers[0].Password,
@@ -205,7 +205,7 @@ func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 	}
 
 	if w.database.Content.Settings.SsReversePort > 0 {
-		internalOutbound := w.xray.Config().FindInbound(fmt.Sprintf("internal-%d", s.Id))
+		internalOutbound := w.xray.Config().FindInbound(fmt.Sprintf("internal-%d", node.Id))
 		xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
 			"internal",
 			w.database.Content.Settings.Host,
@@ -215,14 +215,14 @@ func (w *Writer) RemoteConfig(s *database.Node) *xray.Config {
 		))
 		xc.Reverse.Bridges = append(xc.Reverse.Bridges, &xray.ReverseItem{
 			Tag:    "bridge",
-			Domain: fmt.Sprintf("s%d.reverse.proxy", s.Id),
+			Domain: fmt.Sprintf("s%d.reverse.proxy", node.Id),
 		})
 		xc.Routing.Settings.Rules = append(
 			xc.Routing.Settings.Rules,
 			&xray.Rule{
 				Type:        "field",
 				InboundTag:  []string{"bridge"},
-				Domain:      []string{fmt.Sprintf("full:s%d.reverse.proxy", s.Id)},
+				Domain:      []string{fmt.Sprintf("full:s%d.reverse.proxy", node.Id)},
 				OutboundTag: "internal",
 			},
 			&xray.Rule{

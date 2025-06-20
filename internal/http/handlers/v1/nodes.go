@@ -54,15 +54,24 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 			})
 		}
 
-		node := &database.Node{}
-		node.Id = d.GenerateNodeId()
-		node.Status = database.NodeStatusProcessing
-		node.Usage = 0
-		node.HttpToken = r.HttpToken
-		node.Host = r.Host
-		node.HttpPort = r.HttpPort
+		var node *database.Node
+		for _, n := range d.Content.Nodes {
+			if n.Host == r.Host && n.HttpPort == r.HttpPort {
+				node = n
+				node.HttpToken = r.HttpToken
+			}
+		}
+		if node == nil {
+			node = &database.Node{}
+			node.Id = d.GenerateNodeId()
+			node.Status = database.NodeStatusProcessing
+			node.Usage = 0
+			node.HttpToken = r.HttpToken
+			node.Host = r.Host
+			node.HttpPort = r.HttpPort
 
-		d.Content.Nodes = append(d.Content.Nodes, node)
+			d.Content.Nodes = append(d.Content.Nodes, node)
+		}
 
 		if err := d.Save(); err != nil {
 			return errors.WithStack(err)

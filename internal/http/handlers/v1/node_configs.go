@@ -1,0 +1,31 @@
+package v1
+
+import (
+	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/writer"
+	"net/http"
+	"strconv"
+)
+
+func NodesConfigsShow(writer *writer.Writer, d *database.Database) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		d.Locker.Lock()
+		defer d.Locker.Unlock()
+
+		nodeId := c.Param("id")
+		var node *database.Node
+		for _, n := range d.Content.Nodes {
+			if strconv.Itoa(n.Id) == nodeId {
+				node = n
+			}
+		}
+		if node == nil {
+			return c.NoContent(http.StatusNotFound)
+		}
+
+		configs := writer.RemoteConfig(node)
+
+		return c.JSON(http.StatusOK, configs)
+	}
+}

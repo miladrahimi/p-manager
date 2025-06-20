@@ -14,6 +14,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/http/handlers/pages"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/v1"
 	"github.com/miladrahimi/p-manager/internal/licensor"
+	"github.com/miladrahimi/p-manager/internal/writer"
 	"github.com/miladrahimi/p-node/pkg/http/middleware"
 	"github.com/miladrahimi/p-node/pkg/http/validator"
 	"github.com/miladrahimi/p-node/pkg/logger"
@@ -30,6 +31,7 @@ type Server struct {
 	database    *database.Database
 	enigma      *enigma.Enigma
 	licensor    *licensor.Licensor
+	writer      *writer.Writer
 	hc          *client.Client
 }
 
@@ -66,6 +68,8 @@ func (s *Server) Run() {
 	g2.PATCH("/nodes", v1.NodesUpdatePartialBatch(s.coordinator, s.database))
 	g2.PUT("/nodes/:id", v1.NodesUpdate(s.coordinator, s.database))
 	g2.DELETE("/nodes/:id", v1.NodesDelete(s.coordinator, s.database))
+
+	g2.GET("/nodes/:id/configs", v1.NodesConfigsShow(s.writer, s.database))
 
 	g2.GET("/stats", v1.StatsIndex(s.database))
 	g2.PATCH("/stats", v1.StatsUpdatePartial(s.database))
@@ -110,6 +114,7 @@ func New(
 	database *database.Database,
 	enigma *enigma.Enigma,
 	licensor *licensor.Licensor,
+	writer *writer.Writer,
 	hc *client.Client,
 ) *Server {
 	e := echo.New()
@@ -123,6 +128,7 @@ func New(
 		database:    database,
 		enigma:      enigma,
 		licensor:    licensor,
+		writer:      writer,
 		hc:          hc,
 	}
 }

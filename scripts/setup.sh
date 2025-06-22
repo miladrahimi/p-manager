@@ -6,6 +6,10 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+# Update requirements
+apt-get -y update && apt-get -y upgrade
+apt-get -y install make wget curl jq vim git openssl cron
+
 # Detect basic variables
 ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")
 SERVICE_NAME=$(basename "$ROOT")

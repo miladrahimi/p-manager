@@ -11,6 +11,11 @@ import (
 	"strconv"
 )
 
+type NodeResponse struct {
+	database.Node
+	PullCommand string `json:"pull_command"`
+}
+
 type NodesStoreRequest struct {
 	Host      string `json:"host" validate:"required,max=64"`
 	HttpToken string `json:"http_token" validate:"required"`
@@ -27,7 +32,18 @@ type NodesUpdatePartialRequest struct {
 
 func NodesIndex(d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, d.Content.Nodes)
+		token := d.Content.Settings.AdminPassword
+
+		var response []NodeResponse
+		for _, node := range d.Content.Nodes {
+			cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%d\" TOKEN=\"%s\"", node.Id, token)
+			response = append(response, NodeResponse{
+				Node:        *node,
+				PullCommand: cmd,
+			})
+		}
+
+		return c.JSON(http.StatusOK, response)
 	}
 }
 
@@ -64,8 +80,6 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 		if node == nil {
 			node = &database.Node{}
 			node.Id = d.GenerateNodeId()
-			node.Status = database.NodeStatusProcessing
-			node.Usage = 0
 			node.HttpToken = r.HttpToken
 			node.Host = r.Host
 			node.HttpPort = r.HttpPort

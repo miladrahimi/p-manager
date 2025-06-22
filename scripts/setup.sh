@@ -25,7 +25,7 @@ fi
 
 # Create the config file
 if [ ! -f "$ROOT"/configs/main.json ]; then
-		cp "$ROOT"/configs/main.defaults.json "$ROOT"/configs/main.json;
+		cp "$ROOT"/configs/main.example.json "$ROOT"/configs/main.json;
 fi
 
 # Setup Systemd
@@ -59,3 +59,7 @@ if ! crontab -l | grep -q "$COMMAND"; then
 else
     echo "The updater cron job is already configured."
 fi
+
+# Store update time
+rm -f ./storage/logs/*.log
+date '+%Y-%m-%d %H:%M:%S' > ./storage/app/update.txt

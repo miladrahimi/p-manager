@@ -102,7 +102,7 @@
             success: r => {
                 $("#name").html(r['user']['name'])
                 $("#usage").html(r['user']['usage'])
-                $("#created_at").html(ts2string(r['user']['created_at']))
+                $("#created_at").html(ts2date(r['user']['created_at']))
 
                 if (r['user']["enabled"] === false) {
                     $("#disabled-badge").removeClass('d-none')

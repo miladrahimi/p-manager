@@ -34,20 +34,29 @@ func (c *Coordinator) Run() {
 
 	c.SyncConfigs()
 
-	go newWorker(c.context, time.Duration(c.config.Workers.SyncStatsInterval)*time.Second, func() {
+	go newWorker(c.context, time.Second*10, func() {
+		c.l.Info("coordinator: running worker to sync outdated configs...")
+		c.syncOutdatedConfigs()
+	}, func() {
+		c.l.Debug("coordinator: worker for sync outdated configs stopped")
+	}).Start()
+
+	go newWorker(c.context, time.Minute, func() {
+		c.l.Info("coordinator: running worker for pull statuses...")
+		if err := c.syncPullStatuses(); err != nil {
+			c.l.Error("coordinator: cannot pull statuses", zap.Error(errors.WithStack(err)))
+		}
+	}, func() {
+		c.l.Debug("coordinator: worker for pull statuses stopped")
+	}).Start()
+
+	go newWorker(c.context, time.Minute, func() {
 		c.l.Info("coordinator: running worker for sync stats...")
 		if err := c.SyncStats(); err != nil {
 			c.l.Error("coordinator: cannot sync stats", zap.Error(errors.WithStack(err)))
 		}
 	}, func() {
 		c.l.Debug("coordinator: worker for sync stats stopped")
-	}).Start()
-
-	go newWorker(c.context, time.Minute, func() {
-		c.l.Info("coordinator: running worker to sync outdated configs...")
-		c.syncOutdatedConfigs()
-	}, func() {
-		c.l.Debug("coordinator: worker for sync outdated configs stopped")
 	}).Start()
 
 	go newWorker(c.context, time.Hour, func() {
@@ -99,37 +108,40 @@ func (c *Coordinator) syncRemoteConfigs() {
 func (c *Coordinator) syncOutdatedConfigs() {
 	c.l.Info("coordinator: syncing outdated configs...")
 	for _, n := range c.database.Content.Nodes {
-		if n.Status == database.NodeStatusUnavailable || n.Status == database.NodeStatusProcessing {
+		if n.PushStatus == database.NodeStatusUnavailable || n.PushStatus == database.NodeStatusProcessing {
+
 			go c.syncRemoteConfig(n, c.writer.RemoteConfig(n))
 		}
 	}
 }
 
-func (c *Coordinator) syncRemoteConfig(s *database.Node, xc *xray.Config) {
-	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", s.Host, s.HttpPort)
+func (c *Coordinator) syncRemoteConfig(node *database.Node, xc *xray.Config) {
+	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", node.Host, node.HttpPort)
 	proxy := c.database.Content.Settings.SingetServer
 	proxied := false
 	success := false
 
 	c.l.Info("coordinator: syncing remote config...", zap.String("url", url), zap.String("proxy", proxy))
 
-	_, err := c.hc.Do(http.MethodPost, url, s.HttpToken, xc)
+	_, err := c.hc.Do(http.MethodPost, url, node.HttpToken, xc)
 	if err == nil {
 		success = true
 	} else if proxy != "" {
 		proxied = true
-		_, err = c.hc.DoThrough(proxy, http.MethodPost, url, s.HttpToken, xc)
+		_, err = c.hc.DoThrough(proxy, http.MethodPost, url, node.HttpToken, xc)
 		if err == nil {
 			success = true
 		}
 	}
 
 	if success {
+		node.PushedAt = time.Now().UnixMilli()
 		if proxied {
-			s.Status = database.NodeStatusDirty
+			node.PushStatus = database.NodeStatusDirty
 		} else {
-			s.Status = database.NodeStatusAvailable
+			node.PushStatus = database.NodeStatusAvailable
 		}
+
 		c.l.Debug(
 			"coordinator: remote config synced",
 			zap.String("url", url),
@@ -137,7 +149,7 @@ func (c *Coordinator) syncRemoteConfig(s *database.Node, xc *xray.Config) {
 			zap.Bool("proxied", proxied),
 		)
 	} else {
-		s.Status = database.NodeStatusUnavailable
+		node.PushStatus = database.NodeStatusUnavailable
 		c.l.Error(
 			"coordinator: cannot sync remote config",
 			zap.String("url", url),
@@ -200,6 +212,26 @@ func (c *Coordinator) SyncStats() error {
 
 	err = c.database.Save()
 	return errors.WithStack(err)
+}
+
+func (c *Coordinator) syncPullStatuses() error {
+	c.l.Info("coordinator: syncing pull statuses...")
+
+	needsSync := false
+	for _, n := range c.database.Content.Nodes {
+		if time.Now().Sub(time.UnixMilli(n.PulledAt)) > time.Minute && n.PullStatus != database.NodeStatusUnavailable {
+			c.l.Info(fmt.Sprintf("Node %d marked as unavailable", n.Id))
+			n.PullStatus = database.NodeStatusUnavailable
+			needsSync = true
+		}
+	}
+
+	if needsSync {
+		err := c.database.Save()
+		return errors.WithStack(err)
+	}
+
+	return nil
 }
 
 func (c *Coordinator) resetUserUsages() error {

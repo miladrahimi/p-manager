@@ -150,7 +150,7 @@
                 title: "Created @",
                 field: "created_at",
                 resizable: true,
-                formatter: cell => ts2string(cell.getData().created_at),
+                formatter: cell => ts2date(cell.getData().created_at),
             },
             {
                 title: "Actions", field: "actions", formatter: actionsFormatter, hozAlign: "right",

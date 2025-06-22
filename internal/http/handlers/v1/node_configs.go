@@ -1,11 +1,13 @@
 package v1
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/writer"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func NodesConfigsShow(writer *writer.Writer, d *database.Database) echo.HandlerFunc {
@@ -18,6 +20,12 @@ func NodesConfigsShow(writer *writer.Writer, d *database.Database) echo.HandlerF
 		for _, n := range d.Content.Nodes {
 			if strconv.Itoa(n.Id) == nodeId {
 				node = n
+				node.PulledAt = time.Now().UnixMilli()
+				node.PullStatus = database.NodeStatusAvailable
+
+				if err := d.Save(); err != nil {
+					return errors.WithStack(err)
+				}
 			}
 		}
 		if node == nil {

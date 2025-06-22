@@ -48,12 +48,25 @@ function parseErrorMessage(response) {
     return ""
 }
 
-function ts2string(timestamp) {
+function ts2date(timestamp) {
     if (!timestamp) {
         return "-"
     }
     let d = (new Date(timestamp)).toLocaleDateString('fa-IR')
     return d.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, function (c) {
+        return c.charCodeAt(0) & 0xf
+    })
+}
+
+function ts2datetime(timestamp) {
+    if (!timestamp) {
+        return "-"
+    }
+
+    let d = (new Date(timestamp))
+    let dt = d.toLocaleDateString('fa-IR') + ' ' + d.toLocaleTimeString('fa-IR')
+
+    return dt.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, function (c) {
         return c.charCodeAt(0) & 0xf
     })
 }

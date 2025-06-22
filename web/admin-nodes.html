@@ -50,16 +50,17 @@
 <script src="assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     let statusFormatter = cell => {
+        console.log(cell.getValue())
         switch (cell.getValue()) {
+            case "":
+                cell.getElement().style.color = "#595959"
+                return "Processing..."
             case "available":
                 cell.getElement().style.color = "#198754"
                 return "Available"
             case "dirty":
                 cell.getElement().style.color = "#a18823"
                 return "Dirty"
-            case "processing":
-                cell.getElement().style.color = "#595959"
-                return "Processing..."
             case "unavailable":
                 cell.getElement().style.color = "#872919"
                 return "Unavailable"
@@ -69,9 +70,10 @@
         }
     }
 
-    let actionsFormatter = cell => {
-        return `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`
-    }
+    let actionsFormatter = cell => [
+        `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`,
+        `<span class="badge bg-info" onclick="info('${cell.getRow().getIndex()}')" title="Info">i</span>`,
+    ].join('&nbsp')
 
     let destroy = rowIndex => {
         let confirmed = confirm("Press 'OK' to delete the node.")
@@ -100,6 +102,23 @@
             error: makeErrorHandler(message => table.alert(message, "error")),
             complete: () => setTimeout(() => table.clearAlert(), 1500),
         })
+    }
+
+    let info = rowIndex => {
+        let row = table.getRow(rowIndex)
+
+        let baseUrl = window.location.origin
+        let command = row.getData().pull_command.replace('BASE_URL', baseUrl)
+
+        let content = `<div class="p-2">
+            <p class="my-2"><h6>Node #${row.getData().id}</h6></p>
+            <p class="my-2"><b>Pulling Setup Command:</b></p>
+            <pre class="bg-light p-2 rounded">${command}</pre>
+            <b>Last Push:</b> ${ts2datetime(row.getData().pushed_at)}<br>
+            <b>Last Pull:</b> ${ts2datetime(row.getData().pulled_at)}<br>
+        </div>`
+
+        row.popup(content, "center");
     }
 
     let table = new Tabulator("#table", {
@@ -151,7 +170,12 @@
                 formatter: cell => parseFloat(cell.getData()['usage']).toFixed(2)
             },
             {
-                title: "Status", field: "status", widthGrow: 1, resizable: true, formatter: statusFormatter,
+                title: "Push Status", field: "push_status", widthGrow: 1, resizable: true, formatter: statusFormatter,
+                headerPopup: "Status of the process where P-Manager pushes configurations to P-Nodes.",
+            },
+            {
+                title: "Pull Status", field: "pull_status", widthGrow: 1, resizable: true, formatter: statusFormatter,
+                headerPopup: "Status of the process where P-Nodes pull configurations from the P-Manager.",
             },
             {
                 title: "Actions", formatter: actionsFormatter, hozAlign: "right",
@@ -190,11 +214,15 @@
     $("#create").click(() => {
         table.addRow({
             id: 0,
-            status: "processing",
             host: "",
             http_token: "",
             http_port: "",
             usage: 0,
+            push_status: "",
+            pull_status: "",
+            pull_command: "Not available",
+            pushed_at: 0,
+            pulled_at: 0,
         })
     })
 </script>

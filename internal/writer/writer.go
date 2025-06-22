@@ -90,25 +90,22 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 
 	if len(clients) > 0 {
 		if w.database.Content.Settings.SsDirectPort > 0 {
-			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+			xc.Routing.Rules = append(xc.Routing.Rules, &xray.Rule{
 				InboundTag:  []string{"direct"},
 				OutboundTag: "out",
-				Type:        "field",
 			})
 		}
 		if len(w.database.Content.Nodes) > 0 {
 			if w.database.Content.Settings.SsRelayPort > 0 {
-				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+				xc.Routing.Rules = append(xc.Routing.Rules, &xray.Rule{
 					InboundTag:  []string{"relay"},
 					BalancerTag: "relay",
-					Type:        "field",
 				})
 			}
 			if w.database.Content.Settings.SsReversePort > 0 {
-				xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+				xc.Routing.Rules = append(xc.Routing.Rules, &xray.Rule{
 					InboundTag:  []string{"reverse"},
 					BalancerTag: "portal",
-					Type:        "field",
 				})
 			}
 		}
@@ -145,10 +142,9 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 				Tag:    fmt.Sprintf("portal-%d", s.Id),
 				Domain: fmt.Sprintf("s%d.reverse.proxy", s.Id),
 			})
-			xc.Routing.Settings.Rules = append(xc.Routing.Settings.Rules, &xray.Rule{
+			xc.Routing.Rules = append(xc.Routing.Rules, &xray.Rule{
 				InboundTag:  []string{fmt.Sprintf("internal-%d", s.Id)},
 				OutboundTag: fmt.Sprintf("portal-%d", s.Id),
-				Type:        "field",
 			})
 			xc.FindBalancer("portal").Selector = append(
 				xc.FindBalancer("portal").Selector,
@@ -194,10 +190,9 @@ func (w *Writer) RemoteConfig(node *database.Node) *xray.Config {
 			relayOutbound.Settings.Servers[0].Port,
 			nil,
 		))
-		xc.Routing.Settings.Rules = append(
-			xc.Routing.Settings.Rules,
+		xc.Routing.Rules = append(
+			xc.Routing.Rules,
 			&xray.Rule{
-				Type:        "field",
 				InboundTag:  []string{"direct"},
 				OutboundTag: "out",
 			},
@@ -217,16 +212,14 @@ func (w *Writer) RemoteConfig(node *database.Node) *xray.Config {
 			Tag:    "bridge",
 			Domain: fmt.Sprintf("s%d.reverse.proxy", node.Id),
 		})
-		xc.Routing.Settings.Rules = append(
-			xc.Routing.Settings.Rules,
+		xc.Routing.Rules = append(
+			xc.Routing.Rules,
 			&xray.Rule{
-				Type:        "field",
 				InboundTag:  []string{"bridge"},
 				Domain:      []string{fmt.Sprintf("full:s%d.reverse.proxy", node.Id)},
 				OutboundTag: "internal",
 			},
 			&xray.Rule{
-				Type:        "field",
 				InboundTag:  []string{"bridge"},
 				OutboundTag: "out",
 			},

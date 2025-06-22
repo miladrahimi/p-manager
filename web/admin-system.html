@@ -221,7 +221,7 @@
         dataType: "json",
         success: function (response) {
             $("#stats-total-usage").html(parseFloat(response['total_usage']).toFixed(2))
-            $("#stats-total-usage-reset-at").html(ts2string(response['total_usage_reset_at']))
+            $("#stats-total-usage-reset-at").html(ts2date(response['total_usage_reset_at']))
             $("#stats-total-users").html(response['total_users'])
             $("#stats-active-users").html(response['active_users'])
         },

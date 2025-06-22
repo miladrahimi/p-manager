@@ -4,14 +4,11 @@
     "port": 8080
   },
   "http_client": {
-    "timeout": 10000
+    "timeout": 30
   },
   "logger": {
     "level": "warn",
     "format": "2006-01-02 15:04:05.000"
-  },
-  "workers": {
-    "sync_stats_interval": 300
   },
   "xray": {
     "log_level": "info"

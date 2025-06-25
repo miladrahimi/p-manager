@@ -6,9 +6,29 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Update requirements
-apt-get -y update && apt-get -y upgrade
-apt-get -y install make wget curl jq vim git openssl cron
+# Required packages
+packages=("make" "wget" "curl" "jq" "vim" "git" "openssl" "cron")
+
+# Update repositories only if needed
+update_needed=false
+for package in "${packages[@]}"; do
+    if ! dpkg -l | grep -q "^ii  $package "; then
+        update_needed=true
+        break
+    fi
+done
+if [ "$update_needed" = true ]; then
+    echo "Some packages need to be installed. Updating package lists..."
+    apt-get -y update
+fi
+
+# Install packages if they're not already installed
+for package in "${packages[@]}"; do
+    if ! dpkg -l | grep -q "^ii  $package "; then
+        echo "Installing $package..."
+        apt-get -y install "$package"
+    fi
+done
 
 # Detect basic variables
 ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")

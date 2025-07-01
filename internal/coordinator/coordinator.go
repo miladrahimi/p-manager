@@ -27,6 +27,7 @@ type Coordinator struct {
 	hc       *client.Client
 	xray     *xray.Xray
 	writer   *writer.Writer
+	state    *State
 }
 
 func (c *Coordinator) Run() {
@@ -92,6 +93,8 @@ func (c *Coordinator) syncLocalConfig() error {
 		return err
 	}
 
+	c.state.xrayUpdatedAt = time.Now()
+
 	c.xray.SetConfig(localConfig)
 	c.xray.Restart()
 
@@ -101,7 +104,7 @@ func (c *Coordinator) syncLocalConfig() error {
 func (c *Coordinator) syncRemoteConfigs() {
 	c.l.Info("coordinator: syncing remote configs...")
 	for _, s := range c.database.Content.Nodes {
-		go c.syncRemoteConfig(s, c.writer.RemoteConfig(s))
+		go c.syncRemoteConfig(s, c.writer.RemoteConfig(s, c.state.XrayUpdatedAt()))
 	}
 }
 
@@ -110,7 +113,7 @@ func (c *Coordinator) syncOutdatedConfigs() {
 	for _, n := range c.database.Content.Nodes {
 		if n.PushStatus == database.NodeStatusUnavailable || n.PushStatus == database.NodeStatusProcessing {
 
-			go c.syncRemoteConfig(n, c.writer.RemoteConfig(n))
+			go c.syncRemoteConfig(n, c.writer.RemoteConfig(n, c.state.XrayUpdatedAt()))
 		}
 	}
 }
@@ -260,6 +263,10 @@ func (c *Coordinator) resetUserUsages() error {
 	return nil
 }
 
+func (c *Coordinator) State() *State {
+	return c.state
+}
+
 func New(
 	config *config.Config,
 	context context.Context,
@@ -277,5 +284,6 @@ func New(
 		database: database,
 		xray:     xray,
 		writer:   writer,
+		state:    NewState(),
 	}
 }

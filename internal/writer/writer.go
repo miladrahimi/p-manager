@@ -9,6 +9,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/utils"
 	"github.com/miladrahimi/p-node/pkg/xray"
 	"strconv"
+	"time"
 )
 
 type Writer struct {
@@ -42,10 +43,10 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 	}
 
 	xc := xray.NewConfig(w.c.Xray.LogLevel)
+
 	xc.FindInbound("api").Port = apiPort
 
 	var key string
-
 	if len(clients) > 0 {
 		if w.database.Content.Settings.SsRelayPort > 0 {
 			if key, err = utils.Key32(); err != nil {
@@ -177,8 +178,13 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 	return xc, nil
 }
 
-func (w *Writer) RemoteConfig(node *database.Node) *xray.Config {
+func (w *Writer) RemoteConfig(node *database.Node, lastUpdate time.Time) *xray.Config {
 	xc := xray.NewConfig(w.c.Xray.LogLevel)
+
+	xc.Metadata = &xray.Metadata{
+		UpdatedAt: lastUpdate.Format(time.RFC3339),
+		UpdatedBy: w.database.Content.Settings.Host,
+	}
 
 	if w.database.Content.Settings.SsRelayPort > 0 {
 		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", node.Id))

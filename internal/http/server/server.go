@@ -69,7 +69,7 @@ func (s *Server) Run() {
 	g2.PUT("/nodes/:id", v1.NodesUpdate(s.coordinator, s.database))
 	g2.DELETE("/nodes/:id", v1.NodesDelete(s.coordinator, s.database))
 
-	g2.GET("/nodes/:id/configs", v1.NodesConfigsShow(s.writer, s.database))
+	g2.GET("/nodes/:id/configs", v1.NodesConfigsShow(s.coordinator, s.writer, s.database))
 
 	g2.GET("/stats", v1.StatsIndex(s.database))
 	g2.PATCH("/stats", v1.StatsUpdatePartial(s.database))

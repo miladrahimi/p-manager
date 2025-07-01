@@ -3,6 +3,7 @@ package v1
 import (
 	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/writer"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-func NodesConfigsShow(writer *writer.Writer, d *database.Database) echo.HandlerFunc {
+func NodesConfigsShow(cdr *coordinator.Coordinator, writer *writer.Writer, d *database.Database) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		d.Locker.Lock()
 		defer d.Locker.Unlock()
@@ -32,7 +33,7 @@ func NodesConfigsShow(writer *writer.Writer, d *database.Database) echo.HandlerF
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		configs := writer.RemoteConfig(node)
+		configs := writer.RemoteConfig(node, cdr.State().XrayUpdatedAt())
 
 		return c.JSON(http.StatusOK, configs)
 	}

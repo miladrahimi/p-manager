@@ -178,7 +178,7 @@ func (w *Writer) LocalConfig() (*xray.Config, error) {
 	return xc, nil
 }
 
-func (w *Writer) RemoteConfig(node *database.Node, lastUpdate time.Time) *xray.Config {
+func (w *Writer) RemoteConfig(node *database.Node, lastUpdate time.Time, password string) *xray.Config {
 	xc := xray.NewConfig(w.c.Xray.LogLevel)
 
 	xc.Metadata = &xray.Metadata{
@@ -227,6 +227,24 @@ func (w *Writer) RemoteConfig(node *database.Node, lastUpdate time.Time) *xray.C
 			},
 			&xray.Rule{
 				InboundTag:  []string{"bridge"},
+				OutboundTag: "out",
+			},
+		)
+	}
+
+	if w.database.Content.Settings.SsRemotePort > 0 {
+		xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
+			"remote",
+			password,
+			config.ShadowsocksMethod,
+			"tcp",
+			w.database.Content.Settings.SsRemotePort,
+			w.clients(),
+		))
+		xc.Routing.Rules = append(
+			xc.Routing.Rules,
+			&xray.Rule{
+				InboundTag:  []string{"remote"},
 				OutboundTag: "out",
 			},
 		)

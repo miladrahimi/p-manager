@@ -9,6 +9,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
 	"github.com/miladrahimi/p-manager/internal/licensor"
+	"github.com/miladrahimi/p-manager/internal/utils"
 	"net/http"
 	"slices"
 	"strconv"
@@ -80,7 +81,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database, l *l
 		user.ShadowsocksMethod = config.ShadowsocksMethod
 		user.ShadowsocksPassword = d.GenerateUserPassword()
 		user.Usage = request.Usage
-		user.UsageBytes = int64(request.Usage * 1000 * 1000 * 1000)
+		user.UsageBytes = utils.GB2Bytes(request.Usage)
 		user.Name = request.Name
 		user.Quota = request.Quota
 		user.Enabled = request.Enabled
@@ -173,7 +174,7 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Databa
 
 		if request.Usage != nil {
 			user.Usage = *request.Usage
-			user.UsageBytes = int64(*request.Usage * 1000 * 1000 * 1000)
+			user.UsageBytes = utils.GB2Bytes(*request.Usage)
 		}
 		if request.Enabled != nil {
 			user.Enabled = true
@@ -209,7 +210,7 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 		for _, user := range d.Content.Users {
 			if request.Usage != nil {
 				user.Usage = *request.Usage
-				user.UsageBytes = int64(*request.Usage * 1000 * 1000 * 1000)
+				user.UsageBytes = utils.GB2Bytes(*request.Usage)
 			}
 			if request.Enabled != nil {
 				user.Enabled = *request.Enabled

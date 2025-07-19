@@ -167,6 +167,7 @@ func New(l *logger.Logger, c *config.Config) *Database {
 			},
 			Stats: &Stats{
 				TotalUsage:        0,
+				TotalUsageBytes:   0,
 				TotalUsageResetAt: time.Now().UnixMilli(),
 			},
 			Users: []*User{},

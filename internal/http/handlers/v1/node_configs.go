@@ -33,7 +33,7 @@ func NodesConfigsShow(cdr *coordinator.Coordinator, writer *writer.Writer, d *da
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		configs := writer.RemoteConfig(node, cdr.State().XrayUpdatedAt())
+		configs := writer.RemoteConfig(node, cdr.State().XrayUpdatedAt(), cdr.State().XraySharedPassword())
 
 		return c.JSON(http.StatusOK, configs)
 	}

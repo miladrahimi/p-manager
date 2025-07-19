@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/utils"
 	"net/http"
 	"strconv"
 )
@@ -159,6 +160,7 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 		for _, node := range d.Content.Nodes {
 			if request.Usage != nil {
 				node.Usage = *request.Usage
+				node.UsageBytes = utils.GB2Bytes(*request.Usage)
 			}
 		}
 

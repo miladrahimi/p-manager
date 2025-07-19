@@ -6,6 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/utils"
 	"net/http"
 	"time"
 )
@@ -55,6 +56,7 @@ func StatsUpdatePartial(d *database.Database) echo.HandlerFunc {
 
 		if request.TotalUsage != nil {
 			d.Content.Stats.TotalUsage = *request.TotalUsage
+			d.Content.Stats.TotalUsageBytes = utils.GB2Bytes(*request.TotalUsage)
 			d.Content.Stats.TotalUsageResetAt = time.Now().UnixMilli()
 		}
 

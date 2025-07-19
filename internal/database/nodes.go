@@ -16,7 +16,8 @@ type Node struct {
 	Host       string     `json:"host" validate:"required,max=128"`
 	HttpToken  string     `json:"http_token" validate:"required"`
 	HttpPort   int        `json:"http_port" validate:"required,min=1,max=65536"`
-	Usage      float64    `json:"usage"`
+	Usage      float64    `json:"usage" validate:"min=0"`
+	UsageBytes int64      `json:"usage_bytes" validate:"min=0"`
 	PushStatus NodeStatus `json:"push_status"`
 	PullStatus NodeStatus `json:"pull_status"`
 	PushedAt   int64      `json:"pushed_at"`

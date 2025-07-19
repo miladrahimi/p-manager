@@ -40,6 +40,42 @@ func RoundFloat(val float64, precision uint) float64 {
 	return math.Round(val*ratio) / ratio
 }
 
+// SafeSumI64 safely sums two int64 values or returns 0 if the result overflows.
+func SafeSumI64(a, b int64) int64 {
+	if b > math.MaxInt64-a {
+		return 0
+	}
+	return a + b
+}
+
+// Bytes2GB converts bytes to GB.
+func Bytes2GB(bytes int64) float64 {
+	if bytes < 0 {
+		return 0
+	}
+
+	const bytesPerGB = 1073741824 // 1024^3 = 1,073,741,824
+	result := float64(bytes) / float64(bytesPerGB)
+
+	return RoundFloat(result, 2)
+}
+
+// GB2Bytes converts GB to bytes.
+func GB2Bytes(f float64) int64 {
+	if math.IsInf(f, 0) || math.IsNaN(f) || f < 0 {
+		return 0
+	}
+
+	const bytesPerGB = 1073741824 // 1024^3
+	result := f * float64(bytesPerGB)
+
+	if math.IsInf(result, 0) || result > float64(math.MaxInt64) {
+		return 0
+	}
+
+	return int64(result)
+}
+
 // FreePort finds a free port.
 func FreePort() (int, error) {
 	address, err := net.ResolveTCPAddr("tcp", "localhost:0")
@@ -72,8 +108,8 @@ func PortFree(port int) bool {
 	return true
 }
 
-// PortsUnique makes sure all ports are unique or zero (disabled).
-func PortsUnique(ports []int) bool {
+// PortsDistinct makes sure all ports are unique or zero (disabled).
+func PortsDistinct(ports []int) bool {
 	seen := make(map[int]bool)
 	for _, port := range ports {
 		if port != 0 {

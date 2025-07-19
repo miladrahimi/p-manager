@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/writer"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"github.com/miladrahimi/p-node/pkg/xray"
+	"github.com/xtls/xray-core/app/stats/command"
 	"go.uber.org/zap"
 	"net/http"
 	"slices"
@@ -20,14 +22,14 @@ import (
 )
 
 type Coordinator struct {
-	l        *logger.Logger
-	context  context.Context
-	config   *config.Config
-	database *database.Database
-	hc       *client.Client
-	xray     *xray.Xray
-	writer   *writer.Writer
-	state    *State
+	l       *logger.Logger
+	context context.Context
+	config  *config.Config
+	d       *database.Database
+	hc      *client.Client
+	xray    *xray.Xray
+	writer  *writer.Writer
+	state   *State
 }
 
 func (c *Coordinator) Run() {
@@ -44,7 +46,7 @@ func (c *Coordinator) Run() {
 
 	go newWorker(c.context, time.Minute, func() {
 		c.l.Info("coordinator: running worker for pull statuses...")
-		if err := c.syncPullStatuses(); err != nil {
+		if err := c.syncNodePullStatuses(); err != nil {
 			c.l.Error("coordinator: cannot pull statuses", zap.Error(errors.WithStack(err)))
 		}
 	}, func() {
@@ -52,19 +54,26 @@ func (c *Coordinator) Run() {
 	}).Start()
 
 	go newWorker(c.context, time.Minute, func() {
-		c.l.Info("coordinator: running worker for sync stats...")
-		if err := c.SyncStats(); err != nil {
-			c.l.Error("coordinator: cannot sync stats", zap.Error(errors.WithStack(err)))
+		c.l.Info("coordinator: running worker for sync local stats...")
+		if err := c.syncLocalStats(); err != nil {
+			c.l.Error("coordinator: cannot sync local stats", zap.Error(errors.WithStack(err)))
 		}
 	}, func() {
 		c.l.Debug("coordinator: worker for sync stats stopped")
 	}).Start()
 
-	go newWorker(c.context, time.Hour, func() {
-		c.l.Info("coordinator: running worker to backup database...")
-		c.database.Backup()
+	go newWorker(c.context, time.Minute, func() {
+		c.l.Info("coordinator: running worker for sync remote stats...")
+		c.syncRemoteStats()
 	}, func() {
-		c.l.Debug("coordinator: worker for backup database stopped")
+		c.l.Debug("coordinator: worker for sync stats stopped")
+	}).Start()
+
+	go newWorker(c.context, time.Hour, func() {
+		c.l.Info("coordinator: running worker to backup d...")
+		c.d.Backup()
+	}, func() {
+		c.l.Debug("coordinator: worker for backup d stopped")
 	}).Start()
 
 	go newWorker(c.context, time.Hour, func() {
@@ -103,26 +112,27 @@ func (c *Coordinator) syncLocalConfig() error {
 
 func (c *Coordinator) syncRemoteConfigs() {
 	c.l.Info("coordinator: syncing remote configs...")
-	for _, s := range c.database.Content.Nodes {
-		go c.syncRemoteConfig(s, c.writer.RemoteConfig(s, c.state.XrayUpdatedAt()))
+	for _, s := range c.d.Content.Nodes {
+		go c.syncRemoteConfig(s)
 	}
 }
 
 func (c *Coordinator) syncOutdatedConfigs() {
 	c.l.Info("coordinator: syncing outdated configs...")
-	for _, n := range c.database.Content.Nodes {
+	for _, n := range c.d.Content.Nodes {
 		if n.PushStatus == database.NodeStatusUnavailable || n.PushStatus == database.NodeStatusProcessing {
-
-			go c.syncRemoteConfig(n, c.writer.RemoteConfig(n, c.state.XrayUpdatedAt()))
+			go c.syncRemoteConfig(n)
 		}
 	}
 }
 
-func (c *Coordinator) syncRemoteConfig(node *database.Node, xc *xray.Config) {
+func (c *Coordinator) syncRemoteConfig(node *database.Node) {
 	url := fmt.Sprintf("%s://%s:%d/v1/configs", "http", node.Host, node.HttpPort)
-	proxy := c.database.Content.Settings.SingetServer
+	proxy := c.d.Content.Settings.SingetServer
 	proxied := false
 	success := false
+
+	xc := c.writer.RemoteConfig(node, c.state.XrayUpdatedAt(), c.state.XraySharedPassword())
 
 	c.l.Info("coordinator: syncing remote config...", zap.String("url", url), zap.String("proxy", proxy))
 
@@ -163,16 +173,87 @@ func (c *Coordinator) syncRemoteConfig(node *database.Node, xc *xray.Config) {
 	}
 }
 
-func (c *Coordinator) SyncStats() error {
-	c.l.Info("coordinator: syncing stats...")
+func (c *Coordinator) syncRemoteStats() {
+	if c.d.Content.Settings.SsRemotePort == 0 {
+		c.l.Debug("coordinator: remote stats disabled")
+		return
+	}
+
+	c.l.Info("coordinator: syncing remote stats...")
+	for _, s := range c.d.Content.Nodes {
+		go c.syncRemoteNodeStats(s)
+	}
+}
+
+func (c *Coordinator) syncRemoteNodeStats(node *database.Node) {
+	url := fmt.Sprintf("%s://%s:%d/v1/stats", "http", node.Host, node.HttpPort)
+
+	c.l.Info("coordinator: syncing remote node stats...", zap.String("url", url))
+
+	response, err := c.hc.Do(http.MethodGet, url, node.HttpToken, nil)
+	if err != nil {
+		c.l.Error("cannot sync remote node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
+		return
+	}
+
+	var queryStats []*command.Stat
+	if err = json.Unmarshal(response, &queryStats); err != nil {
+		c.l.Error("cannot read remote node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
+		return
+	}
+
+	c.d.Locker.Lock()
+	defer c.d.Locker.Unlock()
+
+	users := map[string]int64{}
+	var nodeUsageBytes int64
+
+	for _, qs := range queryStats {
+		parts := strings.Split(qs.GetName(), ">>>")
+		if parts[0] == "user" {
+			users[parts[1]] += qs.GetValue()
+		} else if parts[0] == "inbound" && parts[1] == "remote" {
+			nodeUsageBytes += qs.GetValue()
+		}
+	}
+
+	shouldSync := false
+	for _, u := range c.d.Content.Users {
+		if bytes, found := users[strconv.Itoa(u.Id)]; found {
+			u.UsageBytes = utils.SafeSumI64(u.UsageBytes, bytes)
+			u.Usage = utils.Bytes2GB(u.UsageBytes)
+			if u.Quota > 0 && u.Usage > u.Quota {
+				u.Enabled = false
+				shouldSync = true
+				c.l.Debug("coordinator: user disabled", zap.Int("id", u.Id))
+			}
+		}
+	}
+	if shouldSync {
+		go c.SyncConfigs()
+	}
+
+	node.UsageBytes = utils.SafeSumI64(node.UsageBytes, nodeUsageBytes)
+	node.Usage = utils.Bytes2GB(node.UsageBytes)
+
+	c.d.Content.Stats.TotalUsageBytes = utils.SafeSumI64(c.d.Content.Stats.TotalUsageBytes, nodeUsageBytes)
+	c.d.Content.Stats.TotalUsage = utils.Bytes2GB(c.d.Content.Stats.TotalUsageBytes)
+
+	if err = c.d.Save(); err != nil {
+		c.l.Error("cannot save remote node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
+	}
+}
+
+func (c *Coordinator) syncLocalStats() error {
+	c.l.Info("coordinator: syncing local stats...")
 
 	queryStats, err := c.xray.QueryStats()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	c.database.Locker.Lock()
-	defer c.database.Locker.Unlock()
+	c.d.Locker.Lock()
+	defer c.d.Locker.Unlock()
 
 	nodes := map[string]int64{}
 	users := map[string]int64{}
@@ -186,21 +267,24 @@ func (c *Coordinator) SyncStats() error {
 		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
 			nodes[parts[1][6:]] += qs.GetValue()
 		} else if parts[0] == "inbound" && slices.Contains([]string{"reverse", "relay", "direct"}, parts[1]) {
-			c.database.Content.Stats.TotalUsage += float64(qs.GetValue()) / 1000 / 1000 / 1000
+			c.d.Content.Stats.TotalUsageBytes = utils.SafeSumI64(c.d.Content.Stats.TotalUsageBytes, qs.GetValue())
 		}
 	}
 
-	for _, s := range c.database.Content.Nodes {
-		if bytes, found := nodes[strconv.Itoa(s.Id)]; found {
-			s.Usage += utils.RoundFloat(float64(bytes)/1000/1000/1000, 2)
+	for _, n := range c.d.Content.Nodes {
+		if bytes, found := nodes[strconv.Itoa(n.Id)]; found {
+			n.UsageBytes = utils.SafeSumI64(n.UsageBytes, bytes)
 		}
+		n.Usage = utils.Bytes2GB(n.UsageBytes)
 	}
+
+	c.d.Content.Stats.TotalUsage = utils.Bytes2GB(c.d.Content.Stats.TotalUsageBytes)
 
 	shouldSync := false
-	for _, u := range c.database.Content.Users {
+	for _, u := range c.d.Content.Users {
 		if bytes, found := users[strconv.Itoa(u.Id)]; found {
-			u.UsageBytes += bytes
-			u.Usage = utils.RoundFloat(float64(u.UsageBytes)/1000/1000/1000, 2)
+			u.UsageBytes = utils.SafeSumI64(u.UsageBytes, bytes)
+			u.Usage = utils.Bytes2GB(u.UsageBytes)
 			if u.Quota > 0 && u.Usage > u.Quota {
 				u.Enabled = false
 				shouldSync = true
@@ -208,20 +292,19 @@ func (c *Coordinator) SyncStats() error {
 			}
 		}
 	}
-
 	if shouldSync {
 		go c.SyncConfigs()
 	}
 
-	err = c.database.Save()
+	err = c.d.Save()
 	return errors.WithStack(err)
 }
 
-func (c *Coordinator) syncPullStatuses() error {
+func (c *Coordinator) syncNodePullStatuses() error {
 	c.l.Info("coordinator: syncing pull statuses...")
 
 	needsSync := false
-	for _, n := range c.database.Content.Nodes {
+	for _, n := range c.d.Content.Nodes {
 		if time.Now().Sub(time.UnixMilli(n.PulledAt)) > time.Minute && n.PullStatus != database.NodeStatusUnavailable {
 			c.l.Info(fmt.Sprintf("Node %d marked as unavailable", n.Id))
 			n.PullStatus = database.NodeStatusUnavailable
@@ -230,7 +313,7 @@ func (c *Coordinator) syncPullStatuses() error {
 	}
 
 	if needsSync {
-		err := c.database.Save()
+		err := c.d.Save()
 		return errors.WithStack(err)
 	}
 
@@ -238,13 +321,13 @@ func (c *Coordinator) syncPullStatuses() error {
 }
 
 func (c *Coordinator) resetUserUsages() error {
-	if c.database.Content.Settings.ResetPolicy != "monthly" {
+	if c.d.Content.Settings.ResetPolicy != "monthly" {
 		return nil
 	}
 
 	c.l.Info("coordinator: resetting users usages...")
 
-	for _, u := range c.database.Content.Users {
+	for _, u := range c.d.Content.Users {
 		if time.Unix(u.UsageResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
 			continue
 		}
@@ -254,7 +337,7 @@ func (c *Coordinator) resetUserUsages() error {
 		u.UsageResetAt = time.Now().Unix()
 	}
 
-	if err := c.database.Save(); err != nil {
+	if err := c.d.Save(); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -277,13 +360,13 @@ func New(
 	writer *writer.Writer,
 ) *Coordinator {
 	return &Coordinator{
-		l:        logger,
-		hc:       hc,
-		config:   config,
-		context:  context,
-		database: database,
-		xray:     xray,
-		writer:   writer,
-		state:    NewState(),
+		l:       logger,
+		hc:      hc,
+		config:  config,
+		context: context,
+		d:       database,
+		xray:    xray,
+		writer:  writer,
+		state:   NewState(),
 	}
 }

@@ -31,7 +31,7 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 			})
 		}
 
-		if !utils.PortsDistinct([]int{r.SsRelayPort, r.SsReversePort, r.SsDirectPort, r.SsRemotePort}) {
+		if !utils.PortsDistinct([]int{r.SsRelayPort, r.SsReversePort, r.SsDirectPort}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Shadowsocks ports must be the distinct.",
 			})
@@ -54,11 +54,6 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database) 
 		if r.SsDirectPort > 0 && r.SsDirectPort != current.SsDirectPort && !utils.PortFree(r.SsDirectPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Port %d is already in use.", r.SsDirectPort),
-			})
-		}
-		if r.SsRemotePort > 0 && r.SsRemotePort != current.SsRemotePort && !utils.PortFree(r.SsRemotePort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.SsRemotePort),
 			})
 		}
 

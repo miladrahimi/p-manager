@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/labstack/gommon v0.4.2
-	github.com/miladrahimi/p-node v0.0.0-20250719223248-b95e5ec4688f
+	github.com/miladrahimi/p-node v0.0.0-20250720080233-8805d7592d45
 	github.com/spf13/cobra v1.9.1
 	github.com/xtls/xray-core v1.250608.0
 	go.uber.org/zap v1.27.0

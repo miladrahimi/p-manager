@@ -94,6 +94,8 @@ github.com/miladrahimi/p-node v0.0.0-20250719222303-57b68cd0a74c h1:2ZHuHdjx5Kz4
 github.com/miladrahimi/p-node v0.0.0-20250719222303-57b68cd0a74c/go.mod h1:S3tLyiq/EX/UN+FckY72XJrWDxsb9l+PTGGadPrLosY=
 github.com/miladrahimi/p-node v0.0.0-20250719223248-b95e5ec4688f h1:JRrB/V9rOcdNQ/dnG8HAvJuaO7qO/b6eUclk1C0XrHw=
 github.com/miladrahimi/p-node v0.0.0-20250719223248-b95e5ec4688f/go.mod h1:S3tLyiq/EX/UN+FckY72XJrWDxsb9l+PTGGadPrLosY=
+github.com/miladrahimi/p-node v0.0.0-20250720080233-8805d7592d45 h1:GYop3BEBUzkUda9XL70sqXZg+dHRPtEtZKsxKwiAH6E=
+github.com/miladrahimi/p-node v0.0.0-20250720080233-8805d7592d45/go.mod h1:S3tLyiq/EX/UN+FckY72XJrWDxsb9l+PTGGadPrLosY=
 github.com/onsi/ginkgo/v2 v2.19.0 h1:9Cnnf7UHo57Hy3k6/m5k3dRfGTMXGvxhHFvkDTCTpvA=
 github.com/onsi/ginkgo/v2 v2.19.0/go.mod h1:rlwLi9PilAFJ8jCg9UE1QP6VBpd6/xj3SRC0d6TU0To=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=

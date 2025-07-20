@@ -36,12 +36,12 @@ func NodesIndex(d *database.Database) echo.HandlerFunc {
 		token := d.Content.Settings.AdminPassword
 
 		var response = make([]NodeResponse, 0, len(d.Content.Nodes))
-		for i, node := range d.Content.Nodes {
+		for _, node := range d.Content.Nodes {
 			cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%d\" TOKEN=\"%s\"", node.Id, token)
-			response[i] = NodeResponse{
+			response = append(response, NodeResponse{
 				Node:        *node,
 				PullCommand: cmd,
-			}
+			})
 		}
 
 		return c.JSON(http.StatusOK, response)

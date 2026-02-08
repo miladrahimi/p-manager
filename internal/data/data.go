@@ -1,35 +1,33 @@
 package data
 
-import (
-	"github.com/labstack/gommon/random"
-	"github.com/miladrahimi/p-manager/pkg/util"
-)
-
 // Data is the database data (schema).
 type Data struct {
-	Settings *Settings `json:"settings"`
-	Stats    *Stats    `json:"stats"`
-	Users    []*User   `json:"users"`
-	Nodes    []*Node   `json:"nodes"`
+	Users        []*User       `json:"users"`
+	Nodes        []*Node       `json:"nodes"`
+	Stats        *Stats        `json:"stats"`
+	MainSettings *Settings     `json:"main_settings"`
+	XraySettings *XraySettings `json:"xray_settings"`
 }
 
 // New creates a new instance of Data.
-func New(settings *Settings, stats *Stats, users []*User, nodes []*Node) *Data {
+func New(users []*User, nodes []*Node, stats *Stats, mainSettings *Settings, xraySettings *XraySettings) *Data {
 	return &Data{
-		Settings: settings,
-		Stats:    stats,
-		Users:    users,
-		Nodes:    nodes,
+		Users:        users,
+		Nodes:        nodes,
+		Stats:        stats,
+		MainSettings: mainSettings,
+		XraySettings: xraySettings,
 	}
 }
 
 // Default returns a new data with default values.
 func Default() *Data {
 	return New(
-		DefaultSettings(),
-		DefaultStats(),
 		[]*User{},
 		[]*Node{},
+		DefaultStats(),
+		DefaultSettings(),
+		DefaultXray(),
 	)
 }
 
@@ -50,28 +48,6 @@ func (s *Data) GenerateUserId() int {
 		return s.Users[len(s.Users)-1].Id + 1
 	} else {
 		return 1
-	}
-}
-
-// GenerateUserIdentity generates a unique identity for a new user.
-func (s *Data) GenerateUserIdentity() string {
-	return util.UUID()
-}
-
-// GenerateUserPassword generates a unique password for a new user.
-func (s *Data) GenerateUserPassword() string {
-	for {
-		r := random.String(16)
-		isUnique := true
-		for _, user := range s.Users {
-			if user.ShadowsocksPassword == r {
-				isUnique = false
-				break
-			}
-		}
-		if isUnique {
-			return r
-		}
 	}
 }
 

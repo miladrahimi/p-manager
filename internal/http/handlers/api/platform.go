@@ -7,7 +7,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 )
 
-func DetailsShow() echo.HandlerFunc {
+func PlatformShow() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			AppName    string `json:"app_name"`

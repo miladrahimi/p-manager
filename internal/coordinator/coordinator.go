@@ -14,9 +14,9 @@ import (
 	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-manager/internal/http/client"
 	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/database"
+	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"github.com/miladrahimi/p-node/pkg/xray"
 	"github.com/xtls/xray-core/app/stats/command"
@@ -32,7 +32,6 @@ type Coordinator struct {
 	xray     *xray.Xray
 	composer *composer.Composer
 	state    *State
-	backup   string
 }
 
 // New creates a new coordinator.
@@ -40,26 +39,28 @@ func New(
 	config *config.Config,
 	hc *client.Client,
 	logger *logger.Logger,
-	database *database.Database[data.Data],
+	db *database.Database[data.Data],
 	xray *xray.Xray,
 	writer *composer.Composer,
-	backupPath string,
 ) *Coordinator {
 	return &Coordinator{
 		l:        logger,
 		hc:       hc,
 		c:        config,
-		db:       database,
+		db:       db,
 		xray:     xray,
 		composer: writer,
 		state:    newState(),
-		backup:   backupPath,
 	}
 }
 
 // Run starts the coordinator and its workers.
-func (c *Coordinator) Run(ctx context.Context) {
+func (c *Coordinator) Run(ctx context.Context) error {
 	c.l.Info("coordinator: running...")
+
+	if err := c.initialize(); err != nil {
+		return errors.WithStack(err)
+	}
 
 	c.UpdateConfigs()
 
@@ -94,6 +95,22 @@ func (c *Coordinator) Run(ctx context.Context) {
 			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
 		}
 	}).Start(ctx)
+
+	return nil
+}
+
+// initialize initializes the coordinator.
+func (c *Coordinator) initialize() (err error) {
+	d := c.db.Data()
+
+	if d.XraySettings.VtrPrivateKey == "" || d.XraySettings.VtrPublicKey == "" {
+		d.XraySettings.VtrPrivateKey, d.XraySettings.VtrPublicKey, err = c.xray.GenerateX25519()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	return nil
 }
 
 // UpdateConfigs updates the local and node configs.
@@ -145,7 +162,7 @@ func (c *Coordinator) pushConfigToStaleNodes() {
 // pushConfigToNode pushes the config to a single node.
 func (c *Coordinator) pushConfigToNode(n *data.Node) {
 	url := fmt.Sprintf("%s://%s:%d/xray/config", "http", n.Host, n.HttpPort)
-	proxy := c.db.Data().Settings.SingetServer
+	proxy := c.db.Data().MainSettings.SingetServer
 	nc := c.composer.NodeConfig(n, c.state.XrayUpdatedAt(), c.state.XraySharedPassword())
 
 	proxied := false
@@ -194,7 +211,7 @@ func (c *Coordinator) pushConfigToNode(n *data.Node) {
 
 // pullStatsFromNodes pulls the stats of all nodes.
 func (c *Coordinator) pullStatsFromNodes() {
-	if c.db.Data().Settings.SsRemotePort == 0 {
+	if c.db.Data().XraySettings.VtrRemotePort == 0 {
 		return
 	}
 
@@ -265,7 +282,7 @@ func (c *Coordinator) pullStatsFromNode(node *data.Node) {
 	}
 }
 
-// loadLocalStats loads the local Xray instance stats.
+// loadLocalStats loads the local XraySettings instance stats.
 func (c *Coordinator) loadLocalStats() error {
 	c.l.Info("coordinator: loading local stats...")
 
@@ -346,7 +363,7 @@ func (c *Coordinator) updateNodePullStatuses() error {
 
 // resetUsageForUsers resets the usages of all users.
 func (c *Coordinator) resetUsageForUsers() error {
-	if c.db.Data().Settings.ResetPolicy != "monthly" {
+	if c.db.Data().MainSettings.ResetPolicy != "monthly" {
 		return nil
 	}
 

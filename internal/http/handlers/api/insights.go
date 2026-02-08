@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"net/http"
@@ -8,15 +8,15 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
-func InsightsIndex(d *database.Database[data.Data]) echo.HandlerFunc {
+func InsightsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		db := d.Data()
+		d := db.Data()
 		return c.JSON(http.StatusOK, struct {
 			TotalUsers  int `json:"total_users"`
 			ActiveUsers int `json:"active_users"`
 		}{
-			TotalUsers:  len(db.Users),
-			ActiveUsers: db.CountActiveUsers(),
+			TotalUsers:  len(d.Users),
+			ActiveUsers: d.CountActiveUsers(),
 		})
 	}
 }

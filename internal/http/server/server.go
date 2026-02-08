@@ -13,10 +13,10 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-manager/internal/http/client"
 	"github.com/miladrahimi/p-manager/internal/http/handlers"
-	"github.com/miladrahimi/p-manager/internal/http/handlers/v1"
+	"github.com/miladrahimi/p-manager/internal/http/handlers/api"
 	"github.com/miladrahimi/p-node/pkg/database"
+	"github.com/miladrahimi/p-node/pkg/http/client"
 	cm "github.com/miladrahimi/p-node/pkg/http/middleware"
 	"github.com/miladrahimi/p-node/pkg/http/validator"
 	"github.com/miladrahimi/p-node/pkg/logger"
@@ -28,8 +28,8 @@ type Server struct {
 	logger      *logger.Logger
 	config      *config.Config
 	coordinator *coordinator.Coordinator
-	database    *database.Database[data.Data]
 	composer    *composer.Composer
+	db          *database.Database[data.Data]
 	hc          *client.Client
 }
 
@@ -37,9 +37,9 @@ type Server struct {
 func New(
 	config *config.Config,
 	logger *logger.Logger,
-	c *coordinator.Coordinator,
-	database *database.Database[data.Data],
-	writer *composer.Composer,
+	composer *composer.Composer,
+	coordinator *coordinator.Coordinator,
+	db *database.Database[data.Data],
 	hc *client.Client,
 ) *Server {
 	e := echo.New()
@@ -49,9 +49,9 @@ func New(
 		engine:      e,
 		logger:      logger,
 		config:      config,
-		coordinator: c,
-		database:    database,
-		composer:    writer,
+		coordinator: coordinator,
+		composer:    composer,
+		db:          db,
 		hc:          hc,
 	}
 }
@@ -64,48 +64,50 @@ func (s *Server) Run() {
 
 	// Serve static admin panel UI
 	s.engine.Static("/", "web")
+	s.engine.GET("/profile", handlers.Profile(s.db))
 
-	// Root APIs
-	s.engine.GET("/profile", handlers.Profile(s.database))
+	// APIs: Guest
+	g1 := s.engine.Group("api")
+	g1.POST("/sign-in", api.SignIn(s.db))
+	g1.GET("/profile", api.ProfileShow(s.db))
+	g1.POST("/profile/links/regenerate", api.ProfileRegenerate(s.coordinator, s.db))
 
-	// V1 APIs: Guest
-	g1 := s.engine.Group("/v1")
-	g1.POST("/sign-in", v1.SignIn(s.database))
-	g1.GET("/profile", v1.ProfileShow(s.database))
-	g1.POST("/profile/links/regenerate", v1.ProfileRegenerate(s.coordinator, s.database))
-
-	// V1 APIs: Admin
-	g2 := s.engine.Group("/v1")
+	// APIs: Admin
+	g2 := s.engine.Group("api")
 	g2.Use(cm.Authorize(func() string {
-		return s.database.Data().Settings.AdminPassword
+		return s.db.Data().MainSettings.AdminPassword
 	}))
 
-	g2.GET("/users", v1.UsersIndex(s.database))
-	g2.POST("/users", v1.UsersStore(s.coordinator, s.database))
-	g2.PATCH("/users", v1.UsersUpdatePartialBatch(s.coordinator, s.database))
-	g2.PUT("/users/:id", v1.UsersUpdate(s.coordinator, s.database))
-	g2.PATCH("/users/:id", v1.UsersUpdatePartial(s.coordinator, s.database))
-	g2.DELETE("/users/:id", v1.UsersDelete(s.coordinator, s.database))
-	g2.DELETE("/users", v1.UsersDeleteBatch(s.coordinator, s.database))
+	g2.GET("/users", api.UsersIndex(s.db))
+	g2.POST("/users", api.UsersStore(s.coordinator, s.db))
+	g2.PATCH("/users", api.UsersUpdatePartialBatch(s.coordinator, s.db))
+	g2.PUT("/users/:id", api.UsersUpdate(s.coordinator, s.db))
+	g2.PATCH("/users/:id", api.UsersUpdatePartial(s.coordinator, s.db))
+	g2.DELETE("/users/:id", api.UsersDelete(s.coordinator, s.db))
+	g2.DELETE("/users", api.UsersDeleteBatch(s.coordinator, s.db))
+	g2.POST("/users/import", api.UsersImport(s.coordinator, s.db, s.hc))
 
-	g2.GET("/nodes", v1.NodesIndex(s.database))
-	g2.POST("/nodes", v1.NodesStore(s.coordinator, s.database))
-	g2.PATCH("/nodes", v1.NodesUpdatePartialBatch(s.coordinator, s.database))
-	g2.PUT("/nodes/:id", v1.NodesUpdate(s.coordinator, s.database))
-	g2.DELETE("/nodes/:id", v1.NodesDelete(s.coordinator, s.database))
+	g2.GET("/nodes", api.NodesIndex(s.db))
+	g2.POST("/nodes", api.NodesStore(s.coordinator, s.db))
+	g2.PATCH("/nodes", api.NodesUpdatePartialBatch(s.coordinator, s.db))
+	g2.PUT("/nodes/:id", api.NodesUpdate(s.coordinator, s.db))
+	g2.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db))
 
-	g2.GET("/nodes/:id/configs", v1.NodesConfigsShow(s.coordinator, s.composer, s.database))
+	g2.GET("/nodes/:id/config", api.NodesConfigShow(s.coordinator, s.composer, s.db))
 
-	g2.GET("/stats", v1.StatsIndex(s.database))
-	g2.PATCH("/stats", v1.StatsUpdatePartial(s.database))
+	g2.GET("/stats", api.StatsIndex(s.db))
+	g2.PATCH("/stats", api.StatsUpdatePartial(s.db))
 
-	g2.GET("/information", v1.InformationIndex())
+	g2.GET("/platform", api.PlatformShow())
 
-	g2.GET("/settings", v1.SettingsShow(s.database))
-	g2.POST("/settings", v1.SettingsUpdate(s.coordinator, s.database))
-	g2.POST("/settings/xray/restart", v1.SettingsXrayRestart(s.coordinator))
+	g2.GET("/insights", api.InsightsIndex(s.db))
 
-	g2.POST("/imports", v1.ImportsStore(s.coordinator, s.database, s.hc))
+	g2.GET("/settings", api.MainSettingsShow(s.db))
+	g2.POST("/settings", api.MainSettingsUpdate(s.db))
+
+	g2.POST("/xray/restart", api.XrayRestart(s.coordinator))
+	g2.GET("/xray/settings", api.XraySettingsShow(s.db))
+	g2.POST("/xray/settings", api.XraySettingsUpdate(s.coordinator, s.db))
 
 	// Start the HTTP Server
 	go func() {

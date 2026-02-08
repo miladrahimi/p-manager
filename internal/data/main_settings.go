@@ -17,24 +17,16 @@ type Settings struct {
 func NewSettings(
 	adminPassword string,
 	host string,
-	ssReversePort int,
-	ssRelayPort int,
-	ssDirectPort int,
-	ssRemotePort int,
 	trafficRatio float64,
 	singetServer string,
 	resetPolicy string,
 ) *Settings {
 	return &Settings{
-		AdminPassword:     adminPassword,
-		Host:              host,
-		VtrDirectPort:     ssReversePort,
-		VtnVtrRelayPort:   ssRelayPort,
-		VtnVtrReversePort: ssDirectPort,
-		VtrRemotePort:     ssRemotePort,
-		TrafficRatio:      trafficRatio,
-		SingetServer:      singetServer,
-		ResetPolicy:       resetPolicy,
+		AdminPassword: adminPassword,
+		Host:          host,
+		TrafficRatio:  trafficRatio,
+		SingetServer:  singetServer,
+		ResetPolicy:   resetPolicy,
 	}
 }
 
@@ -43,10 +35,6 @@ func DefaultSettings() *Settings {
 	return NewSettings(
 		defaultAdminPassword,
 		defaultHost,
-		0,
-		0,
-		0,
-		0,
 		defaultTrafficRatio,
 		"",
 		"",

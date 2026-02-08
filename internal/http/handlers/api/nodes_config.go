@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"net/http"
@@ -13,17 +13,21 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
-func NodesConfigsShow(cdr *coordinator.Coordinator, writer *composer.Composer, d *database.Database[data.Data]) echo.HandlerFunc {
+func NodesConfigShow(
+	cdr *coordinator.Coordinator,
+	composer *composer.Composer,
+	db *database.Database[data.Data],
+) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		nodeId := c.Param("id")
 		var node *data.Node
-		for _, n := range d.Data().Nodes {
+		for _, n := range db.Data().Nodes {
 			if strconv.Itoa(n.Id) == nodeId {
 				node = n
 				node.PulledAt = time.Now().UnixMilli()
 				node.PullStatus = data.NodeStatusAvailable
 
-				if err := d.Save(); err != nil {
+				if err := db.Save(); err != nil {
 					return errors.WithStack(err)
 				}
 			}
@@ -32,8 +36,8 @@ func NodesConfigsShow(cdr *coordinator.Coordinator, writer *composer.Composer, d
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		configs := writer.NodeConfig(node, cdr.State().XrayUpdatedAt(), cdr.State().XraySharedPassword())
+		nc := composer.NodeConfig(node, cdr.State().XrayUpdatedAt(), cdr.State().XraySharedPassword())
 
-		return c.JSON(http.StatusOK, configs)
+		return c.JSON(http.StatusOK, nc)
 	}
 }

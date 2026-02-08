@@ -34,14 +34,13 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - Database is simple file-backed JSON store
 - Database driver is `pkg/database`
 - Database schema is defined in `internal/data/data.go`
-- Database directory path is defined in `internal/config/config.go` as `DatabaseDirectory`
-- Database file path is `$DatabaseDirectory/data.json`
-- Database backup path is `$DatabaseDirectory/backup-%weekday-%hour.json`
+- Database file path is `storage/database/data.json` (`DatabaseFilePath` in `internal/config/config.go`)
+- Database backup path is `storage/database/backup-%s.json` (`DatabaseBackupPath` in `internal/config/config.go`)
 
 ## HTTP APIs
-- All handlers are located in `internal/http/handlers`
+- All handlers are located in `internal/http/handlers/api`
 - Requests and responses are in JSON format
-- Authentication is token-based, token is stored in database (`http_token` in `internal/data/settings.go`)
+- Authentication is token-based, token is stored in database (`admin_password` in `internal/data/main_settings.go`)
 - Header `Authorization: Bearer <token>` is checked for authenticated routes
 
 ## Major Dependencies
@@ -53,10 +52,12 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - `go.uber.org/zap`: Logging
 
 ## Key Behavior Notes / Gotchas
-- Admin panel username is `admin` and password is defined in `internal/data/settings.go` as `AdminPassword`
-- Default admin password is `password` and could be changed after first login.
-- `make update` is destructive (`git reset --hard` + `git clean -fd`).
-- It uses some packages from P-Node repository defined in dependencies.
+- Admin panel username is `admin` and password is defined in `internal/data/main_settings.go` as `AdminPassword`
+- Default admin password is `password` and could be changed after first login
+- `make update` is destructive (`git reset --hard` + `git clean -fd`)
+- It uses some packages from P-Node repository ("github.com/miladrahimi/p-node")
+- On local environment P-Node could be replaced by `../p-node` in `go.mod` to use local version of P-Node
+- Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` is `clientID`, etc.)
 
 ## Xray
 Xray is a proxy platform which can be used to run proxy servers with different protocols like Shadowsocks, VMess, VLess,

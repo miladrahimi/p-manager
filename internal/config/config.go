@@ -13,15 +13,11 @@ import (
 
 const AppName = "P-Manager"
 const AppVersion = "v26.2.8"
-const CoreVersion = "xray v26.1.23"
-
-const ShadowsocksMethod = "chacha20-ietf-poly1305"
-const Shadowsocks2022Method = "2022-blake3-aes-128-gcm"
+const CoreVersion = "Xray v26.1.23"
 
 const MaxUsersCount = 1024
 
-const DatabaseFilePath = "storage/database/data.json"
-const DatabaseBackupPath = "storage/database/backup-%s.json"
+const DatabaseDirectory = "storage/database"
 
 const XrayConfigPath = "storage/app/xray.json"
 

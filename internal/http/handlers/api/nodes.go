@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"fmt"
@@ -33,12 +33,12 @@ type NodesUpdatePartialRequest struct {
 	Usage *float64 `json:"usage"`
 }
 
-func NodesIndex(d *database.Database[data.Data]) echo.HandlerFunc {
+func NodesIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		token := d.Data().Settings.AdminPassword
+		token := db.Data().MainSettings.AdminPassword
 
-		var response = make([]NodeResponse, 0, len(d.Data().Nodes))
-		for _, node := range d.Data().Nodes {
+		var response = make([]NodeResponse, 0, len(db.Data().Nodes))
+		for _, node := range db.Data().Nodes {
 			cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%d\" TOKEN=\"%s\"", node.Id, token)
 			response = append(response, NodeResponse{
 				Node:        *node,
@@ -50,7 +50,7 @@ func NodesIndex(d *database.Database[data.Data]) echo.HandlerFunc {
 	}
 }
 
-func NodesStore(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesStoreRequest
 		if err := c.Bind(&r); err != nil {
@@ -64,25 +64,25 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database[data.
 			})
 		}
 
-		if len(d.Data().Nodes) > 5 {
+		if len(db.Data().Nodes) > 5 {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": fmt.Sprintf("Cannot add more nodes!"),
 			})
 		}
 
 		var node *data.Node
-		for _, n := range d.Data().Nodes {
+		for _, n := range db.Data().Nodes {
 			if n.Host == r.Host && n.HttpPort == r.HttpPort {
 				node = n
 				node.HttpToken = r.HttpToken
 			}
 		}
 		if node == nil {
-			node = data.NewNode(d.Data().GenerateNodeId(), r.Host, r.HttpToken, r.HttpPort)
-			d.Data().Nodes = append(d.Data().Nodes, node)
+			node = data.NewNode(db.Data().GenerateNodeId(), r.Host, r.HttpToken, r.HttpPort)
+			db.Data().Nodes = append(db.Data().Nodes, node)
 		}
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -92,7 +92,7 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database[data.
 	}
 }
 
-func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesUpdateRequest
 		if err := c.Bind(&r); err != nil {
@@ -107,7 +107,7 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database[data
 		}
 
 		var node *data.Node
-		for _, n := range d.Data().Nodes {
+		for _, n := range db.Data().Nodes {
 			if strconv.Itoa(n.Id) == c.Param("id") {
 				node = n
 			}
@@ -120,7 +120,7 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database[data
 		node.HttpToken = r.HttpToken
 		node.HttpPort = r.HttpPort
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -131,7 +131,7 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database[data
 	}
 }
 
-func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request NodesUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -145,14 +145,14 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 			})
 		}
 
-		for _, node := range d.Data().Nodes {
+		for _, node := range db.Data().Nodes {
 			if request.Usage != nil {
 				node.Usage = *request.Usage
 				node.UsageBytes = util.GB2Bytes(*request.Usage)
 			}
 		}
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -162,12 +162,12 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 	}
 }
 
-func NodesDelete(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func NodesDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		for i, s := range d.Data().Nodes {
+		for i, s := range db.Data().Nodes {
 			if strconv.Itoa(s.Id) == c.Param("id") {
-				d.Data().Nodes = append(d.Data().Nodes[:i], d.Data().Nodes[i+1:]...)
-				if err := d.Save(); err != nil {
+				db.Data().Nodes = append(db.Data().Nodes[:i], db.Data().Nodes[i+1:]...)
+				if err := db.Save(); err != nil {
 					return errors.WithStack(err)
 				}
 				go coordinator.UpdateConfigs()

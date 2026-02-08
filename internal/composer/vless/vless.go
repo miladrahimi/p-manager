@@ -1,48 +1,88 @@
-package composer
+package vless
 
-import xraycomponent "github.com/miladrahimi/p-node/pkg/xray/config/component"
-
-const (
-	vlessRealityFlow     = "xtls-rprx-vision"
-	vlessRealityNetwork  = "tcp"
-	vlessRealitySecurity = "reality"
+import (
+	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
 
-// NewVlessRealityVisionInbound builds a VLESS+Reality inbound with vision flow.
-func NewVlessRealityVisionInbound(
-	port int,
-	clientID string,
-	dest string,
-	serverNames []string,
-	privateKey string,
-	shortIDs []string,
-) *xraycomponent.Inbound {
-	return &xraycomponent.Inbound{
+const (
+	Protocol                = "vless"
+	FlowVision              = "xtls-rprx-vision"
+	NetworkTcp              = "tcp"
+	SecurityReality         = "reality"
+	ServerNameStackOverflow = "stackoverflow.com"
+	DestStackOverflow       = "stackoverflow.com:443"
+	EncryptionNone          = "EncryptionNone"
+	EncryptionEmpty         = ""
+)
+
+// MakeUser makes a VLESS user.
+func MakeUser(id, flow, encryption string) *component.VlessUser {
+	return &component.VlessUser{
+		Id:         id,
+		Flow:       flow,
+		Encryption: encryption,
+	}
+}
+
+// MakeVtrInbound makes a VLESS/TCP/Reality inbound.
+func MakeVtrInbound(tag string, port int, privateKey string, clients []*component.VlessUser) *component.Inbound {
+	return &component.Inbound{
+		Tag:      tag,
 		Port:     port,
-		Protocol: "vless",
-		Settings: &xraycomponent.InboundSettings{
-			Clients: []*xraycomponent.VlessUser{
+		Protocol: Protocol,
+		Settings: &component.InboundSettings{
+			Clients:    clients,
+			Decryption: EncryptionNone,
+		},
+		StreamSettings: &component.StreamSettings{
+			Network:  NetworkTcp,
+			Security: SecurityReality,
+			RealitySettings: &component.RealitySettings{
+				Dest:        DestStackOverflow,
+				PrivateKey:  privateKey,
+				ServerNames: []string{ServerNameStackOverflow},
+				ShortIds:    []string{""},
+			},
+		},
+		Sniffing: &component.Sniffing{
+			Enabled:      true,
+			RouteOnly:    true,
+			DestOverride: []string{"http", "tls", "quic"},
+		},
+	}
+}
+
+// MakeVtrOutbound makes a VLESS/TCP/Reality outbound.
+func MakeVtrOutbound(
+	tag string,
+	address string,
+	port int,
+	id string,
+	publicKey string,
+) *component.Outbound {
+	user := MakeUser(id, FlowVision, EncryptionNone)
+
+	return &component.Outbound{
+		Tag:      tag,
+		Protocol: Protocol,
+		Settings: &component.OutboundSettings{
+			Vnext: []*component.VlessOutboundServer{
 				{
-					Id:   clientID,
-					Flow: vlessRealityFlow,
+					Address: address,
+					Port:    port,
+					Users:   []*component.VlessUser{user},
 				},
 			},
-			Decryption: "none",
 		},
-		StreamSettings: &xraycomponent.StreamSettings{
-			Network:  vlessRealityNetwork,
-			Security: vlessRealitySecurity,
-			RealitySettings: &xraycomponent.RealitySettings{
-				Dest:        dest,
-				ServerNames: serverNames,
-				PrivateKey:  privateKey,
-				ShortIds:    shortIDs,
+		StreamSettings: &component.StreamSettings{
+			Network:  NetworkTcp,
+			Security: SecurityReality,
+			RealitySettings: &component.RealitySettings{
+				Fingerprint: "chrome",
+				ServerName:  ServerNameStackOverflow,
+				PublicKey:   publicKey,
+				ShortId:     "",
 			},
-		},
-		Sniffing: &xraycomponent.Sniffing{
-			Enabled:      true,
-			DestOverride: []string{"http", "tls", "quic"},
-			RouteOnly:    true,
 		},
 	}
 }

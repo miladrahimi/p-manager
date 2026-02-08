@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"net/http"
@@ -9,15 +9,17 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
+const sleepAfterSignInRequest = 3 * time.Second
+
 type SignInRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-func SignIn(d *database.Database[data.Data]) echo.HandlerFunc {
+func SignIn(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer func() {
-			time.Sleep(time.Second * time.Duration(2))
+			time.Sleep(sleepAfterSignInRequest)
 		}()
 
 		var r SignInRequest
@@ -27,9 +29,9 @@ func SignIn(d *database.Database[data.Data]) echo.HandlerFunc {
 			})
 		}
 
-		if r.Username == "admin" && r.Password == d.Data().Settings.AdminPassword {
+		if r.Username == "admin" && r.Password == db.Data().MainSettings.AdminPassword {
 			return c.JSON(http.StatusOK, map[string]string{
-				"token": d.Data().Settings.AdminPassword,
+				"token": db.Data().MainSettings.AdminPassword,
 			})
 		}
 

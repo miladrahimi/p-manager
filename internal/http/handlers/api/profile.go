@@ -1,8 +1,6 @@
-package v1
+package api
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
 
 	"github.com/cockroachdb/errors"
@@ -20,11 +18,11 @@ type ProfileResponse struct {
 	SsRemote  string    `json:"ss_remote"`
 }
 
-func ProfileShow(d *database.Database[data.Data]) echo.HandlerFunc {
+func ProfileShow(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var user *data.User
-		for _, u := range d.Data().Users {
-			if u.Uuid == c.QueryParam("u") {
+		for _, u := range db.Data().Users {
+			if u.VlessId == c.QueryParam("u") {
 				user = u
 			}
 		}
@@ -35,37 +33,18 @@ func ProfileShow(d *database.Database[data.Data]) echo.HandlerFunc {
 		}
 
 		r := ProfileResponse{User: *user}
-		r.User.Usage = r.User.Usage * d.Data().Settings.TrafficRatio
-		r.User.Quota = r.User.Quota * d.Data().Settings.TrafficRatio
-
-		s := d.Data().Settings
-		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
-
-		if s.VtrDirectPort > 0 {
-			r.SsReverse = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtrDirectPort, "reverse")
-		}
-
-		if s.VtnVtrRelayPort > 0 {
-			r.SsRelay = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtnVtrRelayPort, "relay")
-		}
-
-		if s.VtnVtrReversePort > 0 {
-			r.SsDirect = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtnVtrReversePort, "direct")
-		}
-
-		if s.VtrRemotePort > 0 {
-			r.SsRemote = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtrRemotePort, "remote")
-		}
+		r.User.Usage = r.User.Usage * db.Data().MainSettings.TrafficRatio
+		r.User.Quota = r.User.Quota * db.Data().MainSettings.TrafficRatio
 
 		return c.JSON(http.StatusOK, r)
 	}
 }
 
-func ProfileRegenerate(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func ProfileRegenerate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var user *data.User
-		for _, u := range d.Data().Users {
-			if u.Uuid == c.QueryParam("u") {
+		for _, u := range db.Data().Users {
+			if u.VlessId == c.QueryParam("u") {
 				user = u
 			}
 		}
@@ -75,9 +54,7 @@ func ProfileRegenerate(coordinator *coordinator.Coordinator, d *database.Databas
 			})
 		}
 
-		user.ShadowsocksPassword = d.Data().GenerateUserPassword()
-
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 

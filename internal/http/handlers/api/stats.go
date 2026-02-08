@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"fmt"
@@ -24,23 +24,19 @@ type StatsResponse struct {
 	ActiveUsers       int     `json:"active_users"`
 }
 
-func makeStatsResponse(d *database.Database[data.Data]) *StatsResponse {
-	db := d.Data()
-	return &StatsResponse{
-		TotalUsageResetAt: db.Stats.TotalUsageResetAt,
-		TotalUsage:        db.Stats.TotalUsage,
-		TotalUsers:        len(db.Users),
-		ActiveUsers:       db.CountActiveUsers(),
-	}
-}
-
-func StatsIndex(d *database.Database[data.Data]) echo.HandlerFunc {
+func StatsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, makeStatsResponse(d))
+		d := db.Data()
+		return c.JSON(http.StatusOK, &StatsResponse{
+			TotalUsageResetAt: d.Stats.TotalUsageResetAt,
+			TotalUsage:        d.Stats.TotalUsage,
+			TotalUsers:        len(d.Users),
+			ActiveUsers:       d.CountActiveUsers(),
+		})
 	}
 }
 
-func StatsUpdatePartial(d *database.Database[data.Data]) echo.HandlerFunc {
+func StatsUpdatePartial(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request StatsUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -54,17 +50,23 @@ func StatsUpdatePartial(d *database.Database[data.Data]) echo.HandlerFunc {
 			})
 		}
 
+		d := db.Data()
+
 		if request.TotalUsage != nil {
-			db := d.Data()
-			db.Stats.TotalUsage = *request.TotalUsage
-			db.Stats.TotalUsageBytes = util.GB2Bytes(*request.TotalUsage)
-			db.Stats.TotalUsageResetAt = time.Now().UnixMilli()
+			d.Stats.TotalUsage = *request.TotalUsage
+			d.Stats.TotalUsageBytes = util.GB2Bytes(*request.TotalUsage)
+			d.Stats.TotalUsageResetAt = time.Now().UnixMilli()
 		}
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
-		return c.JSON(http.StatusOK, makeStatsResponse(d))
+		return c.JSON(http.StatusOK, &StatsResponse{
+			TotalUsageResetAt: d.Stats.TotalUsageResetAt,
+			TotalUsage:        d.Stats.TotalUsage,
+			TotalUsers:        len(d.Users),
+			ActiveUsers:       d.CountActiveUsers(),
+		})
 	}
 }

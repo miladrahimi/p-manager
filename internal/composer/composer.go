@@ -2,172 +2,102 @@ package composer
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/miladrahimi/p-manager/internal/composer/vless"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-manager/internal/http/client"
 	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/database"
+	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/xray"
 	xrayConfig "github.com/miladrahimi/p-node/pkg/xray/config"
-	xrayComponent "github.com/miladrahimi/p-node/pkg/xray/config/component"
-	xrayProtocol "github.com/miladrahimi/p-node/pkg/xray/config/protocol"
+	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
 
 // Composer composes the xray config.
 type Composer struct {
-	c        *config.Config
-	hc       *client.Client
-	database *database.Database[data.Data]
-	xray     *xray.Xray
+	config *config.Config
+	hc     *client.Client
+	db     *database.Database[data.Data]
+	xray   *xray.Xray
 }
 
 // New creates a new composer.
 func New(config *config.Config, database *database.Database[data.Data], xray *xray.Xray) *Composer {
-	return &Composer{c: config, database: database, xray: xray}
+	return &Composer{config: config, db: database, xray: xray}
 }
 
 // LocalConfig composes the local xray config.
 func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 	clients := w.clients()
+	d := w.db.Data()
 
 	apiPort, err := util.FreePort()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	xc := xrayConfig.New(w.c.Xray.LogLevel)
+	xc := xrayConfig.New(w.config.Xray.LogLevel)
 
 	xc.FindInbound("api").Port = apiPort
 
-	var key string
 	if len(clients) > 0 {
-		if w.database.Data().Settings.SsRelayPort > 0 {
-			if key, err = util.Key32(); err != nil {
-				return nil, err
-			}
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
+		if d.XraySettings.Vt2VtrPort > 0 {
+			xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
 				"relay",
-				key,
-				config.ShadowsocksMethod,
-				"tcp,udp",
-				w.database.Data().Settings.SsRelayPort,
+				d.XraySettings.Vt2VtrPort,
+				d.XraySettings.VtrPrivateKey,
 				clients,
 			))
 		}
-		if w.database.Data().Settings.SsReversePort > 0 {
-			if key, err = util.Key32(); err != nil {
-				return nil, err
-			}
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				"reverse",
-				key,
-				config.ShadowsocksMethod,
-				"tcp,udp",
-				w.database.Data().Settings.SsReversePort,
-				clients,
-			))
-		}
-		if w.database.Data().Settings.SsDirectPort > 0 {
-			if key, err = util.Key32(); err != nil {
-				return nil, err
-			}
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
+
+		if d.XraySettings.VtrDirectPort > 0 {
+			xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
 				"direct",
-				key,
-				config.ShadowsocksMethod,
-				"tcp,udp",
-				w.database.Data().Settings.SsDirectPort,
+				d.XraySettings.VtrDirectPort,
+				d.XraySettings.VtrPrivateKey,
 				clients,
 			))
 		}
 	}
 
 	if len(clients) > 0 {
-		if w.database.Data().Settings.SsDirectPort > 0 {
-			xc.Routing.Rules = append(xc.Routing.Rules, &xrayComponent.Rule{
-				InboundTag:  []string{"direct"},
-				OutboundTag: "out",
-			})
-		}
-		if len(w.database.Data().Nodes) > 0 {
-			if w.database.Data().Settings.SsRelayPort > 0 {
-				xc.Routing.Rules = append(xc.Routing.Rules, &xrayComponent.Rule{
+		if len(d.Nodes) > 0 {
+			if d.XraySettings.Vt2VtrPort > 0 {
+				xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
 					InboundTag:  []string{"relay"},
 					BalancerTag: "relay",
 				})
 			}
-			if w.database.Data().Settings.SsReversePort > 0 {
-				xc.Routing.Rules = append(xc.Routing.Rules, &xrayComponent.Rule{
-					InboundTag:  []string{"reverse"},
-					BalancerTag: "portal",
-				})
-			}
 		}
 	}
 
-	if len(w.database.Data().Nodes) > 0 {
-		if w.database.Data().Settings.SsRelayPort > 0 {
-			xc.Routing.Balancers = append(xc.Routing.Balancers, &xrayComponent.Balancer{Tag: "relay", Selector: []string{}})
-		}
-		if w.database.Data().Settings.SsReversePort > 0 {
-			xc.Routing.Balancers = append(xc.Routing.Balancers, &xrayComponent.Balancer{Tag: "portal", Selector: []string{}})
+	if len(d.Nodes) > 0 {
+		if d.XraySettings.Vt2VtrPort > 0 {
+			xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
+				Tag: "relay", Selector: []string{},
+			})
 		}
 	}
 
-	for _, s := range w.database.Data().Nodes {
-		inboundPort, err := util.FreePort()
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		if w.database.Data().Settings.SsReversePort > 0 {
-			if key, err = util.Key32(); err != nil {
-				return nil, err
-			}
-			xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
-				fmt.Sprintf("internal-%d", s.Id),
-				key,
-				config.Shadowsocks2022Method,
-				"tcp",
-				inboundPort,
-				nil,
-			))
-			xc.Reverse.Portals = append(xc.Reverse.Portals, &xrayComponent.ReverseItem{
-				Tag:    fmt.Sprintf("portal-%d", s.Id),
-				Domain: fmt.Sprintf("s%d.reverse.proxy", s.Id),
-			})
-			xc.Routing.Rules = append(xc.Routing.Rules, &xrayComponent.Rule{
-				InboundTag:  []string{fmt.Sprintf("internal-%d", s.Id)},
-				OutboundTag: fmt.Sprintf("portal-%d", s.Id),
-			})
-			xc.FindBalancer("portal").Selector = append(
-				xc.FindBalancer("portal").Selector,
-				fmt.Sprintf("portal-%d", s.Id),
-			)
-		}
-
-		if w.database.Data().Settings.SsRelayPort > 0 {
+	for _, n := range d.Nodes {
+		if d.XraySettings.Vt2VtrPort > 0 {
 			outboundRelayPort, err := util.FreePort()
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
-			if key, err = util.Key32(); err != nil {
-				return nil, err
-			}
-			xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
-				fmt.Sprintf("relay-%d", s.Id),
-				s.Host,
-				key,
-				config.Shadowsocks2022Method,
+			xc.Outbounds = append(xc.Outbounds, vless.MakeVtrOutbound(
+				fmt.Sprintf("relay-%d", n.Id),
+				n.Host,
 				outboundRelayPort,
+				util.Uuid(),
+				d.XraySettings.VtrPublicKey,
 			))
 			xc.FindBalancer("relay").Selector = append(
 				xc.FindBalancer("relay").Selector,
-				fmt.Sprintf("relay-%d", s.Id),
+				fmt.Sprintf("relay-%d", n.Id),
 			)
 		}
 	}
@@ -177,30 +107,28 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 
 // NodeConfig composes the (remote) node xray config.
 func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password string) *xrayConfig.Config {
-	xc := xrayConfig.New(w.c.Xray.LogLevel)
+	d := w.db.Data()
+	xc := xrayConfig.New(w.config.Xray.LogLevel)
 
-	xc.Metadata = &xrayComponent.Metadata{
+	xc.Metadata = &component.Metadata{
 		UpdatedAt: lastUpdate.Format(time.RFC3339),
-		UpdatedBy: w.database.Data().Settings.Host,
+		UpdatedBy: d.MainSettings.Host,
 	}
 
-	if w.database.Data().Settings.SsRelayPort > 0 {
+	if d.XraySettings.Vt2VtrPort > 0 {
 		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", node.Id))
-		if relayOutbound != nil {
-			settings, ok := relayOutbound.Settings.(*xrayProtocol.SsOutboundSettings)
-			if ok && len(settings.Servers) > 0 {
-				server := settings.Servers[0]
-				xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
+		if relayOutbound != nil && relayOutbound.Settings != nil {
+			if len(relayOutbound.Settings.Vnext) > 0 {
+				server := relayOutbound.Settings.Vnext[0]
+				xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
 					"direct",
-					server.Password,
-					server.Method,
-					"tcp",
 					server.Port,
-					nil,
+					d.XraySettings.VtrPrivateKey,
+					server.Users,
 				))
 				xc.Routing.Rules = append(
 					xc.Routing.Rules,
-					&xrayComponent.Rule{
+					&component.Rule{
 						InboundTag:  []string{"direct"},
 						OutboundTag: "out",
 					},
@@ -209,50 +137,16 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 		}
 	}
 
-	if w.database.Data().Settings.SsReversePort > 0 {
-		internalOutbound := w.xray.Config().FindInbound(fmt.Sprintf("internal-%d", node.Id))
-		if internalOutbound != nil {
-			settings, ok := internalOutbound.Settings.(*xrayComponent.InboundSettings)
-			if ok {
-				xc.Outbounds = append(xc.Outbounds, xc.MakeShadowsocksOutbound(
-					"internal",
-					w.database.Data().Settings.Host,
-					settings.Password,
-					settings.Method,
-					internalOutbound.Port,
-				))
-				xc.Reverse.Bridges = append(xc.Reverse.Bridges, &xrayComponent.ReverseItem{
-					Tag:    "bridge",
-					Domain: fmt.Sprintf("s%d.reverse.proxy", node.Id),
-				})
-				xc.Routing.Rules = append(
-					xc.Routing.Rules,
-					&xrayComponent.Rule{
-						InboundTag:  []string{"bridge"},
-						Domain:      []string{fmt.Sprintf("full:s%d.reverse.proxy", node.Id)},
-						OutboundTag: "internal",
-					},
-					&xrayComponent.Rule{
-						InboundTag:  []string{"bridge"},
-						OutboundTag: "out",
-					},
-				)
-			}
-		}
-	}
-
-	if w.database.Data().Settings.SsRemotePort > 0 {
-		xc.Inbounds = append(xc.Inbounds, xc.MakeShadowsocksInbound(
+	if w.db.Data().XraySettings.VtrRemotePort > 0 {
+		xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
 			"remote",
-			password,
-			config.ShadowsocksMethod,
-			"tcp",
-			w.database.Data().Settings.SsRemotePort,
+			d.XraySettings.VtrRemotePort,
+			d.XraySettings.VtrPrivateKey,
 			w.clients(),
 		))
 		xc.Routing.Rules = append(
 			xc.Routing.Rules,
-			&xrayComponent.Rule{
+			&component.Rule{
 				InboundTag:  []string{"remote"},
 				OutboundTag: "out",
 			},
@@ -262,18 +156,14 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 	return xc
 }
 
-// clients returns the list of clients from the database.
-func (w *Composer) clients() []*xrayProtocol.SsClient {
-	var clients []*xrayProtocol.SsClient
-	for _, u := range w.database.Data().Users {
+// clients returns the list of clients from the database users.
+func (w *Composer) clients() []*component.VlessUser {
+	var clients []*component.VlessUser
+	for _, u := range w.db.Data().Users {
 		if !u.Enabled {
 			continue
 		}
-		clients = append(clients, &xrayProtocol.SsClient{
-			Email:    strconv.Itoa(u.Id),
-			Password: u.ShadowsocksPassword,
-			Method:   u.ShadowsocksMethod,
-		})
+		clients = append(clients, vless.MakeUser(u.VlessId, vless.FlowVision, vless.EncryptionEmpty))
 	}
 	return clients
 }

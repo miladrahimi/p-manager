@@ -1,10 +1,12 @@
-package v1
+package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -15,6 +17,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/database"
+	"github.com/miladrahimi/p-node/pkg/http/client"
 )
 
 type UsersStoreRequest struct {
@@ -33,13 +36,18 @@ type UsersUpdatePartialRequest struct {
 	Enabled *bool    `json:"enabled"`
 }
 
-func UsersIndex(d *database.Database[data.Data]) echo.HandlerFunc {
+type UsersImportRequest struct {
+	Url      string `json:"url" validate:"required,url"`
+	Password string `json:"password" validate:"required"`
+}
+
+func UsersIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, d.Data().Users)
+		return c.JSON(http.StatusOK, db.Data().Users)
 	}
 }
 
-func UsersStore(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func UsersStore(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersStoreRequest
 		if err := c.Bind(&request); err != nil {
@@ -53,13 +61,13 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database[data.
 			})
 		}
 
-		if len(d.Data().Users) >= config.MaxUsersCount {
+		if len(db.Data().Users) >= config.MaxUsersCount {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": "You have already reached the maximum number of users.",
 			})
 		}
 
-		for _, u := range d.Data().Users {
+		for _, u := range db.Data().Users {
 			if u.Name == request.Name {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"message": "The name is already taken.",
@@ -68,22 +76,20 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database[data.
 		}
 
 		user := data.NewUser(
-			d.Data().GenerateUserId(),
-			d.Data().GenerateUserUuid(),
+			db.Data().GenerateUserId(),
+			util.Uuid(),
 			request.Name,
 			request.Quota,
 			request.Usage,
 			util.GB2Bytes(request.Usage),
 			time.Now().Unix(),
 			request.Enabled,
-			d.Data().GenerateUserPassword(),
-			config.ShadowsocksMethod,
 			time.Now().UnixMilli(),
 		)
 
-		d.Data().Users = append(d.Data().Users, user)
+		db.Data().Users = append(db.Data().Users, user)
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -93,7 +99,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database[data.
 	}
 }
 
-func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func UsersUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersUpdateRequest
 		if err := c.Bind(&request); err != nil {
@@ -108,16 +114,16 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database[data
 		}
 
 		var user *data.User
-		for i, u := range d.Data().Users {
+		for i, u := range db.Data().Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
-				user = d.Data().Users[i]
+				user = db.Data().Users[i]
 			}
 		}
 		if user == nil {
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		for _, u := range d.Data().Users {
+		for _, u := range db.Data().Users {
 			if u.Id != user.Id && u.Name == request.Name {
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"message": "The name is already taken.",
@@ -131,7 +137,7 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database[data
 		user.Usage = request.Usage
 		user.UsageBytes = util.GB2Bytes(request.Usage)
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -141,7 +147,7 @@ func UsersUpdate(coordinator *coordinator.Coordinator, d *database.Database[data
 	}
 }
 
-func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func UsersUpdatePartial(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -156,9 +162,9 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Databa
 		}
 
 		var user *data.User
-		for i, u := range d.Data().Users {
+		for i, u := range db.Data().Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
-				user = d.Data().Users[i]
+				user = db.Data().Users[i]
 			}
 		}
 		if user == nil {
@@ -173,7 +179,7 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Databa
 			user.Enabled = *request.Enabled
 		}
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -183,7 +189,7 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, d *database.Databa
 	}
 }
 
-func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -197,7 +203,7 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 			})
 		}
 
-		for _, user := range d.Data().Users {
+		for _, user := range db.Data().Users {
 			if request.Usage != nil {
 				user.Usage = *request.Usage
 				user.UsageBytes = util.GB2Bytes(*request.Usage)
@@ -207,7 +213,7 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 			}
 		}
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -217,12 +223,12 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 	}
 }
 
-func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func UsersDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		for i, u := range d.Data().Users {
+		for i, u := range db.Data().Users {
 			if strconv.Itoa(u.Id) == c.Param("id") {
-				d.Data().Users = slices.Delete(d.Data().Users, i, i+1)
-				if err := d.Save(); err != nil {
+				db.Data().Users = slices.Delete(db.Data().Users, i, i+1)
+				if err := db.Save(); err != nil {
 					return errors.WithStack(err)
 				}
 				go coordinator.UpdateConfigs()
@@ -234,7 +240,7 @@ func UsersDelete(coordinator *coordinator.Coordinator, d *database.Database[data
 	}
 }
 
-func UsersDeleteBatch(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func UsersDeleteBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		enabledParam := c.QueryParam("enabled")
 		if enabledParam != "" && enabledParam != "true" && enabledParam != "false" {
@@ -252,26 +258,87 @@ func UsersDeleteBatch(coordinator *coordinator.Coordinator, d *database.Database
 		var newUsers []*data.User
 
 		if enabled != nil {
-			for _, u := range d.Data().Users {
-				if u.Enabled != *enabled {
-					newUsers = append(newUsers, u)
-				}
+		for _, u := range db.Data().Users {
+			if u.Enabled != *enabled {
+				newUsers = append(newUsers, u)
 			}
-			d.Data().Users = newUsers
+		}
+		db.Data().Users = newUsers
 		}
 
 		if newUsers == nil {
 			newUsers = []*data.User{}
 		}
 
-		d.Data().Users = newUsers
+		db.Data().Users = newUsers
 
-		if err := d.Save(); err != nil {
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
 		go coordinator.UpdateConfigs()
 
 		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+func UsersImport(
+	coordinator *coordinator.Coordinator,
+	db *database.Database[data.Data],
+	hc *client.Client,
+) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var r UsersImportRequest
+		if err := c.Bind(&r); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Cannot parse the request body.",
+			})
+		}
+		if err := validator.New().Struct(r); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Validation error: %v", err.Error()),
+			})
+		}
+
+		baseURL := strings.TrimRight(r.Url, "/")
+		url := fmt.Sprintf("%s/api/users", baseURL)
+		response, err := hc.Do("GET", url, r.Password, nil)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Request failed, err: %v", err.Error()),
+			})
+		}
+
+		var users []data.User
+		if err = json.Unmarshal(response, &users); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message":  fmt.Sprintf("Invalid Response, err: %v", err.Error()),
+				"response": string(response),
+			})
+		}
+
+		var names []string
+		for _, u := range db.Data().Users {
+			names = append(names, u.Name)
+		}
+
+		var results []string
+		for i, u := range users {
+			if slices.Index(names, u.Name) != -1 {
+				results = append(results, fmt.Sprintf("Ignored #%d: DuplicateName=%s", u.Id, u.Name))
+				continue
+			}
+			u.Id = db.Data().GenerateUserId()
+			db.Data().Users = append(db.Data().Users, &u)
+			results = append(results, fmt.Sprintf("Imported #%d: ID=%d Name=%s", users[i].Id, u.Id, u.Name))
+		}
+
+		if err = db.Save(); err != nil {
+			return errors.WithStack(err)
+		}
+
+		go coordinator.UpdateConfigs()
+
+		return c.JSON(http.StatusOK, results)
 	}
 }

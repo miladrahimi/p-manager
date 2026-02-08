@@ -11,9 +11,9 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-manager/internal/http/client"
 	"github.com/miladrahimi/p-manager/internal/http/server"
 	"github.com/miladrahimi/p-node/pkg/database"
+	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"github.com/miladrahimi/p-node/pkg/xray"
 	"go.uber.org/zap"
@@ -52,13 +52,13 @@ func New() (a *App, err error) {
 	c := a.config
 
 	a.httpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
-	if a.database, err = database.New(config.DatabaseFilePath, data.Default()); err != nil {
+	if a.database, err = database.New(config.DatabaseDirectory, data.Default()); err != nil {
 		return a, errors.WithStack(err)
 	}
 	a.xray = xray.New(a.context, a.logger, c.Xray.LogLevel, config.XrayConfigPath, config.XrayBinaryPath())
 	a.composer = composer.New(a.config, a.database, a.xray)
-	a.coordinator = coordinator.New(c, a.httpClient, a.logger, a.database, a.xray, a.composer, config.DatabaseBackupPath)
-	a.httpServer = server.New(c, a.logger, a.coordinator, a.database, a.composer, a.httpClient)
+	a.coordinator = coordinator.New(c, a.httpClient, a.logger, a.database, a.xray, a.composer)
+	a.httpServer = server.New(c, a.logger, a.composer, a.coordinator, a.database, a.httpClient)
 
 	a.logger.Info("app: constructed successfully")
 
@@ -73,7 +73,10 @@ func (a *App) Start() error {
 		return errors.WithStack(err)
 	}
 
-	a.coordinator.Run(a.context)
+	if err := a.coordinator.Run(a.context); err != nil {
+		return errors.WithStack(err)
+	}
+
 	a.httpServer.Run()
 
 	a.logger.Info("app: initialized successfully")

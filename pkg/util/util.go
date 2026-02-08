@@ -7,9 +7,8 @@ import (
 	"math"
 	"net"
 	"os"
-	"strings"
 
-	"github.com/google/uuid"
+	"github.com/xtls/xray-core/common/uuid"
 )
 
 // FileExist checks if the given file path exists or not.
@@ -34,9 +33,10 @@ func Key32() (string, error) {
 	return base64.StdEncoding.EncodeToString(key), nil
 }
 
-// UUID generates UUID without the '-' character.
-func UUID() string {
-	return strings.ReplaceAll(uuid.New().String(), "-", "")
+// Uuid generates Uuid using XraySettings.
+func Uuid() string {
+	u := uuid.New()
+	return u.String()
 }
 
 // RoundFloat rounds float numbers to the given precision.

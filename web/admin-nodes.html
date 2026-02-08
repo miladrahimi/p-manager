@@ -91,7 +91,7 @@
 
         $.ajax({
             type: "DELETE",
-            url: `/v1/nodes/${rowIndex}`,
+            url: `/api/nodes/${rowIndex}`,
             contentType: "application/json",
             dataType: "json",
             processData: true,
@@ -108,7 +108,9 @@
         let row = table.getRow(rowIndex)
 
         let baseUrl = window.location.origin
-        let command = row.getData().pull_command.replace('BASE_URL', baseUrl)
+        let command = row.getData().pull_command
+            .replace('BASE_URL', baseUrl)
+            .replace('/v1/', '/api/')
 
         let content = `<div class="p-2">
             <p class="my-2"><h6>Node #${row.getData().id}</h6></p>
@@ -122,7 +124,7 @@
     }
 
     let table = new Tabulator("#table", {
-        ajaxURL: "/v1/nodes",
+        ajaxURL: "/api/nodes",
         ajaxConfig: {
             headers: {
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -193,7 +195,7 @@
         table.alert("Saving the node...", "msg")
 
         let method = cell.getData().id === 0 ? "POST" : "PUT"
-        let url = cell.getData().id === 0 ? "/v1/nodes" : `/v1/nodes/${cell.getData().id}`
+        let url = cell.getData().id === 0 ? "/api/nodes" : `/api/nodes/${cell.getData().id}`
 
         $.ajax({
             type: method,

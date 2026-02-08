@@ -12,12 +12,6 @@ function exit() {
 
 $('#exit').click(exit)
 
-function handleAuthError(response) {
-    if (response.status === 401) {
-        exit()
-    }
-}
-
 function makeErrorHandler(onMessageReceived = alert) {
     return function (jqXHR) {
         handleError(jqXHR, onMessageReceived)
@@ -52,10 +46,7 @@ function ts2date(timestamp) {
     if (!timestamp) {
         return "-"
     }
-    let d = (new Date(timestamp)).toLocaleDateString('fa-IR')
-    return d.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, function (c) {
-        return c.charCodeAt(0) & 0xf
-    })
+    return (new Date(timestamp)).toLocaleDateString()
 }
 
 function ts2datetime(timestamp) {
@@ -63,10 +54,5 @@ function ts2datetime(timestamp) {
         return "-"
     }
 
-    let d = (new Date(timestamp))
-    let dt = d.toLocaleDateString('fa-IR') + ' ' + d.toLocaleTimeString('fa-IR')
-
-    return dt.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, function (c) {
-        return c.charCodeAt(0) & 0xf
-    })
+    return (new Date(timestamp)).toLocaleString()
 }

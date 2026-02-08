@@ -69,7 +69,7 @@ func UsersStore(coordinator *coordinator.Coordinator, d *database.Database[data.
 
 		user := data.NewUser(
 			d.Data().GenerateUserId(),
-			d.Data().GenerateUserIdentity(),
+			d.Data().GenerateUserUuid(),
 			request.Name,
 			request.Quota,
 			request.Usage,

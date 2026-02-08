@@ -58,7 +58,7 @@
 
         $.ajax({
             type: "DELETE",
-            url: `/v1/users/${find(rowIndex, 'id')}`,
+            url: `/api/users/${find(rowIndex, 'id')}`,
             contentType: "application/json",
             dataType: "json",
             processData: true,
@@ -81,7 +81,7 @@
 
         $.ajax({
             type: "PATCH",
-            url: `/v1/users/${find(rowIndex, 'id')}`,
+            url: `/api/users/${find(rowIndex, 'id')}`,
             data: JSON.stringify({
                 usage: 0,
                 enabled: true,
@@ -98,7 +98,14 @@
         })
     }
 
-    let profile = rowIndex => window.open(`/profile?u=${find(rowIndex, 'identity')}`, '_blank')
+    let profile = rowIndex => {
+        const vlessId = find(rowIndex, 'vless_id') || find(rowIndex, 'uuid')
+        if (!vlessId) {
+            table.alert("VLESS ID is missing for this user.", "error")
+            return
+        }
+        window.open(`/profile?u=${vlessId}`, '_blank')
+    }
 
     let actionsFormatter = cell => [
         `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`,
@@ -107,7 +114,7 @@
     ].join('&nbsp')
 
     let table = new Tabulator("#table", {
-        ajaxURL: "/v1/users",
+        ajaxURL: "/api/users",
         ajaxConfig: {
             headers: {
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -173,7 +180,7 @@
         table.alert("Saving the user...", "msg")
 
         let method = cell.getData().id === 0 ? "POST" : "PUT"
-        let url = cell.getData().id === 0 ? "/v1/users" : `/v1/users/${cell.getData().id}`
+        let url = cell.getData().id === 0 ? "/api/users" : `/api/users/${cell.getData().id}`
 
         $.ajax({
             type: method,
@@ -194,7 +201,7 @@
     $("#create").click(() => {
         table.addRow({
             id: 0,
-            identity: "",
+            vless_id: "",
             name: "",
             quota: 0,
             usage: 0,

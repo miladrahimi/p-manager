@@ -1,12 +1,13 @@
-package v1
+package api
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/config"
-	"net/http"
 )
 
-func InformationIndex() echo.HandlerFunc {
+func DetailsShow() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			AppName    string `json:"app_name"`

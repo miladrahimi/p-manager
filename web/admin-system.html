@@ -58,7 +58,7 @@
                         </div>
                     </div>
                     <div class="col col-12 col-md-6">
-                        <div class="card-title fw-bold">Information</div>
+                        <div class="card-title fw-bold">Platform</div>
                         <div class="my-1">
                             <span>App Name:</span>
                             <span id="information-app-name" class="text-muted"></span>
@@ -105,124 +105,105 @@
         </div>
 
         <div class="card mt-3">
-            <div class="card-title fw-bold pt-3">Settings</div>
+            <div class="card-title fw-bold pt-3">Xray Settings</div>
             <form class="card-body text-start">
                 <table class="table table-striped table-borderless table-sm">
                     <tr>
                         <td class="align-middle px-2">
-                            Admin Password
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="The password to access admin panel.">
-                                ?
-                            </span>
+                            VTR Direct Port
+                            <small class="badge bg-dark-subtle">VLESS TCP Reality</small>
+                            <br>
+                            <small class="text-muted">
+                                It makes a standalone proxy on P-Manager without using P-Nodes.
+                                <br>
+                                [User] ↔ P-Manager ↔ [Internet]
+                            </small>
                         </td>
+                        <td>
+                            <input id="vtr_direct_port" type="number" class="form-control"
+                                   title="VTR Direct Port" min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Direct port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">
+                            VT→VTR Relay Port
+                            <small class="badge bg-dark-subtle">VLESS TCP -> VLESS TCP Reality</small>
+                            <br>
+                            <small class="text-muted">
+                                It makes proxies on P-Nodes and a bridge on P-Manager.
+                                It forwards traffic from P-Manager to P-Node.
+                                <br>
+                                [User] ↔ P-Manager ↔ P-Node ↔ [Internet]
+                            </small>
+                        </td>
+                        <td>
+                            <input id="vt_2_vtr_port" type="number" class="form-control"
+                                   title="VT->VTR Relay Port"
+                                   min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Relay port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">
+                            VTR Remote Port
+                            <small class="badge bg-dark-subtle">VLESS TCP Reality</small>
+                            <br>
+                            <small class="text-muted">
+                                It makes standalone proxies on P-Nodes.
+                                <br>
+                                [User] ↔ P-Node ↔ [Internet]
+                            </small>
+                        </td>
+                        <td>
+                            <input id="vtr_remote_port" type="number" class="form-control"
+                                   title="VTR Remote Port" min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Remote port or zero to disable.">
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <div class="d-flex flex-column flex-md-row px-3 pb-3">
+                <button class="btn btn-dark btn-sm m-1 flex-fill" id="save-xray-settings">Save Xray Settings</button>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-title fw-bold pt-3">Main Settings</div>
+            <form class="card-body text-start">
+                <table class="table table-striped table-borderless table-sm">
+                    <tr>
+                        <td class="align-middle px-2">Admin Password</td>
                         <td>
                             <input id="admin_password" type="text" class="form-control" title="Admin Password"
                                    required="required" data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Admin panel password.">
+                                   data-bs-title="Password for admin user to access admin panel.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">
-                            Host
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="It is used as shadowsocks server in proxy links.">
-                                ?
-                            </span>
-                        </td>
+                        <td class="align-middle px-2">Host</td>
                         <td>
                             <input id="host" type="text" class="form-control" title="Host" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Host to use as shadowsocks server and profile links.">
+                                   data-bs-title="Host for proxy server and profile links.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">
-                            Shadowsocks Direct Port
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="It makes a standalone proxy without using P-Nodes.">
-                                ?
-                            </span>
-                        </td>
-                        <td>
-                            <input id="ss_direct_port" type="number" class="form-control"
-                                   title="Shadowsocks Direct Port" min="0" max="65535" required="required"
-                                   data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Shadowsocks direct port or zero to disable.">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="align-middle px-2">
-                            Shadowsocks Relay Port
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="It makes a bridge and forwards connections to the P-Nodes.">
-                                ?
-                            </span>
-                        </td>
-                        <td>
-                            <input id="ss_relay_port" type="number" class="form-control"
-                                   title="SShadowsocks Relay Port"
-                                   min="0" max="65535" required="required"
-                                   data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Shadowsocks relay port or zero to disable.">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="align-middle px-2">
-                            Shadowsocks Reverse Port
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="It makes a bridge and starts connections from the P-Nodes.">
-                                ?
-                            </span>
-                        </td>
-                        <td>
-                            <input id="ss_reverse_port" type="number" class="form-control"
-                                   title="Shadowsocks Reverse Port"
-                                   min="0" max="65535" required="required"
-                                   data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Shadowsocks reverse port or zero to disable.">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="align-middle px-2">
-                            Shadowsocks Remote Port
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="It makes standalone proxies from the P-Nodes.">
-                                ?
-                            </span>
-                        </td>
-                        <td>
-                            <input id="ss_remote_port" type="number" class="form-control"
-                                   title="Shadowsocks Remote Port" min="0" max="65535" required="required"
-                                   data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Shadowsocks remote port or zero to disable.">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="align-middle px-2">
-                            Reset Policy
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="When to reset user usages.">
-                                ?
-                            </span>
-                        </td>
+                        <td class="align-middle px-2">Reset Policy</td>
                         <td>
                             <select id="reset_policy" type="text" class="form-select" title="Reset Policy"
                                     data-bs-toggle="tooltip" data-bs-placement="top"
-                                    data-bs-title="User usage reset policy.">
+                                    data-bs-title="When to reset user usages.">
                                 <option value="" selected="selected">Never</option>
                                 <option value="monthly">First of each month</option>
                             </select>
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">
-                            Usage Ratio
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="It is used for displaying usage to users!">
-                                ?
-                            </span>
-                        </td>
+                        <td class="align-middle px-2">Usage Ratio</td>
                         <td>
                             <input id="usage_ratio" type="number" step="0.01" class="form-control"
                                    title="Usage Ratio"
@@ -233,21 +214,17 @@
                     <tr>
                         <td class="align-middle px-2">
                             <a href="https://github.com/miladrahimi/singet" target="_blank">Singet</a> Server
-                            <span class="badge bg-secondary-subtle" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  data-bs-title="A tiny proxy used for communication with blocked nodes.">
-                                ?
-                            </span>
                         </td>
                         <td>
                             <input id="singet_server" type="url" class="form-control" title="Singet Server"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Signet URL empty to disable.">
+                                   data-bs-title="Signet server URL or empty to disable.">
                         </td>
                     </tr>
                 </table>
             </form>
             <div class="d-flex flex-column flex-md-row px-3 pb-3">
-                <button class="btn btn-dark btn-sm m-1 flex-fill" id="save-settings">Save Settings</button>
+                <button class="btn btn-dark btn-sm m-1 flex-fill" id="save-main-settings">Save Main Settings</button>
             </div>
         </div>
 
@@ -274,6 +251,18 @@
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     _ = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 
+    const parsePort = value => {
+        const parsed = parseInt(value, 10)
+        return Number.isNaN(parsed) ? 0 : parsed
+    }
+
+    const setPortValue = (selector, value) => {
+        const normalized = value === "" || value === null || value === undefined ? 0 : value
+        $(selector).val(normalized)
+    }
+
+    let xraySettings = null
+
     $.ajax({
         dataType: "json",
         success: function (response) {
@@ -285,7 +274,7 @@
         error: makeErrorHandler(),
         processData: true,
         type: "GET",
-        url: "/v1/stats"
+        url: "/api/stats"
     })
 
     $.ajax({
@@ -298,28 +287,40 @@
         error: makeErrorHandler(),
         processData: true,
         type: "GET",
-        url: "/v1/information"
+        url: "/api/platform"
     })
 
-    $.ajax({
+    const loadMainSettings = () => $.ajax({
         dataType: "json",
-        success: function (response) {
+        success: response => {
             $('#admin_password').val(response['admin_password'])
             $('#usage_ratio').val(response['traffic_ratio'])
             $('#host').val(response['host'])
             $('#singet_server').val(response['singet_server'])
-            $('#ss_reverse_port').val(response['ss_reverse_port'])
-            $('#ss_relay_port').val(response['ss_relay_port'])
-            $('#ss_direct_port').val(response['ss_direct_port'])
-            $('#ss_remote_port').val(response['ss_remote_port'])
             $('#reset_policy').val(response['reset_policy'])
         },
         error: makeErrorHandler(),
         processData: true,
         type: "GET",
-        url: "/v1/settings"
+        url: "/api/settings"
     })
 
+    const loadXraySettings = () => $.ajax({
+        dataType: "json",
+        success: response => {
+            xraySettings = response
+            setPortValue('#vtr_direct_port', response['vtr_direct_port'])
+            setPortValue('#vt_2_vtr_port', response['vt_2_vtr_port'])
+            setPortValue('#vtr_remote_port', response['vtr_remote_port'])
+        },
+        error: makeErrorHandler(),
+        processData: true,
+        type: "GET",
+        url: "/api/xray/settings"
+    })
+
+    loadMainSettings()
+    loadXraySettings()
     $('#reset-total-usage').click(function () {
         let confirmed = confirm("Click 'OK' to reset the total usage.")
         if (!confirmed) {
@@ -331,7 +332,7 @@
 
         $.ajax({
             type: 'PATCH',
-            url: `/v1/stats`,
+            url: `/api/stats`,
             processData: true,
             dataType: 'json',
             data: JSON.stringify({total_usage: 0}),
@@ -355,7 +356,7 @@
 
         $.ajax({
             type: 'PATCH',
-            url: `/v1/nodes`,
+            url: `/api/nodes`,
             data: JSON.stringify({usage: 0}),
             processData: true,
             dataType: 'json',
@@ -376,7 +377,7 @@
 
         $.ajax({
             type: 'PATCH',
-            url: `/v1/users`,
+            url: `/api/users`,
             data: JSON.stringify({
                 usage: 0,
                 enabled: true,
@@ -400,7 +401,7 @@
 
         $.ajax({
             type: 'POST',
-            url: `/v1/settings/xray/restart`,
+            url: `/api/xray/restart`,
             processData: true,
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
@@ -420,7 +421,7 @@
 
         $.ajax({
             type: 'DELETE',
-            url: `/v1/users?enabled=false`,
+            url: `/api/users?enabled=false`,
             processData: true,
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
@@ -440,7 +441,7 @@
 
         $.ajax({
             type: 'DELETE',
-            url: `/v1/users`,
+            url: `/api/users`,
             processData: true,
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
@@ -449,34 +450,63 @@
         })
     })
 
-    $('#save-settings').click(function () {
-        const form = document.querySelector('#admin_password').closest('form');
+    $('#save-main-settings').click(function () {
+        const form = document.querySelector('#admin_password').closest('form')
         if (!form.checkValidity()) {
             form.reportValidity()
             return
         }
 
-        let me = $(this)
+        const me = $(this)
         me.attr('disabled', 'disabled')
 
         $.ajax({
             type: 'POST',
-            url: "/v1/settings",
+            url: "/api/settings",
             data: JSON.stringify({
                 admin_password: $('#admin_password').val(),
                 traffic_ratio: parseFloat($('#usage_ratio').val()),
                 host: $('#host').val(),
                 singet_server: $('#singet_server').val(),
-                ss_reverse_port: parseInt($('#ss_reverse_port').val()),
-                ss_relay_port: parseInt($('#ss_relay_port').val()),
-                ss_direct_port: parseInt($('#ss_direct_port').val()),
-                ss_remote_port: parseInt($('#ss_remote_port').val()),
                 reset_policy: $('#reset_policy').val(),
             }),
             processData: true,
             dataType: 'json',
-            complete: () => window.location.reload(),
-            success: () => alert('Settings saved successfully.'),
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Main settings saved successfully.'),
+            error: makeErrorHandler(),
+        })
+    })
+
+    $('#save-xray-settings').click(function () {
+        const form = document.querySelector('#vtr_direct_port').closest('form')
+        if (!form.checkValidity()) {
+            form.reportValidity()
+            return
+        }
+
+        if (!xraySettings) {
+            alert('Xray settings are not loaded yet.')
+            return
+        }
+
+        const me = $(this)
+        me.attr('disabled', 'disabled')
+
+        $.ajax({
+            type: 'POST',
+            url: "/api/xray/settings",
+            data: JSON.stringify({
+                vtr_direct_port: parsePort($('#vtr_direct_port').val()),
+                vt_2_vtr_port: parsePort($('#vt_2_vtr_port').val()),
+                vtr_remote_port: parsePort($('#vtr_remote_port').val()),
+                vtr_private_key: xraySettings['vtr_private_key'] || "",
+                vtr_public_key: xraySettings['vtr_public_key'] || "",
+            }),
+            processData: true,
+            dataType: 'json',
+            complete: () => me.removeAttr('disabled'),
+            success: () => alert('Xray settings saved successfully.'),
             error: makeErrorHandler(),
         })
     })
@@ -493,7 +523,7 @@
 
         $.ajax({
             type: 'POST',
-            url: `/v1/imports`,
+            url: `/api/users/import`,
             contentType: 'application/json',
             processData: true,
             dataType: 'json',

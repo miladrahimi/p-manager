@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"fmt"
@@ -13,15 +13,15 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
-func SettingsShow(d *database.Database[data.Data]) echo.HandlerFunc {
+func XraySettingsShow(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, d.Data().Settings)
+		return c.JSON(http.StatusOK, db.Data().XraySettings)
 	}
 }
 
-func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
+func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var r data.Settings
+		var r data.XraySettings
 		if err := c.Bind(&r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Cannot parse the request body.",
@@ -33,32 +33,31 @@ func SettingsUpdate(coordinator *coordinator.Coordinator, d *database.Database[d
 			})
 		}
 
-		if !util.PortsDistinct([]int{r.SsRelayPort, r.SsReversePort, r.SsDirectPort}) {
+		if !util.PortsDistinct([]int{r.VtrDirectPort, r.VtrRemotePort, r.Vt2VtrPort}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Shadowsocks ports must be the distinct.",
+				"message": "Ports must be the distinct.",
 			})
 		}
 
-		current := d.Data().Settings
-		if r.SsRelayPort > 0 && r.SsRelayPort != current.SsRelayPort && !util.PortFree(r.SsRelayPort) {
+		current := db.Data().XraySettings
+		if r.VtrDirectPort > 0 && r.VtrDirectPort != current.VtrDirectPort && !util.PortFree(r.VtrDirectPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.SsRelayPort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.VtrDirectPort),
 			})
 		}
-		if r.SsReversePort > 0 && r.SsReversePort != current.SsReversePort && !util.PortFree(r.SsReversePort) {
+		if r.VtrRemotePort > 0 && r.VtrRemotePort != current.VtrRemotePort && !util.PortFree(r.VtrRemotePort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.SsReversePort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.VtrRemotePort),
 			})
 		}
-		if r.SsDirectPort > 0 && r.SsDirectPort != current.SsDirectPort && !util.PortFree(r.SsDirectPort) {
+		if r.Vt2VtrPort > 0 && r.Vt2VtrPort != current.Vt2VtrPort && !util.PortFree(r.Vt2VtrPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.SsDirectPort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.Vt2VtrPort),
 			})
 		}
 
-		d.Data().Settings = &r
-
-		if err := d.Save(); err != nil {
+		db.Data().XraySettings = &r
+		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 

@@ -24,7 +24,7 @@ func ProfileShow(d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var user *data.User
 		for _, u := range d.Data().Users {
-			if u.Identity == c.QueryParam("u") {
+			if u.Uuid == c.QueryParam("u") {
 				user = u
 			}
 		}
@@ -41,20 +41,20 @@ func ProfileShow(d *database.Database[data.Data]) echo.HandlerFunc {
 		s := d.Data().Settings
 		auth := base64.StdEncoding.EncodeToString([]byte(user.ShadowsocksMethod + ":" + user.ShadowsocksPassword))
 
-		if s.SsReversePort > 0 {
-			r.SsReverse = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsReversePort, "reverse")
+		if s.VtrDirectPort > 0 {
+			r.SsReverse = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtrDirectPort, "reverse")
 		}
 
-		if s.SsRelayPort > 0 {
-			r.SsRelay = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsRelayPort, "relay")
+		if s.VtnVtrRelayPort > 0 {
+			r.SsRelay = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtnVtrRelayPort, "relay")
 		}
 
-		if s.SsDirectPort > 0 {
-			r.SsDirect = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsDirectPort, "direct")
+		if s.VtnVtrReversePort > 0 {
+			r.SsDirect = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtnVtrReversePort, "direct")
 		}
 
-		if s.SsRemotePort > 0 {
-			r.SsRemote = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.SsRemotePort, "remote")
+		if s.VtrRemotePort > 0 {
+			r.SsRemote = fmt.Sprintf("ss://%s@%s:%d#%s", auth, s.Host, s.VtrRemotePort, "remote")
 		}
 
 		return c.JSON(http.StatusOK, r)
@@ -65,7 +65,7 @@ func ProfileRegenerate(coordinator *coordinator.Coordinator, d *database.Databas
 	return func(c echo.Context) error {
 		var user *data.User
 		for _, u := range d.Data().Users {
-			if u.Identity == c.QueryParam("u") {
+			if u.Uuid == c.QueryParam("u") {
 				user = u
 			}
 		}

@@ -68,10 +68,6 @@
                             <span id="information-app-version" class="text-muted"></span>
                         </div>
                         <div class="my-1">
-                            <span>App Licensed:</span>
-                            <span id="information-app-licensed" class="text-muted"></span>
-                        </div>
-                        <div class="my-1">
                             <span>Core:</span>
                             <span id="information-core" class="text-muted"></span>
                         </div>
@@ -297,7 +293,6 @@
         success: function (response) {
             $("#information-app-name").html(response['app_name'])
             $("#information-app-version").html(response['app_version'])
-            $("#information-app-licensed").html(response['app_licensed'] ? 'Yes' : 'No')
             $("#information-core").html(response['core'])
         },
         error: makeErrorHandler(),

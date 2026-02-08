@@ -5,11 +5,13 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/cockroachdb/errors"
-	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
+	urlutil "net/url"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/labstack/echo/v4"
 )
 
 type Client struct {
@@ -22,7 +24,9 @@ func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error)
 	info := map[string]interface{}{
 		"request_method": method,
 		"request_url":    url,
-		"request_token":  token,
+	}
+	if token != "" {
+		info["request_token"] = "<redacted>"
 	}
 
 	var requestReader io.Reader
@@ -31,10 +35,10 @@ func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error)
 		var err error
 		requestBody, err = json.Marshal(body)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot unmarshall request body, %v", info)
+			return nil, errors.Wrapf(err, "cannot marshal request body, %v", info)
 		}
 		requestReader = bytes.NewBuffer(requestBody)
-		info["request_body"] = string(requestBody)
+		info["request_body_size"] = len(requestBody)
 	}
 
 	request, err := http.NewRequest(method, url, requestReader)
@@ -71,11 +75,11 @@ func (c *Client) Do(method, url, token string, body interface{}) ([]byte, error)
 		return responseBody, nil
 	}
 
-	return nil, errors.Errorf("unknown respose received, %s", info)
+	return nil, errors.Errorf("unknown response received, %s", info)
 }
 
 func (c *Client) DoThrough(proxy, method, url, token string, body interface{}) ([]byte, error) {
-	return c.Do(method, fmt.Sprintf("%s/?url=%s", proxy, url), token, body)
+	return c.Do(method, fmt.Sprintf("%s/?url=%s", proxy, urlutil.QueryEscape(url)), token, body)
 }
 
 func New(timeout int, appName, appVersion string) *Client {

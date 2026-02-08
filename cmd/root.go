@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	r "runtime"
+
 	c "github.com/miladrahimi/p-manager/internal/config"
 	"github.com/spf13/cobra"
-	r "runtime"
 )
 
 var rootCmd = &cobra.Command{
@@ -13,10 +14,11 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	cobra.OnInitialize(func() {
-		fmt.Println(c.AppName, c.AppVersion, "(", r.Version(), r.Compiler, r.GOOS, "/", r.GOARCH, ")")
+		fmt.Println(c.AppName, c.AppVersion, "/", r.Compiler, r.Version(), "/", r.GOOS, r.GOARCH)
 	})
 }
 
+// Execute creates CLI and run the requested command.
 func Execute() error {
 	return rootCmd.Execute()
 }

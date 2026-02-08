@@ -4,14 +4,14 @@
 
 ### Installation
 
-1. Install the requirements
+1- Install the requirements
 
 ```shell
 apt-get -y update && apt-get -y upgrade
 apt-get -y install make wget curl jq vim git openssl cron
 ```
 
-2. Install BBR (Optional)
+2- Install BBR (Optional)
 
 ```shell
 echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
@@ -19,7 +19,7 @@ echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
 sysctl -p
 ```
 
-3. Install P-Manager
+3- Install P-Manager
 
 ```shell
 git clone https://github.com/miladrahimi/p-manager.git
@@ -39,8 +39,8 @@ Access the admin panel at the default port `8080`.
 #### Tabs
 
 * `Users`: Manage users and view their public profiles
-* `Servers`: Manage P-Nodes
-* `Settings`: Modify general settings
+* `Nodes`: Manage P-Nodes (remote nodes)
+* `System`: Modify settings and view metrics
 * `Exit`: Sign out of the admin panel
 
 ### Configuration
@@ -65,7 +65,8 @@ make update
 ### Status and Logs
 
 The application service is named after its directory, with `p-manager` as the default in `systemd`.
-It allows running multiple instances on a single server by placing the application in different directories with different names (like `p-manager-2` and `p-manager-3`).
+It allows running multiple instances on a single server by placing the application in different directories.
+A naming strategy for multiple instances could be using `p-manager-1` and `p-manager-2`, etc.
 
 To check the status of the application, execute the following command:
 
@@ -102,7 +103,9 @@ To restore the most recent backup, execute the following command:
 make recover
 ```
 
-You can manually stop the application service, replace the backup file with `./storage/database/app.json`, and start the service again.
+You can manually stop the application service,
+replace the backup file with `./storage/database/data.json`,
+and start the service again.
 
 ### Requirements
 

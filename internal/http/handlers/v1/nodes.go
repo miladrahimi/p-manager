@@ -2,25 +2,27 @@ package v1
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
-	"github.com/miladrahimi/p-manager/internal/database"
-	"github.com/miladrahimi/p-manager/internal/utils"
-	"net/http"
-	"strconv"
+	"github.com/miladrahimi/p-manager/internal/data"
+	"github.com/miladrahimi/p-manager/pkg/util"
+	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 type NodeResponse struct {
-	database.Node
+	data.Node
 	PullCommand string `json:"pull_command"`
 }
 
 type NodesStoreRequest struct {
 	Host      string `json:"host" validate:"required,max=64"`
 	HttpToken string `json:"http_token" validate:"required"`
-	HttpPort  int    `json:"http_port" validate:"required,min=1,max=65536"`
+	HttpPort  int    `json:"http_port" validate:"required,min=1,max=65535"`
 }
 
 type NodesUpdateRequest struct {
@@ -31,12 +33,12 @@ type NodesUpdatePartialRequest struct {
 	Usage *float64 `json:"usage"`
 }
 
-func NodesIndex(d *database.Database) echo.HandlerFunc {
+func NodesIndex(d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		token := d.Content.Settings.AdminPassword
+		token := d.Data().Settings.AdminPassword
 
-		var response = make([]NodeResponse, 0, len(d.Content.Nodes))
-		for _, node := range d.Content.Nodes {
+		var response = make([]NodeResponse, 0, len(d.Data().Nodes))
+		for _, node := range d.Data().Nodes {
 			cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%d\" TOKEN=\"%s\"", node.Id, token)
 			response = append(response, NodeResponse{
 				Node:        *node,
@@ -48,7 +50,7 @@ func NodesIndex(d *database.Database) echo.HandlerFunc {
 	}
 }
 
-func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesStore(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesStoreRequest
 		if err := c.Bind(&r); err != nil {
@@ -62,43 +64,35 @@ func NodesStore(coordinator *coordinator.Coordinator, d *database.Database) echo
 			})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
-		if len(d.Content.Nodes) > 5 {
+		if len(d.Data().Nodes) > 5 {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"message": fmt.Sprintf("Cannot add more nodes!"),
 			})
 		}
 
-		var node *database.Node
-		for _, n := range d.Content.Nodes {
+		var node *data.Node
+		for _, n := range d.Data().Nodes {
 			if n.Host == r.Host && n.HttpPort == r.HttpPort {
 				node = n
 				node.HttpToken = r.HttpToken
 			}
 		}
 		if node == nil {
-			node = &database.Node{}
-			node.Id = d.GenerateNodeId()
-			node.HttpToken = r.HttpToken
-			node.Host = r.Host
-			node.HttpPort = r.HttpPort
-
-			d.Content.Nodes = append(d.Content.Nodes, node)
+			node = data.NewNode(d.Data().GenerateNodeId(), r.Host, r.HttpToken, r.HttpPort)
+			d.Data().Nodes = append(d.Data().Nodes, node)
 		}
 
 		if err := d.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
-		go coordinator.SyncConfigs()
+		go coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusCreated, node)
 	}
 }
 
-func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesUpdateRequest
 		if err := c.Bind(&r); err != nil {
@@ -112,11 +106,8 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 			})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
-		var node *database.Node
-		for _, n := range d.Content.Nodes {
+		var node *data.Node
+		for _, n := range d.Data().Nodes {
 			if strconv.Itoa(n.Id) == c.Param("id") {
 				node = n
 			}
@@ -133,14 +124,14 @@ func NodesUpdate(coordinator *coordinator.Coordinator, d *database.Database) ech
 			return errors.WithStack(err)
 		}
 
-		go coordinator.SyncConfigs()
+		go coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusOK, node)
 
 	}
 }
 
-func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request NodesUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -154,13 +145,10 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 			})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
-		for _, node := range d.Content.Nodes {
+		for _, node := range d.Data().Nodes {
 			if request.Usage != nil {
 				node.Usage = *request.Usage
-				node.UsageBytes = utils.GB2Bytes(*request.Usage)
+				node.UsageBytes = util.GB2Bytes(*request.Usage)
 			}
 		}
 
@@ -168,24 +156,21 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, d *database.D
 			return errors.WithStack(err)
 		}
 
-		go coordinator.SyncConfigs()
+		go coordinator.UpdateConfigs()
 
 		return c.NoContent(http.StatusNoContent)
 	}
 }
 
-func NodesDelete(coordinator *coordinator.Coordinator, d *database.Database) echo.HandlerFunc {
+func NodesDelete(coordinator *coordinator.Coordinator, d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
-		for i, s := range d.Content.Nodes {
+		for i, s := range d.Data().Nodes {
 			if strconv.Itoa(s.Id) == c.Param("id") {
-				d.Content.Nodes = append(d.Content.Nodes[:i], d.Content.Nodes[i+1:]...)
+				d.Data().Nodes = append(d.Data().Nodes[:i], d.Data().Nodes[i+1:]...)
 				if err := d.Save(); err != nil {
 					return errors.WithStack(err)
 				}
-				go coordinator.SyncConfigs()
+				go coordinator.UpdateConfigs()
 				break
 			}
 		}

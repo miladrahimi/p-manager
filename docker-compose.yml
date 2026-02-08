@@ -1,8 +1,0 @@
-services:
-  app:
-    image: ghcr.io/miladrahimi/p-manager:${TAG:-latest}
-    restart: always
-    network_mode: host
-    volumes:
-      - ./configs/:/app/configs/
-      - ./storage/:/app/storage/

@@ -1,11 +1,12 @@
 package v1
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/p-manager/internal/database"
-	"github.com/miladrahimi/p-manager/internal/enigma"
 	"net/http"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/p-manager/internal/data"
+	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 type SignInRequest struct {
@@ -13,7 +14,7 @@ type SignInRequest struct {
 	Password string `json:"password"`
 }
 
-func SignIn(d *database.Database, e *enigma.Enigma) echo.HandlerFunc {
+func SignIn(d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer func() {
 			time.Sleep(time.Second * time.Duration(2))
@@ -26,15 +27,9 @@ func SignIn(d *database.Database, e *enigma.Enigma) echo.HandlerFunc {
 			})
 		}
 
-		if r.Username == "admin" && r.Password == d.Content.Settings.AdminPassword {
+		if r.Username == "admin" && r.Password == d.Data().Settings.AdminPassword {
 			return c.JSON(http.StatusOK, map[string]string{
-				"token": d.Content.Settings.AdminPassword,
-			})
-		}
-
-		if r.Username == "admin" && e.Verify(d.Content.Settings.Host, r.Password) {
-			return c.JSON(http.StatusOK, map[string]string{
-				"token": d.Content.Settings.AdminPassword,
+				"token": d.Data().Settings.AdminPassword,
 			})
 		}
 

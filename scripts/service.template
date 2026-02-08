@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=THE_DIR
-ExecStart=THE_PATH start
+ExecStart=THE_PATH serve
 Restart=always
 
 [Install]

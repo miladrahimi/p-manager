@@ -1,32 +1,33 @@
 #!/bin/bash
 
+# Setup script to install required packages and configure the node.
+
 # Check if running as root
 if [ "$(id -u)" -ne 0 ]; then
-    echo "This script must be run as root"
+    echo "This script must be run as root."
     exit 1
 fi
 
-# Required packages
-packages=("make" "wget" "curl" "jq" "vim" "git" "openssl" "cron")
+REQUIRED_PACKAGES=("make" "wget" "curl" "jq" "vim" "git" "openssl" "cron")
 
-# Update repositories only if needed
-update_needed=false
-for package in "${packages[@]}"; do
-    if ! dpkg -l | grep -q "^ii  $package "; then
-        update_needed=true
+# Update OS repositories if needed
+UPDATE_NEEDED=false
+for PACKAGE in "${REQUIRED_PACKAGES[@]}"; do
+    if ! dpkg -l | grep -q "^ii  $PACKAGE "; then
+        UPDATE_NEEDED=true
         break
     fi
 done
-if [ "$update_needed" = true ]; then
+if [ "$UPDATE_NEEDED" = true ]; then
     echo "Some packages need to be installed. Updating package lists..."
     apt-get -y update
 fi
 
-# Install packages if they're not already installed
-for package in "${packages[@]}"; do
-    if ! dpkg -l | grep -q "^ii  $package "; then
-        echo "Installing $package..."
-        apt-get -y install "$package"
+# Install required packages if they're not already installed
+for PACKAGE in "${REQUIRED_PACKAGES[@]}"; do
+    if ! dpkg -l | grep -q "^ii  $PACKAGE "; then
+        echo "Installing $PACKAGE..."
+        apt-get -y install "$PACKAGE"
     fi
 done
 
@@ -47,26 +48,54 @@ if [ ! -f "$BINARY_PATH" ]; then
     exit 1
 fi
 
-# Create the config file
+# Temporary fix for v26.2.8
+# TODO: Remove this fix after v26.2.8 is released
+if [ ! -f "$ROOT/storage/database/data.json" ] && [ -f "$ROOT/storage/database/app.json" ]; then
+  cp -f "$ROOT/storage/database/app.json" "$ROOT/storage/database/data.json"
+fi
+rm -f "$ROOT/storage/database/app.json"
+
+# Create the config file if it doesn't exist
 if [ ! -f "$ROOT"/configs/main.json ]; then
-		cp "$ROOT"/configs/main.example.json "$ROOT"/configs/main.json;
+    cp "$ROOT"/configs/main.example.json "$ROOT"/configs/main.json
 fi
 
-# Setup Systemd
+# Generate the service file from the template
 SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 SERVICE_TEMPLATE="$ROOT/scripts/service.template"
+generate_service_file() {
+    sed "s|THE_NAME|$SERVICE_NAME|" "$SERVICE_TEMPLATE" > "$SERVICE_FILE"
+    sed -i "s|THE_PATH|$BINARY_PATH|" "$SERVICE_FILE"
+    sed -i "s|THE_DIR|$ROOT|" "$SERVICE_FILE"
+}
 
-sed "s|THE_NAME|$SERVICE_NAME|" "$SERVICE_TEMPLATE" > "$SERVICE_FILE"
-sed -i "s|THE_PATH|$BINARY_PATH|" "$SERVICE_FILE"
-sed -i "s|THE_DIR|$ROOT|" "$SERVICE_FILE"
-systemctl daemon-reload
+# Check if service already exists
+SERVICE_EXISTS=false
+if [ -f "$SERVICE_FILE" ]; then
+    SERVICE_EXISTS=true
+elif systemctl list-unit-files --type=service --all | awk '{print $1}' | grep -qx "${SERVICE_NAME}.service"; then
+    SERVICE_EXISTS=true
+fi
 
-if systemctl is-enabled --quiet "$SERVICE_NAME"; then
-    echo "Service $SERVICE_NAME is already enabled."
+# Create or update the service file, reload systemd, enable and restart the service
+if [ "$SERVICE_EXISTS" = true ]; then
+    echo "Service $SERVICE_NAME already exists. Updating unit file..."
+    generate_service_file
+    systemctl daemon-reload
+
+    if ! systemctl is-enabled --quiet "$SERVICE_NAME"; then
+        echo "Enabling service $SERVICE_NAME..."
+        systemctl enable "$SERVICE_NAME"
+        echo "Service $SERVICE_NAME enabled."
+    fi
+
     echo "Restarting service $SERVICE_NAME..."
     systemctl restart "$SERVICE_NAME"
     echo "Service $SERVICE_NAME restarted."
 else
+    echo "Service $SERVICE_NAME not found. Installing unit file..."
+    generate_service_file
+    systemctl daemon-reload
     echo "Enabling service $SERVICE_NAME..."
     systemctl enable "$SERVICE_NAME"
     echo "Service $SERVICE_NAME enabled."
@@ -75,13 +104,11 @@ else
     echo "Service $SERVICE_NAME started."
 fi
 
-# Setup cron job for update
+# Setup Cron Job for updating the node
 COMMAND="make -C $ROOT update"
 if ! crontab -l | grep -q "$COMMAND"; then
     (crontab -l 2>/dev/null; echo "0 4 * * * $COMMAND") | crontab -
     echo "The updater cron job configured."
-else
-    echo "The updater cron job is already configured."
 fi
 
 # Store update time

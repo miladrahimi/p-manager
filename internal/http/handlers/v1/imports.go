@@ -3,13 +3,17 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"slices"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/p-manager/internal/database"
+	"github.com/miladrahimi/p-manager/internal/coordinator"
+	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/internal/http/client"
-	"net/http"
-	"slices"
+	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 type SettingsImportPManagerRequest struct {
@@ -17,7 +21,7 @@ type SettingsImportPManagerRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-func ImportsStore(d *database.Database, hc *client.Client) echo.HandlerFunc {
+func ImportsStore(coordinator *coordinator.Coordinator, d *database.Database[data.Data], hc *client.Client) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r SettingsImportPManagerRequest
 		if err := c.Bind(&r); err != nil {
@@ -31,7 +35,8 @@ func ImportsStore(d *database.Database, hc *client.Client) echo.HandlerFunc {
 			})
 		}
 
-		url := fmt.Sprintf("%s/v1/users", r.Url)
+		baseURL := strings.TrimRight(r.Url, "/")
+		url := fmt.Sprintf("%s/v1/users", baseURL)
 		response, err := hc.Do("GET", url, r.Password, nil)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
@@ -39,7 +44,7 @@ func ImportsStore(d *database.Database, hc *client.Client) echo.HandlerFunc {
 			})
 		}
 
-		var users []database.User
+		var users []data.User
 		if err = json.Unmarshal(response, &users); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message":  fmt.Sprintf("Invalid Response, err: %v", err.Error()),
@@ -47,11 +52,8 @@ func ImportsStore(d *database.Database, hc *client.Client) echo.HandlerFunc {
 			})
 		}
 
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		var names []string
-		for _, u := range d.Content.Users {
+		for _, u := range d.Data().Users {
 			names = append(names, u.Name)
 		}
 
@@ -61,14 +63,16 @@ func ImportsStore(d *database.Database, hc *client.Client) echo.HandlerFunc {
 				results = append(results, fmt.Sprintf("Ignored #%d: DuplicateName=%s", u.Id, u.Name))
 				continue
 			}
-			u.Id = d.GenerateUserId()
-			d.Content.Users = append(d.Content.Users, &u)
+			u.Id = d.Data().GenerateUserId()
+			d.Data().Users = append(d.Data().Users, &u)
 			results = append(results, fmt.Sprintf("Imported #%d: ID=%d Name=%s", users[i].Id, u.Id, u.Name))
 		}
 
 		if err = d.Save(); err != nil {
 			return errors.WithStack(err)
 		}
+
+		go coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusOK, results)
 	}

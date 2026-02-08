@@ -2,9 +2,20 @@
 local-setup:
 	@./scripts/local-setup.sh
 
-.PHONY: local-run
-local-run:
-	@go run main.go start
+.PHONY: local-serve
+local-serve:
+	@go run main.go serve
+
+.PHONY: local-clean
+local-clean:
+	@rm -f storage/logs/*.log
+
+.PHONY: local-fresh
+local-fresh:
+	@rm -f storage/app/*.txt
+	@rm -f storage/app/*.json
+	@rm -f storage/database/*.json
+	@rm -f storage/logs/*.log
 
 .PHONY: build
 build:
@@ -13,10 +24,6 @@ build:
 .PHONY: setup
 setup:
 	@./scripts/setup.sh
-
-.PHONY: schedule-reboot
-schedule-reboot:
-	@./scripts/schedule-reboot.sh
 
 .PHONY: recover
 recover:
@@ -40,3 +47,7 @@ update:
 	@git clean -fd
 	@git pull
 	@./scripts/setup.sh
+
+.PHONY: schedule-server-reboot
+schedule-server-reboot:
+	@./scripts/schedule-server-reboot.sh

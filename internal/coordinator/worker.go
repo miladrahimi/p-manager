@@ -2,31 +2,43 @@ package coordinator
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/miladrahimi/p-node/pkg/logger"
 )
 
+// Worker is a struct that represents a worker in the coordinator.
 type Worker struct {
-	context  context.Context
+	name     string
 	interval time.Duration
+	l        *logger.Logger
 	body     func()
-	callback func()
 }
 
-func (w *Worker) Start() {
+// newWorker creates a new worker.
+func newWorker(name string, interval time.Duration, l *logger.Logger, body func()) *Worker {
+	return &Worker{name: name, interval: interval, l: l, body: body}
+}
+
+// Start starts the worker.
+func (w *Worker) Start(ctx context.Context) {
 	ticker := time.NewTicker(w.interval)
 	go func() {
+		defer ticker.Stop()
 		for {
 			select {
-			case <-w.context.Done():
-				w.callback()
+			case <-ctx.Done():
+				if w.l != nil {
+					w.l.Info(fmt.Sprintf("coordinator: worker '%s': stopped", w.name))
+				}
 				return
 			case <-ticker.C:
+				if w.l != nil {
+					w.l.Info(fmt.Sprintf("coordinator: worker '%s': running...", w.name))
+				}
 				w.body()
 			}
 		}
 	}()
-}
-
-func newWorker(c context.Context, interval time.Duration, body func(), callback func()) *Worker {
-	return &Worker{context: c, interval: interval, body: body, callback: callback}
 }

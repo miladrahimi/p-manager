@@ -3,30 +3,49 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"runtime"
+
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
-	"github.com/miladrahimi/p-manager/internal/utils"
-	"os"
+	"github.com/miladrahimi/p-manager/pkg/util"
 )
 
 const AppName = "P-Manager"
-const AppVersion = "v25.7.20"
-const CoreVersion = "Xray v25.6.8"
+const AppVersion = "v26.2.8"
+const CoreVersion = "xray v26.1.23"
 
 const ShadowsocksMethod = "chacha20-ietf-poly1305"
 const Shadowsocks2022Method = "2022-blake3-aes-128-gcm"
 
-const FreeUsersCount = 16
 const MaxUsersCount = 1024
 
-const LicenseServer = "https://x.miladrahimi.com/p-manager/v1/servers"
-const LicenseToken = "Unauthorized"
+const DatabaseFilePath = "storage/database/data.json"
+const DatabaseBackupPath = "storage/database/backup-%s.json"
 
+const XrayConfigPath = "storage/app/xray.json"
+
+const defaultConfigPath = "configs/main.defaults.json"
+const localConfigPath = "configs/main.json"
+
+var xrayBinaryPaths = map[string]string{
+	"darwin": "third_party/xray-macos-arm64/xray",
+	"linux":  "third_party/xray-linux-64/xray",
+}
+
+// XrayBinaryPath returns the path of the xray binary for the current OS.
+func XrayBinaryPath() string {
+	if path, found := xrayBinaryPaths[runtime.GOOS]; found {
+		return path
+	}
+	return xrayBinaryPaths["linux"]
+}
+
+// Config represents the application configuration.
 type Config struct {
-	Env        *Env `json:"-"`
 	HttpServer struct {
 		Host string `json:"host" validate:"required,ip"`
-		Port int    `json:"port" validate:"required,min=1,max=65536"`
+		Port int    `json:"port" validate:"required,min=1,max=65535"`
 	} `json:"http_server" validate:"required"`
 
 	HttpClient struct {
@@ -43,50 +62,48 @@ type Config struct {
 	} `json:"xray" validate:"required"`
 }
 
+// New creates a new instance of Config and loads the default and local config files.
+func New() (*Config, error) {
+	c := &Config{}
+
+	content, err := os.ReadFile(defaultConfigPath)
+	if err != nil {
+		return c, errors.WithStack(err)
+	}
+	err = json.Unmarshal(content, c)
+	if err != nil {
+		return c, errors.WithStack(err)
+	}
+
+	if util.FileExist(localConfigPath) {
+		content, err = os.ReadFile(localConfigPath)
+		if err != nil {
+			return c, errors.WithStack(err)
+		}
+		if err = json.Unmarshal(content, c); err != nil {
+			return c, errors.WithStack(err)
+		}
+
+		var contentBytes []byte
+		contentBytes, err = json.MarshalIndent(c, "", "  ")
+		if err != nil {
+			return c, errors.WithStack(err)
+		}
+		if err = os.WriteFile(localConfigPath, contentBytes, 0644); err != nil {
+			return c, errors.WithStack(err)
+		}
+	}
+
+	fmt.Println("Config:", c.String())
+
+	return c, errors.WithStack(validator.New().Struct(c))
+}
+
+// String returns a string representation of the configuration.
 func (c *Config) String() string {
 	j, err := json.Marshal(c)
 	if err != nil {
 		return err.Error()
 	}
 	return string(j)
-}
-
-func (c *Config) Init() (err error) {
-	content, err := os.ReadFile(c.Env.DefaultConfigPath)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	err = json.Unmarshal(content, &c)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if utils.FileExist(c.Env.LocalConfigPath) {
-		content, err = os.ReadFile(c.Env.LocalConfigPath)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if err = json.Unmarshal(content, &c); err != nil {
-			return errors.WithStack(err)
-		}
-
-		var contentBytes []byte
-		contentBytes, err = json.MarshalIndent(c, "", "  ")
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if err = os.WriteFile(c.Env.LocalConfigPath, contentBytes, 0755); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	fmt.Println("Config:", c.String())
-
-	return errors.WithStack(validator.New().Struct(c))
-}
-
-func New(e *Env) *Config {
-	return &Config{
-		Env: e,
-	}
 }

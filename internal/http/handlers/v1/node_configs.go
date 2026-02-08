@@ -1,28 +1,27 @@
 package v1
 
 import (
-	"github.com/cockroachdb/errors"
-	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/p-manager/internal/coordinator"
-	"github.com/miladrahimi/p-manager/internal/database"
-	"github.com/miladrahimi/p-manager/internal/writer"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/cockroachdb/errors"
+	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/p-manager/internal/composer"
+	"github.com/miladrahimi/p-manager/internal/coordinator"
+	"github.com/miladrahimi/p-manager/internal/data"
+	"github.com/miladrahimi/p-node/pkg/database"
 )
 
-func NodesConfigsShow(cdr *coordinator.Coordinator, writer *writer.Writer, d *database.Database) echo.HandlerFunc {
+func NodesConfigsShow(cdr *coordinator.Coordinator, writer *composer.Composer, d *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d.Locker.Lock()
-		defer d.Locker.Unlock()
-
 		nodeId := c.Param("id")
-		var node *database.Node
-		for _, n := range d.Content.Nodes {
+		var node *data.Node
+		for _, n := range d.Data().Nodes {
 			if strconv.Itoa(n.Id) == nodeId {
 				node = n
 				node.PulledAt = time.Now().UnixMilli()
-				node.PullStatus = database.NodeStatusAvailable
+				node.PullStatus = data.NodeStatusAvailable
 
 				if err := d.Save(); err != nil {
 					return errors.WithStack(err)
@@ -33,7 +32,7 @@ func NodesConfigsShow(cdr *coordinator.Coordinator, writer *writer.Writer, d *da
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		configs := writer.RemoteConfig(node, cdr.State().XrayUpdatedAt(), cdr.State().XraySharedPassword())
+		configs := writer.NodeConfig(node, cdr.State().XrayUpdatedAt(), cdr.State().XraySharedPassword())
 
 		return c.JSON(http.StatusOK, configs)
 	}

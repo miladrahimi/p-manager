@@ -40,27 +40,33 @@ func New() (a *App, err error) {
 	a.context, a.cancel = context.WithCancel(context.Background())
 	a.shutdown = make(chan struct{})
 
-	if a.config, err = config.New(); err != nil {
-		return a, errors.WithStack(err)
+	root, err := os.Getwd()
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	a.logger, err = logger.New(a.config.Logger.Level, a.config.Logger.Format, a.shutdown)
+	if a.config, err = config.New(root); err != nil {
+		return a, errors.WithStack(err)
+	}
+	c := a.config
+
+	a.logger, err = logger.New(c.Logger.Level, c.Logger.Format, a.shutdown)
 	if err != nil {
 		return a, errors.WithStack(err)
 	}
+	l := a.logger
 
-	c := a.config
-
-	a.httpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
-	if a.database, err = database.New(config.DatabaseDirectory, data.Default()); err != nil {
+	if a.database, err = database.New(config.DatabaseDirectory(root), data.Default()); err != nil {
 		return a, errors.WithStack(err)
 	}
-	a.xray = xray.New(a.context, a.logger, c.Xray.LogLevel, config.XrayConfigPath, config.XrayBinaryPath())
-	a.composer = composer.New(a.config, a.database, a.xray)
-	a.coordinator = coordinator.New(c, a.httpClient, a.logger, a.database, a.xray, a.composer)
-	a.httpServer = server.New(c, a.logger, a.composer, a.coordinator, a.database, a.httpClient)
 
-	a.logger.Info("app: constructed successfully")
+	a.httpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
+	a.xray = xray.New(a.context, l, c.Xray.LogLevel, config.XrayConfigPath(root), config.XrayBinaryPath(root))
+	a.composer = composer.New(c, a.database, a.xray)
+	a.coordinator = coordinator.New(c, a.httpClient, l, a.database, a.xray, a.composer)
+	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient)
+
+	l.Info("app: constructed successfully")
 
 	a.setupSignalListener()
 

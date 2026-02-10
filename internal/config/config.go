@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
@@ -14,28 +13,7 @@ import (
 const AppName = "P-Manager"
 const AppVersion = "v26.2.8"
 const CoreVersion = "Xray v26.1.23"
-
 const MaxUsersCount = 1024
-
-const DatabaseDirectory = "storage/database"
-
-const XrayConfigPath = "storage/app/xray.json"
-
-const defaultConfigPath = "configs/main.defaults.json"
-const localConfigPath = "configs/main.json"
-
-var xrayBinaryPaths = map[string]string{
-	"darwin": "third_party/xray-macos-arm64/xray",
-	"linux":  "third_party/xray-linux-64/xray",
-}
-
-// XrayBinaryPath returns the path of the xray binary for the current OS.
-func XrayBinaryPath() string {
-	if path, found := xrayBinaryPaths[runtime.GOOS]; found {
-		return path
-	}
-	return xrayBinaryPaths["linux"]
-}
 
 // Config represents the application configuration.
 type Config struct {
@@ -59,10 +37,10 @@ type Config struct {
 }
 
 // New creates a new instance of Config and loads the default and local config files.
-func New() (*Config, error) {
+func New(root string) (*Config, error) {
 	c := &Config{}
 
-	content, err := os.ReadFile(defaultConfigPath)
+	content, err := os.ReadFile(defaultConfigPath(root))
 	if err != nil {
 		return c, errors.WithStack(err)
 	}
@@ -71,8 +49,9 @@ func New() (*Config, error) {
 		return c, errors.WithStack(err)
 	}
 
-	if util.FileExist(localConfigPath) {
-		content, err = os.ReadFile(localConfigPath)
+	lcp := localConfigPath(root)
+	if util.FileExist(lcp) {
+		content, err = os.ReadFile(lcp)
 		if err != nil {
 			return c, errors.WithStack(err)
 		}
@@ -85,7 +64,7 @@ func New() (*Config, error) {
 		if err != nil {
 			return c, errors.WithStack(err)
 		}
-		if err = os.WriteFile(localConfigPath, contentBytes, 0644); err != nil {
+		if err = os.WriteFile(lcp, contentBytes, 0644); err != nil {
 			return c, errors.WithStack(err)
 		}
 	}

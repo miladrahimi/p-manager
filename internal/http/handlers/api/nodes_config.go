@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -22,7 +21,7 @@ func NodesConfigShow(
 		nodeId := c.Param("id")
 		var node *data.Node
 		for _, n := range db.Data().Nodes {
-			if strconv.Itoa(n.Id) == nodeId {
+			if n.Id == nodeId {
 				node = n
 				node.PulledAt = time.Now().UnixMilli()
 				node.PullStatus = data.NodeStatusAvailable

@@ -42,20 +42,12 @@ func (s *Data) CountActiveUsers() int {
 	return activeUsersCount
 }
 
-// GenerateUserId generates a unique ID for a new user.
-func (s *Data) GenerateUserId() int {
-	if len(s.Users) > 0 {
-		return s.Users[len(s.Users)-1].Id + 1
-	} else {
-		return 1
+// FindUserById finds a user by its (primary) ID.
+func (s *Data) FindUserById(id string) *User {
+	for _, u := range s.Users {
+		if u.Id == id {
+			return u
+		}
 	}
-}
-
-// GenerateNodeId generates a unique ID for a new node.
-func (s *Data) GenerateNodeId() int {
-	if len(s.Nodes) > 0 {
-		return s.Nodes[len(s.Nodes)-1].Id + 1
-	} else {
-		return 1
-	}
+	return nil
 }

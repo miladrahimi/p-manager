@@ -33,26 +33,26 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 			})
 		}
 
-		if !util.PortsDistinct([]int{r.VtrDirectPort, r.VtrRemotePort, r.Vt2VtrPort}) {
+		if !util.PortsDistinct([]int{r.VrrvDirectPort, r.VrrvRemotePort, r.Vrrv2VrrvPort}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Ports must be the distinct.",
 			})
 		}
 
 		current := db.Data().XraySettings
-		if r.VtrDirectPort > 0 && r.VtrDirectPort != current.VtrDirectPort && !util.PortFree(r.VtrDirectPort) {
+		if r.VrrvDirectPort > 0 && r.VrrvDirectPort != current.VrrvDirectPort && !util.PortFree(r.VrrvDirectPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.VtrDirectPort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.VrrvDirectPort),
 			})
 		}
-		if r.VtrRemotePort > 0 && r.VtrRemotePort != current.VtrRemotePort && !util.PortFree(r.VtrRemotePort) {
+		if r.VrrvRemotePort > 0 && r.VrrvRemotePort != current.VrrvRemotePort && !util.PortFree(r.VrrvRemotePort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.VtrRemotePort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.VrrvRemotePort),
 			})
 		}
-		if r.Vt2VtrPort > 0 && r.Vt2VtrPort != current.Vt2VtrPort && !util.PortFree(r.Vt2VtrPort) {
+		if r.Vrrv2VrrvPort > 0 && r.Vrrv2VrrvPort != current.Vrrv2VrrvPort && !util.PortFree(r.Vrrv2VrrvPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.Vt2VtrPort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.Vrrv2VrrvPort),
 			})
 		}
 
@@ -61,7 +61,7 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 			return errors.WithStack(err)
 		}
 
-		go coordinator.UpdateConfigs()
+		coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusOK, r)
 	}

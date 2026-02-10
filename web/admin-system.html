@@ -109,62 +109,78 @@
             <form class="card-body text-start">
                 <table class="table table-striped table-borderless table-sm">
                     <tr>
-                        <td class="align-middle px-2">
-                            VTR Direct Port
-                            <small class="badge bg-dark-subtle">VLESS TCP Reality</small>
-                            <br>
-                            <small class="text-muted">
-                                It makes a standalone proxy on P-Manager without using P-Nodes.
-                                <br>
-                                [User] ↔ P-Manager ↔ [Internet]
-                            </small>
-                        </td>
+                        <td class="align-middle px-2">VRRV Direct Port</td>
                         <td>
-                            <input id="vtr_direct_port" type="number" class="form-control"
-                                   title="VTR Direct Port" min="0" max="65535" required="required"
+                            <input id="vrrv_direct_port" type="number" class="form-control"
+                                   title="VRRV Direct Port" min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="Direct port or zero to disable.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">
-                            VT→VTR Relay Port
-                            <small class="badge bg-dark-subtle">VLESS TCP -> VLESS TCP Reality</small>
-                            <br>
-                            <small class="text-muted">
-                                It makes proxies on P-Nodes and a bridge on P-Manager.
-                                It forwards traffic from P-Manager to P-Node.
-                                <br>
-                                [User] ↔ P-Manager ↔ P-Node ↔ [Internet]
-                            </small>
-                        </td>
+                        <td class="align-middle px-2">VRRV→VRRV Relay Port</td>
                         <td>
-                            <input id="vt_2_vtr_port" type="number" class="form-control"
-                                   title="VT->VTR Relay Port"
+                            <input id="vrrv_2_vrrv_port" type="number" class="form-control"
+                                   title="VRRV->VRRV Relay Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="Relay port or zero to disable.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">
-                            VTR Remote Port
-                            <small class="badge bg-dark-subtle">VLESS TCP Reality</small>
-                            <br>
-                            <small class="text-muted">
-                                It makes standalone proxies on P-Nodes.
-                                <br>
-                                [User] ↔ P-Node ↔ [Internet]
-                            </small>
-                        </td>
+                        <td class="align-middle px-2">VRRV Remote Port</td>
                         <td>
-                            <input id="vtr_remote_port" type="number" class="form-control"
-                                   title="VTR Remote Port" min="0" max="65535" required="required"
+                            <input id="vrrv_remote_port" type="number" class="form-control"
+                                   title="VRRV Remote Port" min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="Remote port or zero to disable.">
                         </td>
                     </tr>
                 </table>
+                <div class="d-flex">
+                    <p class="ps-2 py-1 rounded-1 bg-light flex-fill m-1">
+                        <span>Direct:</span>
+                        <code class="text-muted">
+                            [User] → P-Manager → [Internet]
+                        </code>
+                        <br>
+                        <span>Remote:</span>
+                        <code class="text-muted">
+                            [User] → P-Node → [Internet]
+                        </code>
+                        <br>
+                        <span>Relay:</span>
+                        <code class="text-muted">
+                            [User] → P-Manager → P-Node → [Internet]
+                        </code>
+                    </p>
+                    <p class="ps-2 py-1 rounded-1 bg-light flex-fill m-1">
+                        <span>VRRV:</span>
+                        <span class="badge bg-secondary-subtle">
+                                <code class="fw-bold text-black">protocol:</code> <code>vless</code>
+                            </span>
+                        <span class="badge bg-secondary-subtle">
+                                <code class="fw-bold text-black">network:</code> <code>raw</code>
+                            </span>
+                        <span class="badge bg-secondary-subtle">
+                                <code class="fw-bold text-black">security:</code> <code>reality</code>
+                            </span>
+                        <span class="badge bg-secondary-subtle">
+                                <code class="fw-bold text-black">flow:</code> <code>xtls-rprx-vision</code>
+                            </span>
+                        <br>
+                        <span>VRN:</span>
+                        <span class="badge bg-secondary-subtle">
+                                <code class="fw-bold text-black">protocol:</code> <code>vless</code>
+                            </span>
+                        <span class="badge bg-secondary-subtle">
+                                <code class="fw-bold text-black">network:</code> <code>raw</code>
+                            </span>
+                        <span class="badge bg-secondary-subtle">
+                                <code class="fw-bold text-black">security:</code> <code>none</code>
+                            </span>
+                    </p>
+                </div>
             </form>
             <div class="d-flex flex-column flex-md-row px-3 pb-3">
                 <button class="btn btn-dark btn-sm m-1 flex-fill" id="save-xray-settings">Save Xray Settings</button>
@@ -302,21 +318,21 @@
         error: makeErrorHandler(),
         processData: true,
         type: "GET",
-        url: "/api/settings"
+        url: "/api/main-settings"
     })
 
     const loadXraySettings = () => $.ajax({
         dataType: "json",
         success: response => {
             xraySettings = response
-            setPortValue('#vtr_direct_port', response['vtr_direct_port'])
-            setPortValue('#vt_2_vtr_port', response['vt_2_vtr_port'])
-            setPortValue('#vtr_remote_port', response['vtr_remote_port'])
+            setPortValue('#vrrv_direct_port', response['vrrv_direct_port'])
+            setPortValue('#vrrv_2_vrrv_port', response['vrrv_2_vrrv_port'])
+            setPortValue('#vrrv_remote_port', response['vrrv_remote_port'])
         },
         error: makeErrorHandler(),
         processData: true,
         type: "GET",
-        url: "/api/xray/settings"
+        url: "/api/xray-settings"
     })
 
     loadMainSettings()
@@ -462,7 +478,7 @@
 
         $.ajax({
             type: 'POST',
-            url: "/api/settings",
+            url: "/api/main-settings",
             data: JSON.stringify({
                 admin_password: $('#admin_password').val(),
                 traffic_ratio: parseFloat($('#usage_ratio').val()),
@@ -479,7 +495,7 @@
     })
 
     $('#save-xray-settings').click(function () {
-        const form = document.querySelector('#vtr_direct_port').closest('form')
+        const form = document.querySelector('#vrrv_direct_port').closest('form')
         if (!form.checkValidity()) {
             form.reportValidity()
             return
@@ -495,13 +511,13 @@
 
         $.ajax({
             type: 'POST',
-            url: "/api/xray/settings",
+            url: "/api/xray-settings",
             data: JSON.stringify({
-                vtr_direct_port: parsePort($('#vtr_direct_port').val()),
-                vt_2_vtr_port: parsePort($('#vt_2_vtr_port').val()),
-                vtr_remote_port: parsePort($('#vtr_remote_port').val()),
-                vtr_private_key: xraySettings['vtr_private_key'] || "",
-                vtr_public_key: xraySettings['vtr_public_key'] || "",
+                vrrv_direct_port: parsePort($('#vrrv_direct_port').val()),
+                vrrv_2_vrrv_port: parsePort($('#vrrv_2_vrrv_port').val()),
+                vrrv_remote_port: parsePort($('#vrrv_remote_port').val()),
+                vrrv_private_key: xraySettings['vrrv_private_key'] || "",
+                vrrv_public_key: xraySettings['vrrv_public_key'] || "",
             }),
             processData: true,
             dataType: 'json',

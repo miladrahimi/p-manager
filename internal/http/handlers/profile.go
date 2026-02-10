@@ -18,7 +18,7 @@ func Profile(db *database.Database[data.Data]) echo.HandlerFunc {
 
 		userId := c.QueryParams().Get("u")
 		for _, u := range db.Data().Users {
-			if u.VlessId == userId {
+			if u.Id == userId {
 				content, err := os.ReadFile(filepath.Join("web", "profile.html"))
 				if err != nil {
 					return err
@@ -27,10 +27,8 @@ func Profile(db *database.Database[data.Data]) echo.HandlerFunc {
 			}
 		}
 
-		content, err := os.ReadFile(filepath.Join("web", "profile-404.html"))
-		if err != nil {
-			return err
-		}
-		return c.HTML(http.StatusOK, string(content))
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"message": "User not found.",
+		})
 	}
 }

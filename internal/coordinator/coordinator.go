@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -103,8 +102,8 @@ func (c *Coordinator) Run(ctx context.Context) error {
 func (c *Coordinator) initialize() (err error) {
 	d := c.db.Data()
 
-	if d.XraySettings.VtrPrivateKey == "" || d.XraySettings.VtrPublicKey == "" {
-		d.XraySettings.VtrPrivateKey, d.XraySettings.VtrPublicKey, err = c.xray.GenerateX25519()
+	if d.XraySettings.VrrvPrivateKey == "" || d.XraySettings.VrrvPublicKey == "" {
+		d.XraySettings.VrrvPrivateKey, d.XraySettings.VrrvPublicKey, err = c.xray.GenerateX25519()
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -211,7 +210,7 @@ func (c *Coordinator) pushConfigToNode(n *data.Node) {
 
 // pullStatsFromNodes pulls the stats of all nodes.
 func (c *Coordinator) pullStatsFromNodes() {
-	if c.db.Data().XraySettings.VtrRemotePort == 0 {
+	if c.db.Data().XraySettings.VrrvRemotePort == 0 {
 		return
 	}
 
@@ -257,13 +256,13 @@ func (c *Coordinator) pullStatsFromNode(node *data.Node) {
 	shouldSync := false
 	db := c.db.Data()
 	for _, u := range db.Users {
-		if bytes, found := users[strconv.Itoa(u.Id)]; found {
+		if bytes, found := users[u.VlessId]; found {
 			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
 			u.Usage = util.Bytes2GB(u.UsageBytes)
 			if u.Quota > 0 && u.Usage > u.Quota {
 				u.Enabled = false
 				shouldSync = true
-				c.l.Debug("coordinator: user disabled", zap.Int("id", u.Id))
+				c.l.Debug("coordinator: user disabled", zap.String("id", u.Id))
 			}
 		}
 	}
@@ -301,7 +300,7 @@ func (c *Coordinator) loadLocalStats() error {
 		}
 		if parts[0] == "user" {
 			users[parts[1]] += qs.GetValue()
-		} else if parts[0] == "inbound" && strings.HasPrefix(parts[1], "internal-") {
+		} else if parts[0] == "inbound" && strings.HasPrefix(parts[1], "internal-") { //TODO
 			nodes[parts[1][8:]] += qs.GetValue()
 		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
 			nodes[parts[1][6:]] += qs.GetValue()
@@ -312,7 +311,7 @@ func (c *Coordinator) loadLocalStats() error {
 
 	db := c.db.Data()
 	for _, n := range db.Nodes {
-		if bytes, found := nodes[strconv.Itoa(n.Id)]; found {
+		if bytes, found := nodes[n.Id]; found {
 			n.UsageBytes = util.SafeSumI64(n.UsageBytes, bytes)
 		}
 		n.Usage = util.Bytes2GB(n.UsageBytes)
@@ -322,13 +321,13 @@ func (c *Coordinator) loadLocalStats() error {
 
 	shouldSync := false
 	for _, u := range db.Users {
-		if bytes, found := users[strconv.Itoa(u.Id)]; found {
+		if bytes, found := users[u.VlessId]; found {
 			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
 			u.Usage = util.Bytes2GB(u.UsageBytes)
 			if u.Quota > 0 && u.Usage > u.Quota {
 				u.Enabled = false
 				shouldSync = true
-				c.l.Debug("coordinator: user disabled", zap.Int("id", u.Id))
+				c.l.Debug("coordinator: user disabled", zap.String("id", u.Id))
 			}
 		}
 	}
@@ -347,7 +346,7 @@ func (c *Coordinator) updateNodePullStatuses() error {
 	needsSync := false
 	for _, n := range c.db.Data().Nodes {
 		if time.Now().Sub(time.UnixMilli(n.PulledAt)) > time.Minute && n.PullStatus != data.NodeStatusUnavailable {
-			c.l.Info(fmt.Sprintf("Node %d marked as unavailable", n.Id))
+			c.l.Info(fmt.Sprintf("Node %s marked as unavailable", n.Id))
 			n.PullStatus = data.NodeStatusUnavailable
 			needsSync = true
 		}

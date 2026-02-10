@@ -99,12 +99,12 @@
     }
 
     let profile = rowIndex => {
-        const vlessId = find(rowIndex, 'vless_id') || find(rowIndex, 'uuid')
-        if (!vlessId) {
-            table.alert("VLESS ID is missing for this user.", "error")
+        const userId = find(rowIndex, 'id')
+        if (!userId) {
+            table.alert("User ID is missing for this user.", "error")
             return
         }
-        window.open(`/profile?u=${vlessId}`, '_blank')
+        window.open(`/profile?u=${userId}`, '_blank')
     }
 
     let actionsFormatter = cell => [
@@ -125,7 +125,11 @@
         validationMode: "blocking",
         columns: [
             {
-                title: "ID", field: "id", resizable: true, headerFilter: "input"
+                title: "ID",
+                field: "id",
+                resizable: true,
+                headerFilter: "input",
+                formatter: cell => `<small><code class="text-muted">${cell.getValue()}</code></small>`,
             },
             {
                 title: "Name", field: "name", resizable: true, headerFilter: "input", editor: "input",
@@ -179,8 +183,9 @@
 
         table.alert("Saving the user...", "msg")
 
-        let method = cell.getData().id === 0 ? "POST" : "PUT"
-        let url = cell.getData().id === 0 ? "/api/users" : `/api/users/${cell.getData().id}`
+        let isNew = cell.getData().id === ""
+        let method = isNew ? "POST" : "PUT"
+        let url = isNew ? "/api/users" : `/api/users/${cell.getData().id}`
 
         $.ajax({
             type: method,
@@ -200,7 +205,7 @@
 
     $("#create").click(() => {
         table.addRow({
-            id: 0,
+            id: "",
             vless_id: "",
             name: "",
             quota: 0,

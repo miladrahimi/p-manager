@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -76,7 +75,7 @@ func UsersStore(coordinator *coordinator.Coordinator, db *database.Database[data
 		}
 
 		user := data.NewUser(
-			db.Data().GenerateUserId(),
+			util.Uuid(),
 			util.Uuid(),
 			request.Name,
 			request.Quota,
@@ -115,7 +114,7 @@ func UsersUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 
 		var user *data.User
 		for i, u := range db.Data().Users {
-			if strconv.Itoa(u.Id) == c.Param("id") {
+			if u.Id == c.Param("id") {
 				user = db.Data().Users[i]
 			}
 		}
@@ -163,7 +162,7 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, db *database.Datab
 
 		var user *data.User
 		for i, u := range db.Data().Users {
-			if strconv.Itoa(u.Id) == c.Param("id") {
+			if u.Id == c.Param("id") {
 				user = db.Data().Users[i]
 			}
 		}
@@ -226,7 +225,7 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.
 func UsersDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		for i, u := range db.Data().Users {
-			if strconv.Itoa(u.Id) == c.Param("id") {
+			if u.Id == c.Param("id") {
 				db.Data().Users = slices.Delete(db.Data().Users, i, i+1)
 				if err := db.Save(); err != nil {
 					return errors.WithStack(err)
@@ -258,12 +257,12 @@ func UsersDeleteBatch(coordinator *coordinator.Coordinator, db *database.Databas
 		var newUsers []*data.User
 
 		if enabled != nil {
-		for _, u := range db.Data().Users {
-			if u.Enabled != *enabled {
-				newUsers = append(newUsers, u)
+			for _, u := range db.Data().Users {
+				if u.Enabled != *enabled {
+					newUsers = append(newUsers, u)
+				}
 			}
-		}
-		db.Data().Users = newUsers
+			db.Data().Users = newUsers
 		}
 
 		if newUsers == nil {
@@ -317,20 +316,28 @@ func UsersImport(
 			})
 		}
 
+		var ids []string
+		for _, u := range db.Data().Users {
+			ids = append(ids, u.Id)
+		}
+
 		var names []string
 		for _, u := range db.Data().Users {
 			names = append(names, u.Name)
 		}
 
 		var results []string
-		for i, u := range users {
-			if slices.Index(names, u.Name) != -1 {
-				results = append(results, fmt.Sprintf("Ignored #%d: DuplicateName=%s", u.Id, u.Name))
+		for _, u := range users {
+			if slices.Index(ids, u.Id) != -1 {
+				results = append(results, fmt.Sprintf("Skipped: DuplicateId=%s", u.Id))
 				continue
 			}
-			u.Id = db.Data().GenerateUserId()
+			if slices.Index(names, u.Name) != -1 {
+				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateName=%s", u.Id, u.Name))
+				continue
+			}
 			db.Data().Users = append(db.Data().Users, &u)
-			results = append(results, fmt.Sprintf("Imported #%d: ID=%d Name=%s", users[i].Id, u.Id, u.Name))
+			results = append(results, fmt.Sprintf("Imported: ID=%s Name=%s", u.Id, u.Name))
 		}
 
 		if err = db.Save(); err != nil {

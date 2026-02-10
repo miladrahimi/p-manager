@@ -82,7 +82,7 @@
         }
 
         let row = table.getRow(rowIndex)
-        if (row.getData().id === 0) {
+        if (!row.getData().id) {
             table.deleteRow(rowIndex)
             return
         }
@@ -135,7 +135,13 @@
         validationMode: "blocking",
         columns: [
             {
-                title: "ID", field: "id", widthGrow: 1, resizable: true, headerFilter: "input", editable: true,
+                title: "ID",
+                field: "id",
+                widthGrow: 1,
+                resizable: true,
+                headerFilter: "input",
+                editable: true,
+                formatter: cell => `<small><code class="text-muted">${cell.getValue()}</code></small>`,
             },
             {
                 title: "Host",
@@ -194,8 +200,9 @@
 
         table.alert("Saving the node...", "msg")
 
-        let method = cell.getData().id === 0 ? "POST" : "PUT"
-        let url = cell.getData().id === 0 ? "/api/nodes" : `/api/nodes/${cell.getData().id}`
+        let isNew = !cell.getData().id
+        let method = isNew ? "POST" : "PUT"
+        let url = isNew ? "/api/nodes" : `/api/nodes/${cell.getData().id}`
 
         $.ajax({
             type: method,
@@ -215,7 +222,7 @@
 
     $("#create").click(() => {
         table.addRow({
-            id: 0,
+            id: "",
             host: "",
             http_token: "",
             http_port: "",

@@ -12,7 +12,7 @@ const (
 
 // Node represents a server (node) in the system.
 type Node struct {
-	Id         int        `json:"id"`
+	Id         string     `json:"id" validate:"required,uuid"`
 	Host       string     `json:"host" validate:"required,max=128"`
 	HttpToken  string     `json:"http_token" validate:"required"`
 	HttpPort   int        `json:"http_port" validate:"required,min=1,max=65535"`
@@ -25,7 +25,7 @@ type Node struct {
 }
 
 // NewNode creates a new node instance.
-func NewNode(id int, host string, httpToken string, httpPort int) *Node {
+func NewNode(id string, host string, httpToken string, httpPort int) *Node {
 	return &Node{
 		Id:        id,
 		Host:      host,

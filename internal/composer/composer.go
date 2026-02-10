@@ -44,28 +44,34 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 	xc.FindInbound("api").Port = apiPort
 
 	if len(clients) > 0 {
-		if d.XraySettings.Vt2VtrPort > 0 {
-			xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
+		if d.XraySettings.Vrrv2VrrvPort > 0 {
+			xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
 				"relay",
-				d.XraySettings.Vt2VtrPort,
-				d.XraySettings.VtrPrivateKey,
+				d.XraySettings.Vrrv2VrrvPort,
+				d.XraySettings.VrrvPrivateKey,
 				clients,
 			))
 		}
 
-		if d.XraySettings.VtrDirectPort > 0 {
-			xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
+		if d.XraySettings.VrrvDirectPort > 0 {
+			xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
 				"direct",
-				d.XraySettings.VtrDirectPort,
-				d.XraySettings.VtrPrivateKey,
+				d.XraySettings.VrrvDirectPort,
+				d.XraySettings.VrrvPrivateKey,
 				clients,
 			))
 		}
 	}
 
 	if len(clients) > 0 {
+		if d.XraySettings.VrrvDirectPort > 0 {
+			xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
+				InboundTag:  []string{"direct"},
+				OutboundTag: "out",
+			})
+		}
 		if len(d.Nodes) > 0 {
-			if d.XraySettings.Vt2VtrPort > 0 {
+			if d.XraySettings.Vrrv2VrrvPort > 0 {
 				xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
 					InboundTag:  []string{"relay"},
 					BalancerTag: "relay",
@@ -75,7 +81,7 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 	}
 
 	if len(d.Nodes) > 0 {
-		if d.XraySettings.Vt2VtrPort > 0 {
+		if d.XraySettings.Vrrv2VrrvPort > 0 {
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
 				Tag: "relay", Selector: []string{},
 			})
@@ -83,21 +89,21 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 	}
 
 	for _, n := range d.Nodes {
-		if d.XraySettings.Vt2VtrPort > 0 {
+		if d.XraySettings.Vrrv2VrrvPort > 0 {
 			outboundRelayPort, err := util.FreePort()
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
-			xc.Outbounds = append(xc.Outbounds, vless.MakeVtrOutbound(
-				fmt.Sprintf("relay-%d", n.Id),
+			xc.Outbounds = append(xc.Outbounds, vless.MakeVrrvOutbound(
+				fmt.Sprintf("relay-%s", n.Id),
 				n.Host,
 				outboundRelayPort,
 				util.Uuid(),
-				d.XraySettings.VtrPublicKey,
+				d.XraySettings.VrrvPublicKey,
 			))
 			xc.FindBalancer("relay").Selector = append(
 				xc.FindBalancer("relay").Selector,
-				fmt.Sprintf("relay-%d", n.Id),
+				fmt.Sprintf("relay-%s", n.Id),
 			)
 		}
 	}
@@ -115,16 +121,20 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 		UpdatedBy: d.MainSettings.Host,
 	}
 
-	if d.XraySettings.Vt2VtrPort > 0 {
-		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%d", node.Id))
+	if d.XraySettings.Vrrv2VrrvPort > 0 {
+		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%s", node.Id))
 		if relayOutbound != nil && relayOutbound.Settings != nil {
 			if len(relayOutbound.Settings.Vnext) > 0 {
 				server := relayOutbound.Settings.Vnext[0]
-				xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
+				users := make([]*component.VlessUser, len(server.Users))
+				for i, u := range server.Users {
+					users[i] = vless.MakeUser(u.Id, vless.FlowVision, vless.EncryptionEmpty)
+				}
+				xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
 					"direct",
 					server.Port,
-					d.XraySettings.VtrPrivateKey,
-					server.Users,
+					d.XraySettings.VrrvPrivateKey,
+					users,
 				))
 				xc.Routing.Rules = append(
 					xc.Routing.Rules,
@@ -137,11 +147,11 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 		}
 	}
 
-	if w.db.Data().XraySettings.VtrRemotePort > 0 {
-		xc.Inbounds = append(xc.Inbounds, vless.MakeVtrInbound(
+	if w.db.Data().XraySettings.VrrvRemotePort > 0 {
+		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
 			"remote",
-			d.XraySettings.VtrRemotePort,
-			d.XraySettings.VtrPrivateKey,
+			d.XraySettings.VrrvRemotePort,
+			d.XraySettings.VrrvPrivateKey,
 			w.clients(),
 		))
 		xc.Routing.Rules = append(

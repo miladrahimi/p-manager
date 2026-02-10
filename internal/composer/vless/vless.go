@@ -1,17 +1,18 @@
 package vless
 
 import (
+	"strings"
+
 	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
 
 const (
 	Protocol                = "vless"
 	FlowVision              = "xtls-rprx-vision"
-	NetworkTcp              = "tcp"
+	NetworkRaw              = "raw"
 	SecurityReality         = "reality"
 	ServerNameStackOverflow = "stackoverflow.com"
-	DestStackOverflow       = "stackoverflow.com:443"
-	EncryptionNone          = "EncryptionNone"
+	EncryptionNone          = "none"
 	EncryptionEmpty         = ""
 )
 
@@ -24,8 +25,8 @@ func MakeUser(id, flow, encryption string) *component.VlessUser {
 	}
 }
 
-// MakeVtrInbound makes a VLESS/TCP/Reality inbound.
-func MakeVtrInbound(tag string, port int, privateKey string, clients []*component.VlessUser) *component.Inbound {
+// MakeVrrvInbound makes a VLESS/Raw/Reality inbound.
+func MakeVrrvInbound(tag string, port int, privateKey string, clients []*component.VlessUser) *component.Inbound {
 	return &component.Inbound{
 		Tag:      tag,
 		Port:     port,
@@ -35,10 +36,10 @@ func MakeVtrInbound(tag string, port int, privateKey string, clients []*componen
 			Decryption: EncryptionNone,
 		},
 		StreamSettings: &component.StreamSettings{
-			Network:  NetworkTcp,
+			Network:  NetworkRaw,
 			Security: SecurityReality,
 			RealitySettings: &component.RealitySettings{
-				Dest:        DestStackOverflow,
+				Dest:        strings.Join([]string{ServerNameStackOverflow, "443"}, ":"),
 				PrivateKey:  privateKey,
 				ServerNames: []string{ServerNameStackOverflow},
 				ShortIds:    []string{""},
@@ -52,8 +53,8 @@ func MakeVtrInbound(tag string, port int, privateKey string, clients []*componen
 	}
 }
 
-// MakeVtrOutbound makes a VLESS/TCP/Reality outbound.
-func MakeVtrOutbound(
+// MakeVrrvOutbound makes a VLESS/Raw/Reality outbound.
+func MakeVrrvOutbound(
 	tag string,
 	address string,
 	port int,
@@ -75,7 +76,7 @@ func MakeVtrOutbound(
 			},
 		},
 		StreamSettings: &component.StreamSettings{
-			Network:  NetworkTcp,
+			Network:  NetworkRaw,
 			Security: SecurityReality,
 			RealitySettings: &component.RealitySettings{
 				Fingerprint: "chrome",

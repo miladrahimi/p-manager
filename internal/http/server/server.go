@@ -92,8 +92,9 @@ func (s *Server) Run() {
 	g2.PATCH("/nodes", api.NodesUpdatePartialBatch(s.coordinator, s.db))
 	g2.PUT("/nodes/:id", api.NodesUpdate(s.coordinator, s.db))
 	g2.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db))
-
 	g2.GET("/nodes/:id/config", api.NodesConfigShow(s.coordinator, s.composer, s.db))
+
+	g2.GET("/profile", api.ProfileShow(s.db))
 
 	g2.GET("/stats", api.StatsIndex(s.db))
 	g2.PATCH("/stats", api.StatsUpdatePartial(s.db))
@@ -102,12 +103,13 @@ func (s *Server) Run() {
 
 	g2.GET("/insights", api.InsightsIndex(s.db))
 
-	g2.GET("/settings", api.MainSettingsShow(s.db))
-	g2.POST("/settings", api.MainSettingsUpdate(s.db))
+	g2.GET("/main-settings", api.MainSettingsShow(s.db))
+	g2.POST("/main-settings", api.MainSettingsUpdate(s.db))
 
 	g2.POST("/xray/restart", api.XrayRestart(s.coordinator))
-	g2.GET("/xray/settings", api.XraySettingsShow(s.db))
-	g2.POST("/xray/settings", api.XraySettingsUpdate(s.coordinator, s.db))
+
+	g2.GET("/xray-settings", api.XraySettingsShow(s.db))
+	g2.POST("/xray-settings", api.XraySettingsUpdate(s.coordinator, s.db))
 
 	// Start the HTTP Server
 	go func() {

@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
@@ -39,7 +38,7 @@ func NodesIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 
 		var response = make([]NodeResponse, 0, len(db.Data().Nodes))
 		for _, node := range db.Data().Nodes {
-			cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%d\" TOKEN=\"%s\"", node.Id, token)
+			cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%s\" TOKEN=\"%s\"", node.Id, token)
 			response = append(response, NodeResponse{
 				Node:        *node,
 				PullCommand: cmd,
@@ -78,7 +77,7 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 			}
 		}
 		if node == nil {
-			node = data.NewNode(db.Data().GenerateNodeId(), r.Host, r.HttpToken, r.HttpPort)
+			node = data.NewNode(util.Uuid(), r.Host, r.HttpToken, r.HttpPort)
 			db.Data().Nodes = append(db.Data().Nodes, node)
 		}
 
@@ -108,7 +107,7 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 
 		var node *data.Node
 		for _, n := range db.Data().Nodes {
-			if strconv.Itoa(n.Id) == c.Param("id") {
+			if n.Id == c.Param("id") {
 				node = n
 			}
 		}
@@ -165,7 +164,7 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.
 func NodesDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		for i, s := range db.Data().Nodes {
-			if strconv.Itoa(s.Id) == c.Param("id") {
+			if s.Id == c.Param("id") {
 				db.Data().Nodes = append(db.Data().Nodes[:i], db.Data().Nodes[i+1:]...)
 				if err := db.Save(); err != nil {
 					return errors.WithStack(err)

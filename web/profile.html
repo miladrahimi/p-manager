@@ -59,42 +59,7 @@
                                    data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
                         </div>
                     </div>
-                    <div id="ss-direct" class="d-none my-1">
-                        <small class="text-dark-emphasis">Proxy (Direct):</small>
-                        <div class="link small overflow-auto d-flex">
-                            <a type="text" href="#" id="ss-direct-link"
-                               class="text-nowrap align-self-center overflow-auto">---</a>
-                            <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
-                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
-                        </div>
-                    </div>
-                    <div id="ss-relay" class="d-none my-1">
-                        <small class="text-dark-emphasis">Proxy (Relay):</small>
-                        <div class="link small overflow-auto d-flex">
-                            <a type="text" href="#" id="ss-relay-link"
-                               class="text-nowrap align-self-center overflow-auto">---</a>
-                            <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
-                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
-                        </div>
-                    </div>
-                    <div id="ss-reverse" class="d-none my-1">
-                        <small class="text-dark-emphasis">Proxy (Reverse):</small>
-                        <div class="link small overflow-auto d-flex">
-                            <a type="text" href="#" id="ss-reverse-link"
-                               class="text-nowrap align-self-center overflow-auto">---</a>
-                            <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
-                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
-                        </div>
-                    </div>
-                    <div id="ss-remote" class="d-none my-1">
-                        <small class="text-dark-emphasis">Proxy (Remote):</small>
-                        <div class="link small overflow-auto d-flex">
-                            <a type="text" href="#" id="ss-remote-link"
-                               class="text-nowrap align-self-center overflow-auto">---</a>
-                            <input type="button" class="copy btn btn-dark" value="Copy" data-bs-trigger="manual"
-                                   data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
-                        </div>
-                    </div>
+                    <div id="proxies"></div>
                 </div>
                 <div class="text-center text-secondary mt-3">
                     <small>Registered @</small>
@@ -127,50 +92,24 @@
                     $("#disabled-badge").removeClass('d-none')
                 }
 
-                const vlessId = r['user']['vless_id'] || r['user']['uuid'] || ""
-                if (vlessId) {
-                    $("#vless-id").removeClass('d-none')
-                    $("#vless-id-value").text(vlessId)
-                }
+                const proxyContainer = $("#proxies")
+                const proxies = r['proxies'] || {}
+                const proxyEntries = Object.entries(proxies).filter(([, value]) => value)
 
-                const pick = (obj, keys) => {
-                    for (const key of keys) {
-                        const parts = key.split('.')
-                        let value = obj
-                        for (const part of parts) {
-                            value = value && value[part]
-                        }
-                        if (value !== undefined && value !== null && value !== "") {
-                            return value
-                        }
-                    }
-                    return ""
-                }
+                proxyEntries.forEach(([key, value]) => {
+                    const wrapper = $('<div class="my-1"></div>')
+                    wrapper.append(`<code class="text-dark-emphasis">${key}:</code>`)
 
-                const directLink = pick(r, ["ss_direct", "vtr_direct", "vless_direct", "links.direct"])
-                const relayLink = pick(r, ["ss_relay", "vtr_relay", "vless_relay", "links.relay"])
-                const reverseLink = pick(r, ["ss_reverse", "vtr_reverse", "vless_reverse", "links.reverse"])
-                const remoteLink = pick(r, ["ss_remote", "vtr_remote", "vless_remote", "links.remote"])
+                    const linkRow = $('<div class="link small overflow-auto d-flex"></div>')
+                    const link = $('<a type="text" href="#" class="text-nowrap align-self-center overflow-auto"></a>')
+                    link.text(value).attr('href', value)
+                    const button = $('<input type="button" class="copy btn btn-dark" value="Copy" ' +
+                        'data-bs-trigger="manual" data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">')
 
-                if (directLink) {
-                    $("#ss-direct").removeClass('d-none')
-                    $("#ss-direct-link").html(`${directLink}`).attr('href', `${directLink}`)
-                }
-
-                if (relayLink) {
-                    $("#ss-relay").removeClass('d-none')
-                    $("#ss-relay-link").html(`${relayLink}`).attr('href', `${relayLink}`)
-                }
-
-                if (reverseLink) {
-                    $("#ss-reverse").removeClass('d-none')
-                    $("#ss-reverse-link").html(`${reverseLink}`).attr('href', `${reverseLink}`)
-                }
-
-                if (remoteLink) {
-                    $("#ss-remote").removeClass('d-none')
-                    $("#ss-remote-link").html(`${remoteLink}`).attr('href', `${remoteLink}`)
-                }
+                    linkRow.append(link, button)
+                    wrapper.append(linkRow)
+                    proxyContainer.append(wrapper)
+                })
 
                 let progressBar = $("#progressbar")
                 if (r['user']['quota'] !== 0) {
@@ -202,7 +141,8 @@
             if (targetId) {
                 ta.value = $(`#${targetId}`).text()
             } else {
-                ta.value = me.parent().find('a').html()
+                const link = me.parent().find('a')
+                ta.value = link.attr('href') || link.text()
             }
             document.body.appendChild(ta)
             ta.select()

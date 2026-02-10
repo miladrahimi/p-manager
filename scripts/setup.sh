@@ -48,13 +48,6 @@ if [ ! -f "$BINARY_PATH" ]; then
     exit 1
 fi
 
-# Temporary fix for v26.2.8
-# TODO: Remove this fix after v26.2.8 is released
-if [ ! -f "$ROOT/storage/database/data.json" ] && [ -f "$ROOT/storage/database/app.json" ]; then
-  cp -f "$ROOT/storage/database/app.json" "$ROOT/storage/database/data.json"
-fi
-rm -f "$ROOT/storage/database/app.json"
-
 # Create the config file if it doesn't exist
 if [ ! -f "$ROOT"/configs/main.json ]; then
     cp "$ROOT"/configs/main.example.json "$ROOT"/configs/main.json

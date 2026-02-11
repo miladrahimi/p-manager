@@ -25,7 +25,14 @@ func MakeUser(id, flow, encryption string) *component.VlessUser {
 }
 
 // MakeVrrvInbound makes a VLESS/Raw/Reality inbound.
-func MakeVrrvInbound(tag string, port int, privateKey string, sni string, clients []*component.VlessUser) *component.Inbound {
+func MakeVrrvInbound(
+	tag string,
+	port int,
+	privateKey string,
+	sni string,
+	clients []*component.VlessUser,
+	fallback *component.VlessFallback,
+) *component.Inbound {
 	return &component.Inbound{
 		Tag:      tag,
 		Port:     port,
@@ -33,6 +40,7 @@ func MakeVrrvInbound(tag string, port int, privateKey string, sni string, client
 		Settings: &component.InboundSettings{
 			Clients:    clients,
 			Decryption: EncryptionNone,
+			Fallbacks:  []*component.VlessFallback{fallback},
 		},
 		StreamSettings: &component.StreamSettings{
 			Network:  NetworkRaw,

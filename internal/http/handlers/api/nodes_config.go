@@ -35,7 +35,7 @@ func NodesConfigShow(
 			return c.NoContent(http.StatusNotFound)
 		}
 
-		nc := composer.NodeConfig(node, cdr.State().XrayUpdatedAt(), cdr.State().XraySharedPassword())
+		nc := composer.NodeConfig(node, cdr.State().XrayUpdatedAt())
 
 		return c.JSON(http.StatusOK, nc)
 	}

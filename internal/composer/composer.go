@@ -28,11 +28,11 @@ func New(config *config.Config, database *database.Database[data.Data], xray *xr
 }
 
 // LocalConfig composes the local xray config.
-func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
-	clients := w.clients()
-	d := w.db.Data()
+func (c *Composer) LocalConfig() (*xrayConfig.Config, error) {
+	clients := c.clients()
+	d := c.db.Data()
 	xs := d.XraySettings
-	xc := xrayConfig.New(w.config.Xray.LogLevel)
+	xc := xrayConfig.New(c.config.Xray.LogLevel)
 
 	apiPort, err := util.FreePort()
 	if err != nil {
@@ -42,6 +42,7 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 
 	hasClients := len(clients) > 0
 	hasNodes := len(d.Nodes) > 0
+	fallback := &component.VlessFallback{Dest: c.config.HttpServer.Port}
 
 	if hasClients && hasNodes && xs.Vrrv2VrrvPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
@@ -50,6 +51,7 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 			xs.VrrvPrivateKey,
 			xs.ManagerSni,
 			clients,
+			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
 			InboundTag:  []string{"relay"},
@@ -85,6 +87,7 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 			xs.VrrvPrivateKey,
 			xs.ManagerSni,
 			clients,
+			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
 			InboundTag:  []string{"direct"},
@@ -96,10 +99,11 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 }
 
 // NodeConfig composes the (remote) node xray config.
-func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password string) *xrayConfig.Config {
-	d := w.db.Data()
+func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig.Config {
+	d := c.db.Data()
 	xs := d.XraySettings
-	xc := xrayConfig.New(w.config.Xray.LogLevel)
+	xc := xrayConfig.New(c.config.Xray.LogLevel)
+	fallback := &component.VlessFallback{Dest: node.HttpPort}
 
 	xc.Metadata = &component.Metadata{
 		UpdatedAt: lastUpdate.Format(time.RFC3339),
@@ -107,7 +111,7 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 	}
 
 	if xs.Vrrv2VrrvPort > 0 {
-		relayOutbound := w.xray.Config().FindOutbound(fmt.Sprintf("relay-%s", node.Id))
+		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-%s", node.Id))
 		if relayOutbound != nil && relayOutbound.Settings != nil {
 			if len(relayOutbound.Settings.Vnext) > 0 {
 				server := relayOutbound.Settings.Vnext[0]
@@ -121,6 +125,7 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 					xs.VrrvPrivateKey,
 					xs.NodeSni,
 					users,
+					fallback,
 				))
 				xc.Routing.Rules = append(
 					xc.Routing.Rules,
@@ -139,7 +144,8 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 			xs.VrrvRemotePort,
 			xs.VrrvPrivateKey,
 			xs.NodeSni,
-			w.clients(),
+			c.clients(),
+			fallback,
 		))
 		xc.Routing.Rules = append(
 			xc.Routing.Rules,
@@ -154,9 +160,9 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 }
 
 // clients returns the list of clients from the database users.
-func (w *Composer) clients() []*component.VlessUser {
+func (c *Composer) clients() []*component.VlessUser {
 	var clients []*component.VlessUser
-	for _, u := range w.db.Data().Users {
+	for _, u := range c.db.Data().Users {
 		if !u.Enabled {
 			continue
 		}

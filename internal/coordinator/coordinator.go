@@ -169,7 +169,7 @@ func (c *Coordinator) pushConfigToStaleNodes() {
 func (c *Coordinator) pushConfigToNode(n *data.Node) {
 	url := fmt.Sprintf("%s://%s:%d/xray/config", "http", n.Host, n.HttpPort)
 	proxy := c.db.Data().MainSettings.SingetServer
-	nc := c.composer.NodeConfig(n, c.state.XrayUpdatedAt(), c.state.XraySharedPassword())
+	nc := c.composer.NodeConfig(n, c.state.XrayUpdatedAt())
 
 	proxied := false
 	success := false

@@ -12,8 +12,8 @@ import (
 )
 
 // UserLinks builds all available proxy links for a user.
-func (w *Composer) UserLinks(user *data.User) map[string]string {
-	d := w.db.Data()
+func (c *Composer) UserLinks(user *data.User) map[string]string {
+	d := c.db.Data()
 	xs := d.XraySettings
 	links := make(map[string]string)
 

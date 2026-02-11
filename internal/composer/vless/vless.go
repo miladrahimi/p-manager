@@ -1,19 +1,18 @@
 package vless
 
 import (
-	"strings"
+	"net"
 
 	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
 
 const (
-	Protocol                = "vless"
-	FlowVision              = "xtls-rprx-vision"
-	NetworkRaw              = "raw"
-	SecurityReality         = "reality"
-	ServerNameStackOverflow = "stackoverflow.com"
-	EncryptionNone          = "none"
-	EncryptionEmpty         = ""
+	Protocol        = "vless"
+	FlowVision      = "xtls-rprx-vision"
+	NetworkRaw      = "raw"
+	SecurityReality = "reality"
+	EncryptionNone  = "none"
+	EncryptionEmpty = ""
 )
 
 // MakeUser makes a VLESS user.
@@ -26,7 +25,7 @@ func MakeUser(id, flow, encryption string) *component.VlessUser {
 }
 
 // MakeVrrvInbound makes a VLESS/Raw/Reality inbound.
-func MakeVrrvInbound(tag string, port int, privateKey string, clients []*component.VlessUser) *component.Inbound {
+func MakeVrrvInbound(tag string, port int, privateKey string, sni string, clients []*component.VlessUser) *component.Inbound {
 	return &component.Inbound{
 		Tag:      tag,
 		Port:     port,
@@ -39,9 +38,9 @@ func MakeVrrvInbound(tag string, port int, privateKey string, clients []*compone
 			Network:  NetworkRaw,
 			Security: SecurityReality,
 			RealitySettings: &component.RealitySettings{
-				Dest:        strings.Join([]string{ServerNameStackOverflow, "443"}, ":"),
+				Dest:        net.JoinHostPort(sni, "443"),
 				PrivateKey:  privateKey,
-				ServerNames: []string{ServerNameStackOverflow},
+				ServerNames: []string{sni},
 				ShortIds:    []string{""},
 			},
 		},
@@ -60,6 +59,7 @@ func MakeVrrvOutbound(
 	port int,
 	id string,
 	publicKey string,
+	nodeSni string,
 ) *component.Outbound {
 	user := MakeUser(id, FlowVision, EncryptionNone)
 
@@ -80,7 +80,7 @@ func MakeVrrvOutbound(
 			Security: SecurityReality,
 			RealitySettings: &component.RealitySettings{
 				Fingerprint: "chrome",
-				ServerName:  ServerNameStackOverflow,
+				ServerName:  nodeSni,
 				PublicKey:   publicKey,
 				ShortId:     "",
 			},

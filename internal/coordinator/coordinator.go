@@ -109,7 +109,14 @@ func (c *Coordinator) initialize() (err error) {
 		}
 	}
 
-	return nil
+	if d.XraySettings.NodeSni == "" {
+		d.XraySettings.NodeSni = config.DefaultNodeSni
+	}
+	if d.XraySettings.ManagerSni == "" {
+		d.XraySettings.ManagerSni = config.DefaultManagerSni
+	}
+
+	return errors.WithStack(c.db.Save())
 }
 
 // UpdateConfigs updates the local and node configs.

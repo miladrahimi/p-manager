@@ -136,6 +136,24 @@
                                    data-bs-title="Remote port or zero to disable.">
                         </td>
                     </tr>
+                    <tr>
+                        <td class="align-middle px-2">Node SNI</td>
+                        <td>
+                            <input id="node_sni" type="text" class="form-control"
+                                   title="Node SNI" minlength="1" maxlength="255" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="SNI name used by reality for P-Nodes." />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">Manager SNI</td>
+                        <td>
+                            <input id="manager_sni" type="text" class="form-control"
+                                   title="Manager SNI" minlength="1" maxlength="255" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="SNI name used by reality for P-Manager direct proxies." />
+                        </td>
+                    </tr>
                 </table>
                 <div class="d-flex">
                     <p class="ps-2 py-1 rounded-1 bg-light flex-fill m-1">
@@ -328,6 +346,8 @@
             setPortValue('#vrrv_direct_port', response['vrrv_direct_port'])
             setPortValue('#vrrv_2_vrrv_port', response['vrrv_2_vrrv_port'])
             setPortValue('#vrrv_remote_port', response['vrrv_remote_port'])
+            $('#node_sni').val(response['node_sni'] || "")
+            $('#manager_sni').val(response['manager_sni'] || "")
         },
         error: makeErrorHandler(),
         processData: true,
@@ -516,6 +536,8 @@
                 vrrv_direct_port: parsePort($('#vrrv_direct_port').val()),
                 vrrv_2_vrrv_port: parsePort($('#vrrv_2_vrrv_port').val()),
                 vrrv_remote_port: parsePort($('#vrrv_remote_port').val()),
+                node_sni: $('#node_sni').val().trim(),
+                manager_sni: $('#manager_sni').val().trim(),
                 vrrv_private_key: xraySettings['vrrv_private_key'] || "",
                 vrrv_public_key: xraySettings['vrrv_public_key'] || "",
             }),

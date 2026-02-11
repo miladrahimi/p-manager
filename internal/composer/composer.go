@@ -49,6 +49,7 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 				"relay",
 				d.XraySettings.Vrrv2VrrvPort,
 				d.XraySettings.VrrvPrivateKey,
+				d.XraySettings.ManagerSni,
 				clients,
 			))
 		}
@@ -58,6 +59,7 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 				"direct",
 				d.XraySettings.VrrvDirectPort,
 				d.XraySettings.VrrvPrivateKey,
+				d.XraySettings.ManagerSni,
 				clients,
 			))
 		}
@@ -100,6 +102,7 @@ func (w *Composer) LocalConfig() (*xrayConfig.Config, error) {
 				outboundRelayPort,
 				util.Uuid(),
 				d.XraySettings.VrrvPublicKey,
+				d.XraySettings.NodeSni,
 			))
 			xc.FindBalancer("relay").Selector = append(
 				xc.FindBalancer("relay").Selector,
@@ -134,6 +137,7 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 					"direct",
 					server.Port,
 					d.XraySettings.VrrvPrivateKey,
+					d.XraySettings.NodeSni,
 					users,
 				))
 				xc.Routing.Rules = append(
@@ -152,6 +156,7 @@ func (w *Composer) NodeConfig(node *data.Node, lastUpdate time.Time, password st
 			"remote",
 			d.XraySettings.VrrvRemotePort,
 			d.XraySettings.VrrvPrivateKey,
+			d.XraySettings.NodeSni,
 			w.clients(),
 		))
 		xc.Routing.Rules = append(

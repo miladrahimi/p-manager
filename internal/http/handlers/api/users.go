@@ -336,6 +336,9 @@ func UsersImport(
 				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateName=%s", u.Id, u.Name))
 				continue
 			}
+			if u.VlessId != "" {
+				u.VlessId = util.Uuid()
+			}
 			db.Data().Users = append(db.Data().Users, &u)
 			results = append(results, fmt.Sprintf("Imported: ID=%s Name=%s", u.Id, u.Name))
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/internal/http/server"
+	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
@@ -32,6 +33,7 @@ type App struct {
 	composer    *composer.Composer
 	coordinator *coordinator.Coordinator
 	xray        *xray.Xray
+	sshManager  *ssh.Manager
 }
 
 // New creates a new instance of the App.
@@ -62,8 +64,9 @@ func New() (a *App, err error) {
 
 	a.httpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
 	a.xray = xray.New(a.context, l, c.Xray.LogLevel, config.XrayConfigPath(root), config.XrayBinaryPath(root))
+	a.sshManager = ssh.New(a.context, l)
 	a.composer = composer.New(c, a.database, a.xray)
-	a.coordinator = coordinator.New(c, a.httpClient, l, a.database, a.xray, a.composer)
+	a.coordinator = coordinator.New(c, a.httpClient, l, a.database, a.xray, a.composer, a.sshManager)
 	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient)
 
 	l.Info("app: constructed successfully")
@@ -124,6 +127,11 @@ func (a *App) Close() {
 	if a.xray != nil {
 		if err := a.xray.Stop(); err != nil {
 			a.logger.Error("cannot close xray", zap.Error(errors.WithStack(err)))
+		}
+	}
+	if a.sshManager != nil {
+		if err := a.sshManager.StopAll(); err != nil {
+			a.logger.Error("cannot close ssh manager", zap.Error(errors.WithStack(err)))
 		}
 	}
 	if a.database != nil {

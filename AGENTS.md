@@ -74,6 +74,9 @@ Xray provides a reverse proxy feature that allows a connection to be initiated f
 node. This is particularly useful when the previous node is behind a firewall (such as the GFW) that restricts outbound
 connections to the network where the next node resides.
 
+## SSH Proxy
+SSH Proxy is the same socks proxy provided by SSH tool. The provided SOCKS proxy will be used as outbound for Xray.
+
 ## External Links
 - [Xray: Proxy Platform](https://github.com/XTLS/Xray-core)
 - [Xray Config Examples](https://github.com/XTLS/Xray-examples)

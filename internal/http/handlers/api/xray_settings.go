@@ -33,7 +33,7 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 			})
 		}
 
-		if !util.PortsDistinct([]int{r.VrrvDirectPort, r.VrrvRemotePort, r.Vrrv2VrrvPort}) {
+		if !util.PortsDistinct([]int{r.VrrvDirectPort, r.VrrvRemotePort, r.Vrrv2VrrvPort, r.Vrrv2SshPort}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Ports must be the distinct.",
 			})
@@ -53,6 +53,11 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 		if r.Vrrv2VrrvPort > 0 && r.Vrrv2VrrvPort != current.Vrrv2VrrvPort && !util.PortFree(r.Vrrv2VrrvPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Port %d is already in use.", r.Vrrv2VrrvPort),
+			})
+		}
+		if r.Vrrv2SshPort > 0 && r.Vrrv2SshPort != current.Vrrv2SshPort && !util.PortFree(r.Vrrv2SshPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Port %d is already in use.", r.Vrrv2SshPort),
 			})
 		}
 

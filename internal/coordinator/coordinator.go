@@ -13,6 +13,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/data"
+	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
@@ -31,6 +32,7 @@ type Coordinator struct {
 	xray     *xray.Xray
 	composer *composer.Composer
 	state    *State
+	ssh      *ssh.Manager
 }
 
 // New creates a new coordinator.
@@ -41,6 +43,7 @@ func New(
 	db *database.Database[data.Data],
 	xray *xray.Xray,
 	writer *composer.Composer,
+	sshManager *ssh.Manager,
 ) *Coordinator {
 	return &Coordinator{
 		l:        logger,
@@ -50,6 +53,7 @@ func New(
 		xray:     xray,
 		composer: writer,
 		state:    newState(),
+		ssh:      sshManager,
 	}
 }
 
@@ -122,6 +126,7 @@ func (c *Coordinator) initialize() (err error) {
 // UpdateConfigs updates the local and node configs.
 func (c *Coordinator) UpdateConfigs() {
 	c.l.Info("coordinator: updating configs...")
+	c.syncSshProxies()
 	if err := c.updateLocalConfig(); err != nil {
 		c.l.Fatal("coordinator:", zap.Error(errors.WithStack(err)))
 	}
@@ -132,7 +137,7 @@ func (c *Coordinator) UpdateConfigs() {
 func (c *Coordinator) updateLocalConfig() error {
 	c.l.Info("coordinator: updating local configs...")
 
-	localConfig, err := c.composer.LocalConfig()
+	localConfig, err := c.composer.LocalConfig(c.state.SshLocalPorts())
 	if err != nil {
 		return err
 	}
@@ -396,6 +401,6 @@ func (c *Coordinator) resetUsageForUsers() error {
 }
 
 // State returns the current state of the coordinator.
-func (c *Coordinator) State() State {
-	return *c.state
+func (c *Coordinator) State() *State {
+	return c.state
 }

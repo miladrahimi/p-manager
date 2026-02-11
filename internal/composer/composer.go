@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/miladrahimi/p-manager/internal/composer/socks"
 	"github.com/miladrahimi/p-manager/internal/composer/vless"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/data"
@@ -28,7 +29,7 @@ func New(config *config.Config, database *database.Database[data.Data], xray *xr
 }
 
 // LocalConfig composes the local xray config.
-func (c *Composer) LocalConfig() (*xrayConfig.Config, error) {
+func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config, error) {
 	clients := c.clients()
 	d := c.db.Data()
 	xs := d.XraySettings
@@ -77,6 +78,38 @@ func (c *Composer) LocalConfig() (*xrayConfig.Config, error) {
 				xc.FindBalancer("relay").Selector,
 				fmt.Sprintf("relay-%s", n.Id),
 			)
+		}
+	}
+
+	if hasClients && hasNodes && xs.Vrrv2SshPort > 0 {
+		outbounds := make([]string, 0, len(d.Nodes))
+		for _, n := range d.Nodes {
+			localPort, ok := sshLocalPorts[n.Id]
+			if !ok || localPort <= 0 {
+				continue
+			}
+			tag := fmt.Sprintf("vrrv2ssh-%s", n.Id)
+			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", localPort))
+			outbounds = append(outbounds, tag)
+		}
+
+		if len(outbounds) > 0 {
+			xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
+				"vrrv2ssh",
+				xs.Vrrv2SshPort,
+				xs.VrrvPrivateKey,
+				xs.ManagerSni,
+				clients,
+				fallback,
+			))
+			xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
+				InboundTag:  []string{"vrrv2ssh"},
+				BalancerTag: "vrrv2ssh",
+			})
+			xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
+				Tag:      "vrrv2ssh",
+				Selector: outbounds,
+			})
 		}
 	}
 

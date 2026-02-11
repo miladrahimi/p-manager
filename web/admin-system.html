@@ -137,6 +137,16 @@
                         </td>
                     </tr>
                     <tr>
+                        <td class="align-middle px-2">VRRV→SSH Port</td>
+                        <td>
+                            <input id="vrrv_2_ssh_port" type="number" class="form-control"
+                                   title="VRRV->SSH Port"
+                                   min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="SSH port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="align-middle px-2">Node SNI</td>
                         <td>
                             <input id="node_sni" type="text" class="form-control"
@@ -350,6 +360,7 @@
             xraySettings = response
             setPortValue('#vrrv_direct_port', response['vrrv_direct_port'])
             setPortValue('#vrrv_2_vrrv_port', response['vrrv_2_vrrv_port'])
+            setPortValue('#vrrv_2_ssh_port', response['vrrv_2_ssh_port'])
             setPortValue('#vrrv_remote_port', response['vrrv_remote_port'])
             $('#node_sni').val(response['node_sni'] || "")
             $('#manager_sni').val(response['manager_sni'] || "")
@@ -540,6 +551,7 @@
             data: JSON.stringify({
                 vrrv_direct_port: parsePort($('#vrrv_direct_port').val()),
                 vrrv_2_vrrv_port: parsePort($('#vrrv_2_vrrv_port').val()),
+                vrrv_2_ssh_port: parsePort($('#vrrv_2_ssh_port').val()),
                 vrrv_remote_port: parsePort($('#vrrv_remote_port').val()),
                 node_sni: $('#node_sni').val().trim(),
                 manager_sni: $('#manager_sni').val().trim(),

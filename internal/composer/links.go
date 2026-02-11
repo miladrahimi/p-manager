@@ -26,6 +26,7 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 
 	addLink("vrrv_direct", d.MainSettings.Host, xs.VrrvDirectPort, xs.ManagerSni)
 	addLink("vrrv_2_vrrv_relay", d.MainSettings.Host, xs.Vrrv2VrrvPort, xs.ManagerSni)
+	addLink("vrrv_2_ssh", d.MainSettings.Host, xs.Vrrv2SshPort, xs.ManagerSni)
 
 	if xs.VrrvRemotePort > 0 {
 		for _, n := range d.Nodes {

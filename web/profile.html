@@ -65,8 +65,8 @@
                     <small>Registered @</small>
                     <small id="created_at">-</small>
                 </div>
-                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="regenerate">
-                    REFRESH PROFILE
+                <button class="btn btn-outline-danger d-block w-100 mt-3 btn-sm" id="renew-links">
+                    RENEW LINKS
                 </button>
             </div>
         </div>
@@ -159,33 +159,30 @@
             setTimeout(() => me.removeClass('btn-success').addClass('btn-dark').blur(), 1000)
         })
 
-        $('#regenerate').click(function () {
-            let confirmed = confirm('Click "OK" to refresh the profile data.')
+        $('#renew-links').click(function () {
+            let confirmed = confirm('Click "OK" to renew links.')
             if (!confirmed) {
                 return
             }
 
             let me = $(this)
-            me.attr('disabled', 'disabled').html('REFRESHING...')
+            me.attr('disabled', 'disabled').html('RENEWING...')
 
             $.ajax({
                 type: 'POST',
-                url: `/api/profile/links/regenerate${window.location.search}`,
+                url: `/api/profile/links/renew${window.location.search}`,
                 dataType: 'json',
                 processData: true,
                 success: () => {
                     setTimeout(() => {
                         me.html('RELOADING...')
-                        setTimeout(() => {
-                            alert('Press "OK" to refresh the page.')
-                            window.location.reload()
-                        }, 2000)
+                        setTimeout(() => window.location.reload(), 2000)
                     }, 2000)
                 },
                 error: response => {
-                    console.log('ERROR', 'REFRESH PROFILE', response.status, response.responseText)
+                    console.log('ERROR', 'RENEW LINKS', response.status, response.responseText)
                     me.html('Error!')
-                    setTimeout(() => me.html('REFRESH PROFILE').removeAttr('disabled'), 2000)
+                    setTimeout(() => me.html('RENEW LINKS').removeAttr('disabled'), 2000)
                 }
             })
         })

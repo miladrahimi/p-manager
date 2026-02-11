@@ -70,7 +70,7 @@ func (s *Server) Run() {
 	g1 := s.engine.Group("api")
 	g1.POST("/sign-in", api.SignIn(s.db))
 	g1.GET("/profile", api.ProfileShow(s.db))
-	g1.POST("/profile/links/regenerate", api.ProfileRegenerate(s.coordinator, s.db))
+	g1.POST("/profile/links/renew", api.ProfileLinksRenew(s.coordinator, s.db))
 
 	// APIs: Admin
 	g2 := s.engine.Group("api")

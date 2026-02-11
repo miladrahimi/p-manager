@@ -70,7 +70,7 @@ func ProfileShow(db *database.Database[data.Data]) echo.HandlerFunc {
 	}
 }
 
-func ProfileRegenerate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func ProfileLinksRenew(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userId := c.QueryParam("u")
 		if userId == "" {

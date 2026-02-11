@@ -1,16 +1,11 @@
 package api
 
 import (
-	"fmt"
-	"net"
 	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 
 	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/p-manager/internal/composer/vless"
+	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
@@ -22,7 +17,7 @@ type ProfileResponse struct {
 	Proxies map[string]string `json:"proxies"`
 }
 
-func ProfileShow(db *database.Database[data.Data]) echo.HandlerFunc {
+func ProfileShow(composer *composer.Composer, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userId := c.QueryParam("u")
 		if userId == "" {
@@ -39,38 +34,13 @@ func ProfileShow(db *database.Database[data.Data]) echo.HandlerFunc {
 		}
 
 		d := db.Data()
-		VrrvPublicKey := d.XraySettings.VrrvPublicKey
-		NodeSni := d.XraySettings.NodeSni
-		ManagerSni := d.XraySettings.ManagerSni
 		TrafficRatio := d.MainSettings.TrafficRatio
 
 		r := ProfileResponse{User: *u, Proxies: make(map[string]string)}
 		r.User.Usage = r.User.Usage * TrafficRatio
 		r.User.Quota = r.User.Quota * TrafficRatio
 
-		if VrrvPublicKey == "" || NodeSni == "" || ManagerSni == "" {
-			return c.JSON(http.StatusOK, r)
-		}
-
-		if d.XraySettings.VrrvDirectPort > 0 {
-			name := "vrrv_direct"
-			port := d.XraySettings.VrrvDirectPort
-			r.Proxies[name] = buildVrrvLink(d.MainSettings.Host, port, r.User.VlessId, VrrvPublicKey, ManagerSni, name)
-		}
-
-		if d.XraySettings.Vrrv2VrrvPort > 0 {
-			name := "vrrv_2_vrrv_relay"
-			port := d.XraySettings.Vrrv2VrrvPort
-			r.Proxies[name] = buildVrrvLink(d.MainSettings.Host, port, r.User.VlessId, VrrvPublicKey, ManagerSni, name)
-		}
-
-		if d.XraySettings.VrrvRemotePort > 0 {
-			port := d.XraySettings.VrrvRemotePort
-			for _, n := range d.Nodes {
-				name := fmt.Sprintf("vrrv_remote_%s", strings.Replace(n.Host, ".", "_", -1))
-				r.Proxies[name] = buildVrrvLink(n.Host, port, u.VlessId, VrrvPublicKey, NodeSni, name)
-			}
-		}
+		r.Proxies = composer.UserLinks(u)
 
 		return c.JSON(http.StatusOK, r)
 	}
@@ -102,27 +72,4 @@ func ProfileLinksRenew(coordinator *coordinator.Coordinator, db *database.Databa
 
 		return c.JSON(http.StatusOK, user)
 	}
-}
-
-// buildVrrvLink builds a VRRV link for a user.
-func buildVrrvLink(host string, port int, userId string, publicKey string, sni string, tag string) string {
-	address := net.JoinHostPort(host, strconv.Itoa(port))
-	vlessUrl := url.URL{
-		Scheme:   vless.Protocol,
-		User:     url.User(userId),
-		Host:     address,
-		Fragment: tag,
-	}
-
-	query := url.Values{}
-	query.Set("flow", vless.FlowVision)
-	query.Set("encryption", vless.EncryptionNone)
-	query.Set("type", vless.NetworkRaw)
-	query.Set("security", vless.SecurityReality)
-	query.Set("sni", sni)
-	query.Set("pbk", publicKey)
-
-	vlessUrl.RawQuery = query.Encode()
-
-	return vlessUrl.String()
 }

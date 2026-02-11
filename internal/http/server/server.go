@@ -69,7 +69,7 @@ func (s *Server) Run() {
 	// APIs: Guest
 	g1 := s.engine.Group("api")
 	g1.POST("/sign-in", api.SignIn(s.db))
-	g1.GET("/profile", api.ProfileShow(s.db))
+	g1.GET("/profile", api.ProfileShow(s.composer, s.db))
 	g1.POST("/profile/links/renew", api.ProfileLinksRenew(s.coordinator, s.db))
 
 	// APIs: Admin
@@ -94,7 +94,7 @@ func (s *Server) Run() {
 	g2.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db))
 	g2.GET("/nodes/:id/config", api.NodesConfigShow(s.coordinator, s.composer, s.db))
 
-	g2.GET("/profile", api.ProfileShow(s.db))
+	g2.GET("/profile", api.ProfileShow(s.composer, s.db))
 
 	g2.GET("/stats", api.StatsIndex(s.db))
 	g2.PATCH("/stats", api.StatsUpdatePartial(s.db))

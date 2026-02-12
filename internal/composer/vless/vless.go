@@ -20,6 +20,7 @@ func MakeUser(id, flow, encryption string) *component.VlessUser {
 	return &component.VlessUser{
 		Id:         id,
 		Flow:       flow,
+		Email:      id,
 		Encryption: encryption,
 	}
 }
@@ -56,28 +57,6 @@ func MakeRrInbound(
 			Enabled:      true,
 			RouteOnly:    true,
 			DestOverride: []string{"http", "tls", "quic"},
-		},
-	}
-}
-
-// MakeVrInbound makes a VLESS/Raw inbound without reality and flow.
-func MakeVrInbound(
-	tag string,
-	port int,
-	clients []*component.VlessUser,
-	fallback *component.VlessFallback,
-) *component.Inbound {
-	return &component.Inbound{
-		Tag:      tag,
-		Port:     port,
-		Protocol: Protocol,
-		Settings: &component.InboundSettings{
-			Clients:    clients,
-			Decryption: EncryptionNone,
-			Fallbacks:  []*component.VlessFallback{fallback},
-		},
-		StreamSettings: &component.StreamSettings{
-			Network: NetworkRaw,
 		},
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
@@ -258,18 +257,39 @@ func (c *Coordinator) pullStatsFromNode(node *data.Node) {
 		return
 	}
 
+	parseTrafficStat := func(name string) (string, string, bool) {
+		parts := strings.Split(name, ">>>")
+		if len(parts) != 4 {
+			return "", "", false
+		}
+		if parts[2] != "traffic" {
+			return "", "", false
+		}
+		if parts[3] != "uplink" && parts[3] != "downlink" {
+			return "", "", false
+		}
+		return parts[0], parts[1], true
+	}
+
 	users := map[string]int64{}
 	var nodeUsageBytes int64
 
 	for _, qs := range queryStats {
-		parts := strings.Split(qs.GetName(), ">>>")
-		if len(parts) < 2 {
+		kind, tag, ok := parseTrafficStat(qs.GetName())
+		if !ok {
 			continue
 		}
-		if parts[0] == "user" {
-			users[parts[1]] += qs.GetValue()
-		} else if parts[0] == "inbound" && parts[1] == "remote" {
-			nodeUsageBytes += qs.GetValue()
+
+		value := qs.GetValue()
+		switch kind {
+		case "user":
+			if tag != "" {
+				users[tag] += value
+			}
+		case "inbound":
+			if tag == "remote-rr" || tag == "relay-rr2rr" {
+				nodeUsageBytes += value
+			}
 		}
 	}
 
@@ -309,27 +329,61 @@ func (c *Coordinator) loadLocalStats() error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	if payload, err := json.Marshal(queryStats); err != nil {
+		c.l.Debug("coordinator: cannot marshal local stats", zap.Error(errors.WithStack(err)))
+	} else {
+		c.l.Debug("coordinator: local stats response", zap.String("stats", string(payload)))
+	}
+
+	parseTrafficStat := func(name string) (string, string, bool) {
+		parts := strings.Split(name, ">>>")
+		if len(parts) != 4 {
+			return "", "", false
+		}
+		if parts[2] != "traffic" {
+			return "", "", false
+		}
+		if parts[3] != "uplink" && parts[3] != "downlink" {
+			return "", "", false
+		}
+		return parts[0], parts[1], true
+	}
 
 	nodes := map[string]int64{}
 	users := map[string]int64{}
+	var totalBytes int64
 
 	for _, qs := range queryStats {
-		parts := strings.Split(qs.GetName(), ">>>")
-		if len(parts) < 2 {
+		kind, tag, ok := parseTrafficStat(qs.GetName())
+		if !ok {
 			continue
 		}
-		if parts[0] == "user" {
-			users[parts[1]] += qs.GetValue()
-		} else if parts[0] == "inbound" && strings.HasPrefix(parts[1], "internal-") { //TODO
-			nodes[parts[1][8:]] += qs.GetValue()
-		} else if parts[0] == "outbound" && strings.HasPrefix(parts[1], "relay-") {
-			nodes[parts[1][6:]] += qs.GetValue()
-		} else if parts[0] == "inbound" && slices.Contains([]string{"reverse", "relay", "direct"}, parts[1]) {
-			c.db.Data().Stats.TotalUsageBytes = util.SafeSumI64(c.db.Data().Stats.TotalUsageBytes, qs.GetValue())
+
+		value := qs.GetValue()
+		switch kind {
+		case "user":
+			if tag != "" {
+				users[tag] += value
+			}
+		case "outbound":
+			if strings.HasPrefix(tag, "relay-rr2rr-") {
+				nodes[strings.TrimPrefix(tag, "relay-rr2rr-")] += value
+			} else if strings.HasPrefix(tag, "relay-rr2ssh-") {
+				nodes[strings.TrimPrefix(tag, "relay-rr2ssh-")] += value
+			}
+		case "inbound":
+			switch tag {
+			case "direct-rr", "relay-rr2rr", "relay-rr2ssh":
+				totalBytes += value
+			}
 		}
 	}
 
 	db := c.db.Data()
+	if totalBytes > 0 {
+		db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, totalBytes)
+	}
+
 	for _, n := range db.Nodes {
 		if bytes, found := nodes[n.Id]; found {
 			n.UsageBytes = util.SafeSumI64(n.UsageBytes, bytes)

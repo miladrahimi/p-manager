@@ -112,8 +112,8 @@ func (c *Coordinator) Run(ctx context.Context) error {
 func (c *Coordinator) initialize() (err error) {
 	d := c.db.Data()
 
-	if d.XraySettings.VrrvPrivateKey == "" || d.XraySettings.VrrvPublicKey == "" {
-		d.XraySettings.VrrvPrivateKey, d.XraySettings.VrrvPublicKey, err = c.xray.GenerateX25519()
+	if d.XraySettings.RrPrivateKey == "" || d.XraySettings.RrPublicKey == "" {
+		d.XraySettings.RrPrivateKey, d.XraySettings.RrPublicKey, err = c.xray.GenerateX25519()
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -230,7 +230,7 @@ func (c *Coordinator) pushConfigToNode(n *data.Node) {
 
 // pullStatsFromNodes pulls the stats of all nodes.
 func (c *Coordinator) pullStatsFromNodes() {
-	if c.db.Data().XraySettings.VrrvRemotePort == 0 {
+	if c.db.Data().XraySettings.RrRemotePort == 0 {
 		return
 	}
 

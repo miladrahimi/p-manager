@@ -12,8 +12,8 @@ import (
 func (c *Coordinator) syncSshProxies() error {
 	var errList error
 
-	// Stop All if Vrrv2SshPort is disabled.
-	if c.db.Data().XraySettings.Vrrv2SshPort <= 0 {
+	// Stop All if Rr2SshPort is disabled.
+	if c.db.Data().XraySettings.Rr2SshPort <= 0 {
 		for nodeId := range c.state.SshConfigs() {
 			c.state.RemoveSshConfig(nodeId)
 		}

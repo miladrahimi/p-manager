@@ -46,85 +46,85 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xra
 	hasNodes := len(d.Nodes) > 0
 	fallback := &component.VlessFallback{Dest: c.config.HttpServer.Port}
 
-	if hasClients && hasNodes && xs.Vrrv2VrrvPort > 0 {
-		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-			"relay-vrrv2vrrv",
-			xs.Vrrv2VrrvPort,
-			xs.VrrvPrivateKey,
+	if hasClients && hasNodes && xs.Rr2RrPort > 0 {
+		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+			"relay-rr2rr",
+			xs.Rr2RrPort,
+			xs.RrPrivateKey,
 			xs.ManagerSni,
 			clients,
 			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
-			InboundTag:  []string{"relay-vrrv2vrrv"},
-			BalancerTag: "relay-vrrv2vrrv",
+			InboundTag:  []string{"relay-rr2rr"},
+			BalancerTag: "relay-rr2rr",
 		})
 		xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
-			Tag: "relay-vrrv2vrrv", Selector: []string{},
+			Tag: "relay-rr2rr", Selector: []string{},
 		})
 		for _, n := range d.Nodes {
 			outboundRelayPort, err := util.FreePort()
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
-			xc.Outbounds = append(xc.Outbounds, vless.MakeVrrvOutbound(
-				fmt.Sprintf("relay-vrrv2vrrv-%s", n.Id),
+			xc.Outbounds = append(xc.Outbounds, vless.MakeRrOutbound(
+				fmt.Sprintf("relay-rr2rr-%s", n.Id),
 				n.Host,
 				outboundRelayPort,
 				util.Uuid(),
-				xs.VrrvPublicKey,
+				xs.RrPublicKey,
 				xs.NodeSni,
 			))
-			xc.FindBalancer("relay-vrrv2vrrv").Selector = append(
-				xc.FindBalancer("relay-vrrv2vrrv").Selector,
-				fmt.Sprintf("relay-vrrv2vrrv-%s", n.Id),
+			xc.FindBalancer("relay-rr2rr").Selector = append(
+				xc.FindBalancer("relay-rr2rr").Selector,
+				fmt.Sprintf("relay-rr2rr-%s", n.Id),
 			)
 		}
 	}
 
-	if hasClients && hasNodes && xs.Vrrv2SshPort > 0 {
+	if hasClients && hasNodes && xs.Rr2SshPort > 0 {
 		outbounds := make([]string, 0, len(d.Nodes))
 		for _, n := range d.Nodes {
 			sshConfig, ok := sshConfigsByNodeIds[n.Id]
 			if !ok || sshConfig.LocalPort <= 0 {
 				continue
 			}
-			tag := fmt.Sprintf("relay-vrrv2ssh-%s", n.Id)
+			tag := fmt.Sprintf("relay-rr2ssh-%s", n.Id)
 			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", sshConfig.LocalPort))
 			outbounds = append(outbounds, tag)
 		}
 
 		if len(outbounds) > 0 {
-			xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-				"relay-vrrv2ssh",
-				xs.Vrrv2SshPort,
-				xs.VrrvPrivateKey,
+			xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+				"relay-rr2ssh",
+				xs.Rr2SshPort,
+				xs.RrPrivateKey,
 				xs.ManagerSni,
 				clients,
 				fallback,
 			))
 			xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
-				InboundTag:  []string{"relay-vrrv2ssh"},
-				BalancerTag: "relay-vrrv2ssh",
+				InboundTag:  []string{"relay-rr2ssh"},
+				BalancerTag: "relay-rr2ssh",
 			})
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
-				Tag:      "relay-vrrv2ssh",
+				Tag:      "relay-rr2ssh",
 				Selector: outbounds,
 			})
 		}
 	}
 
-	if hasClients && xs.VrrvDirectPort > 0 {
-		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-			"direct-vrrv",
-			xs.VrrvDirectPort,
-			xs.VrrvPrivateKey,
+	if hasClients && xs.RrDirectPort > 0 {
+		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+			"direct-rr",
+			xs.RrDirectPort,
+			xs.RrPrivateKey,
 			xs.ManagerSni,
 			clients,
 			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
-			InboundTag:  []string{"direct-vrrv"},
+			InboundTag:  []string{"direct-rr"},
 			OutboundTag: "out",
 		})
 	}
@@ -144,8 +144,8 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		UpdatedBy: d.MainSettings.Host,
 	}
 
-	if xs.Vrrv2VrrvPort > 0 {
-		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-vrrv2vrrv-%s", node.Id))
+	if xs.Rr2RrPort > 0 {
+		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-rr2rr-%s", node.Id))
 		if relayOutbound != nil && relayOutbound.Settings != nil {
 			if len(relayOutbound.Settings.Vnext) > 0 {
 				server := relayOutbound.Settings.Vnext[0]
@@ -153,10 +153,10 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 				for i, u := range server.Users {
 					users[i] = vless.MakeUser(u.Id, vless.FlowVision, vless.EncryptionEmpty)
 				}
-				xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-					"relay-vrrv2vrrv",
+				xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+					"relay-rr2rr",
 					server.Port,
-					xs.VrrvPrivateKey,
+					xs.RrPrivateKey,
 					xs.NodeSni,
 					users,
 					fallback,
@@ -164,7 +164,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 				xc.Routing.Rules = append(
 					xc.Routing.Rules,
 					&component.Rule{
-						InboundTag:  []string{"relay-vrrv2vrrv"},
+						InboundTag:  []string{"relay-rr2rr"},
 						OutboundTag: "out",
 					},
 				)
@@ -172,11 +172,11 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		}
 	}
 
-	if xs.VrrvRemotePort > 0 {
-		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-			"remote-vrrv",
-			xs.VrrvRemotePort,
-			xs.VrrvPrivateKey,
+	if xs.RrRemotePort > 0 {
+		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+			"remote-rr",
+			xs.RrRemotePort,
+			xs.RrPrivateKey,
 			xs.NodeSni,
 			c.clients(),
 			fallback,
@@ -184,7 +184,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		xc.Routing.Rules = append(
 			xc.Routing.Rules,
 			&component.Rule{
-				InboundTag:  []string{"remote-vrrv"},
+				InboundTag:  []string{"remote-rr"},
 				OutboundTag: "out",
 			},
 		)

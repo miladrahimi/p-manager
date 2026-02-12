@@ -21,24 +21,24 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 		if host == "" || port <= 0 {
 			return
 		}
-		links[name] = buildVrrvLink(host, port, user.VlessId, xs.VrrvPublicKey, sni, name)
+		links[name] = buildRrLink(host, port, user.VlessId, xs.RrPublicKey, sni, name)
 	}
 
-	addLink("vrrv_direct", d.MainSettings.Host, xs.VrrvDirectPort, xs.ManagerSni)
-	addLink("vrrv_2_vrrv_relay", d.MainSettings.Host, xs.Vrrv2VrrvPort, xs.ManagerSni)
-	addLink("vrrv_2_ssh", d.MainSettings.Host, xs.Vrrv2SshPort, xs.ManagerSni)
+	addLink("rr_direct", d.MainSettings.Host, xs.RrDirectPort, xs.ManagerSni)
+	addLink("rr_2_rr_relay", d.MainSettings.Host, xs.Rr2RrPort, xs.ManagerSni)
+	addLink("rr_2_ssh", d.MainSettings.Host, xs.Rr2SshPort, xs.ManagerSni)
 
-	if xs.VrrvRemotePort > 0 {
+	if xs.RrRemotePort > 0 {
 		for _, n := range d.Nodes {
-			name := fmt.Sprintf("vrrv_remote_%s", strings.ReplaceAll(n.Host, ".", "_"))
-			addLink(name, n.Host, xs.VrrvRemotePort, xs.NodeSni)
+			name := fmt.Sprintf("rr_remote_%s", strings.ReplaceAll(n.Host, ".", "_"))
+			addLink(name, n.Host, xs.RrRemotePort, xs.NodeSni)
 		}
 	}
 
 	return links
 }
 
-func buildVrrvLink(host string, port int, userId string, publicKey string, nodeSni string, tag string) string {
+func buildRrLink(host string, port int, userId string, publicKey string, nodeSni string, tag string) string {
 	address := net.JoinHostPort(host, strconv.Itoa(port))
 	vlessUrl := url.URL{
 		Scheme:   vless.Protocol,

@@ -24,8 +24,8 @@ func MakeUser(id, flow, encryption string) *component.VlessUser {
 	}
 }
 
-// MakeVrrvInbound makes a VLESS/Raw/Reality/Vision inbound.
-func MakeVrrvInbound(
+// MakeRrInbound makes a VLESS/Raw/Reality/Vision inbound.
+func MakeRrInbound(
 	tag string,
 	port int,
 	privateKey string,
@@ -82,8 +82,8 @@ func MakeVrInbound(
 	}
 }
 
-// MakeVrrvOutbound makes a VLESS/Raw/Reality outbound.
-func MakeVrrvOutbound(
+// MakeRrOutbound makes a VLESS/Raw/Reality outbound.
+func MakeRrOutbound(
 	tag string,
 	address string,
 	port int,

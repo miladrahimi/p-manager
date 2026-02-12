@@ -34,9 +34,26 @@
             </li>
         </ul>
 
-        <div id="table" class="celled striped very compact"></div>
+        <div class="card text-start mt-3">
+            <div class="card-body">
+                <div class="card-title fw-bold text-center">Add User</div>
+                <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                        <input type="text" class="form-control form-control-sm" id="user-name"
+                               placeholder="Name">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <input type="number" class="form-control form-control-sm" id="user-quota"
+                               placeholder="Quota (GB)">
+                    </div>
+                    <div class="col-12 col-md-2 d-grid">
+                        <button class="btn btn-dark btn-sm" id="create">+ Add User</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <div class="btn btn-dark btn-sm d-block" id="create">+ New User</div>
+        <div id="table" class="celled striped very compact mt-3"></div>
     </div>
 </div>
 
@@ -197,14 +214,45 @@
     })
 
     $("#create").click(() => {
-        table.addRow({
-            id: "",
-            vless_id: "",
-            name: "",
-            quota: 0,
-            usage: 0,
-            enabled: true,
-            created_at: new Date().getTime(),
+        let name = $("#user-name").val().trim()
+        let quotaRaw = $("#user-quota").val().trim()
+
+        if (!name) {
+            table.alert("User name is required.", "error")
+            return
+        }
+
+        let quota = 0
+        if (quotaRaw !== "") {
+            quota = parseFloat(quotaRaw)
+        }
+        if (Number.isNaN(quota) || quota < 0) {
+            table.alert("Quota must be a non-negative number.", "error")
+            return
+        }
+
+        table.alert("Creating the user...", "msg")
+
+        $.ajax({
+            type: "POST",
+            url: "/api/users",
+            contentType: "application/json",
+            data: JSON.stringify({
+                name: name,
+                quota: quota,
+                usage: 0,
+                enabled: true,
+            }),
+            dataType: "json",
+            processData: true,
+            success: () => {
+                $("#user-name").val("")
+                $("#user-quota").val("")
+                table.alert("Item saved successfully.", "msg")
+                setTimeout(() => window.location.reload(), 1000)
+            },
+            error: makeErrorHandler(message => table.alert(message, "error")),
+            complete: () => setTimeout(() => table.clearAlert(), 1500),
         })
     })
 </script>

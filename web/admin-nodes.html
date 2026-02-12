@@ -34,17 +34,66 @@
             </li>
         </ul>
 
-        <div id="table" class="celled striped very compact"></div>
-
-        <div class="input-group input-group-sm mt-2">
-            <input type="text" class="form-control" id="node-json"
-                   placeholder='Paste P-Node JSON here (e.g. {"ip":"...","http_port":1234,"http_token":"...","ssh_port":22,"ssh_user":"root"})'>
-            <button class="btn btn-dark" id="create">+ Add Node</button>
+        <div class="card text-start mt-3">
+            <div class="card-body">
+                <div class="card-title fw-bold text-center">Add Node</div>
+                <div class="row g-2">
+                    <div class="col-12 col-lg-6">
+                        <input type="text" class="form-control form-control-sm" id="body" title="P-Node Info"
+                               placeholder='P-Node Info (e.g. {"ip":"...","http_port":1234,"http_token":...})'>
+                    </div>
+                    <div class="col-12 col-lg-3 d-grid">
+                        <button class="btn btn-dark btn-sm" id="create">+ Add Node</button>
+                    </div>
+                    <div class="col-12 col-lg-3 d-grid">
+                        <a class="btn btn-outline-dark btn-sm" href="https://github.com/miladrahimi/p-node"
+                           target="_blank">
+                            P-Node GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-        <a class="btn btn-outline-dark btn-sm d-block mt-1" href="https://github.com/miladrahimi/p-node"
-           target="_blank">
-            P-Node GitHub
-        </a>
+
+        <div id="table" class="celled striped very compact mt-3"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="node-info-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-start">
+            <div class="modal-header">
+                <h5 class="modal-title">Node Info</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="text-muted small">Node ID</span>
+                    <code class="small" id="node-info-id"></code>
+                </div>
+                <div class="row small mb-3">
+                    <div class="col-12 col-md-6">
+                        <span class="text-muted">Last Push:</span>
+                        <span class="ms-1" id="node-info-push"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <span class="text-muted">Last Pull:</span>
+                        <span class="ms-1" id="node-info-pull"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted small mb-1">Pulling Setup Command</div>
+                    <div class="bg-light rounded d-flex align-items-stretch">
+                        <pre class="m-0 p-2 small flex-grow-1" id="node-info-command"></pre>
+                        <button type="button" class="copy btn btn-dark btn-sm rounded-0 rounded-end"
+                                data-copy-target="node-info-command" data-bs-trigger="manual"
+                                data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -110,21 +159,20 @@
 
     let info = rowIndex => {
         let row = table.getRow(rowIndex)
+        let data = row.getData()
 
         let baseUrl = window.location.origin
-        let command = row.getData().pull_command
+        let command = data.pull_command
             .replace('BASE_URL', baseUrl)
             .replace('/v1/', '/api/')
 
-        let content = `<div class="p-2">
-            <p class="my-2"><h6>Node #${row.getData().id}</h6></p>
-            <p class="my-2"><b>Pulling Setup Command:</b></p>
-            <pre class="bg-light p-2 rounded">${command}</pre>
-            <b>Last Push:</b> ${ts2datetime(row.getData().pushed_at)}<br>
-            <b>Last Pull:</b> ${ts2datetime(row.getData().pulled_at)}<br>
-        </div>`
+        $("#node-info-id").text(data.id)
+        $("#node-info-command").text(command)
+        $("#node-info-push").text(ts2datetime(data.pushed_at))
+        $("#node-info-pull").text(ts2datetime(data.pulled_at))
 
-        row.popup(content, "center");
+        let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("node-info-modal"))
+        modal.show()
     }
 
     let table = new Tabulator("#table", {
@@ -234,7 +282,7 @@
     })
 
     $("#create").click(() => {
-        let raw = $("#node-json").val().trim()
+        let raw = $("#body").val().trim()
         if (!raw) {
             table.alert("Paste the P-Node JSON first.", "error")
             return
@@ -290,6 +338,56 @@
             error: makeErrorHandler(message => table.alert(message, "error")),
             complete: () => setTimeout(() => table.clearAlert(), 1500),
         })
+    })
+
+    const showCopyFeedback = button => {
+        const tooltip = bootstrap.Tooltip.getOrCreateInstance(button)
+        tooltip.setContent({'.tooltip-inner': 'Copied!'})
+        tooltip.show()
+        setTimeout(() => tooltip.hide() && tooltip.setContent({'.tooltip-inner': 'Copy'}), 1000)
+
+        const me = $(button)
+        me.removeClass('btn-dark').addClass('btn-success')
+        setTimeout(() => me.removeClass('btn-success').addClass('btn-dark').blur(), 1000)
+    }
+
+    const copyText = text => {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text)
+        }
+
+        return new Promise((resolve, reject) => {
+            const ta = document.createElement('textarea')
+            ta.value = text
+            ta.setAttribute('readonly', '')
+            ta.style.position = 'absolute'
+            ta.style.left = '-9999px'
+            ta.style.top = '0'
+            document.body.appendChild(ta)
+            ta.select()
+            ta.setSelectionRange(0, ta.value.length)
+            // noinspection JSDeprecatedSymbols
+            const ok = document.execCommand('copy')
+            document.body.removeChild(ta)
+            ok ? resolve() : reject()
+        })
+    }
+
+    $(document).on('click', '.copy', function () {
+        const me = $(this)
+        const targetId = me.data('copyTarget')
+        let text = ""
+
+        if (targetId) {
+            text = $(`#${targetId}`).text()
+        } else {
+            const link = me.parent().find('a')
+            text = link.attr('href') || link.text()
+        }
+
+        copyText(text)
+            .then(() => showCopyFeedback(this))
+            .catch(() => table.alert("Copy failed.", "error"))
     })
 </script>
 

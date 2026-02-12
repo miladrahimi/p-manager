@@ -109,38 +109,38 @@
             <form class="card-body text-start">
                 <table class="table table-striped table-borderless table-sm">
                     <tr>
-                        <td class="align-middle px-2">RR Direct Port</td>
+                        <td class="align-middle px-2">Direct RR Port</td>
                         <td>
-                            <input id="rr_direct_port" type="number" class="form-control"
-                                   title="RR Direct Port" min="0" max="65535" required="required"
+                            <input id="direct_rr_port" type="number" class="form-control"
+                                   title="Direct RR Port" min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="Direct port or zero to disable.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">RR Remote Port</td>
+                        <td class="align-middle px-2">Remote RR Port</td>
                         <td>
-                            <input id="rr_remote_port" type="number" class="form-control"
-                                   title="RR Remote Port" min="0" max="65535" required="required"
+                            <input id="remote_rr_port" type="number" class="form-control"
+                                   title="Remote RR Port" min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="Remote port or zero to disable.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">RR→RR Relay Port</td>
+                        <td class="align-middle px-2">Relay RR→RR Port</td>
                         <td>
-                            <input id="rr_2_rr_port" type="number" class="form-control"
-                                   title="RR->RR Relay Port"
+                            <input id="relay_rr_2_rr_port" type="number" class="form-control"
+                                   title="Relay RR->RR Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="Relay port or zero to disable.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">RR→SSH Port</td>
+                        <td class="align-middle px-2">Relay RR→SSH Port</td>
                         <td>
-                            <input id="rr_2_ssh_port" type="number" class="form-control"
-                                   title="RR->SSH Port"
+                            <input id="relay_rr_2_ssh_port" type="number" class="form-control"
+                                   title="Relay RR->SSH Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="SSH port or zero to disable.">
@@ -170,7 +170,7 @@
                             <input id="rr_private_key" type="text" class="form-control"
                                    title="RR Private Key" minlength="1" maxlength="255"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Reality private key used by RR inbounds.">
+                                   data-bs-title="RR private key used by RR inbounds.">
                         </td>
                     </tr>
                     <tr>
@@ -179,7 +179,7 @@
                             <input id="rr_public_key" type="text" class="form-control"
                                    title="RR Public Key" minlength="1" maxlength="255"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Reality public key used by RR outbounds.">
+                                   data-bs-title="RR public key used by RR outbounds.">
                         </td>
                     </tr>
                 </table>
@@ -365,10 +365,10 @@
         dataType: "json",
         success: response => {
             xraySettings = response
-            setPortValue('#rr_direct_port', response['rr_direct_port'])
-            setPortValue('#rr_2_rr_port', response['rr_2_rr_port'])
-            setPortValue('#rr_2_ssh_port', response['rr_2_ssh_port'])
-            setPortValue('#rr_remote_port', response['rr_remote_port'])
+            setPortValue('#direct_rr_port', response['direct_rr_port'])
+            setPortValue('#relay_rr_2_rr_port', response['relay_rr_2_rr_port'])
+            setPortValue('#relay_rr_2_ssh_port', response['relay_rr_2_ssh_port'])
+            setPortValue('#remote_rr_port', response['remote_rr_port'])
             $('#node_sni').val(response['node_sni'] || "")
             $('#manager_sni').val(response['manager_sni'] || "")
             $('#rr_private_key').val(response['rr_private_key'] || "")
@@ -540,7 +540,7 @@
     })
 
     $('#save-xray-settings').click(function () {
-        const form = document.querySelector('#rr_direct_port').closest('form')
+        const form = document.querySelector('#direct_rr_port').closest('form')
         if (!form.checkValidity()) {
             form.reportValidity()
             return
@@ -558,10 +558,10 @@
             type: 'POST',
             url: "/api/xray-settings",
             data: JSON.stringify({
-                rr_direct_port: parsePort($('#rr_direct_port').val()),
-                rr_2_rr_port: parsePort($('#rr_2_rr_port').val()),
-                rr_2_ssh_port: parsePort($('#rr_2_ssh_port').val()),
-                rr_remote_port: parsePort($('#rr_remote_port').val()),
+                direct_rr_port: parsePort($('#direct_rr_port').val()),
+                relay_rr_2_rr_port: parsePort($('#relay_rr_2_rr_port').val()),
+                relay_rr_2_ssh_port: parsePort($('#relay_rr_2_ssh_port').val()),
+                remote_rr_port: parsePort($('#remote_rr_port').val()),
                 node_sni: $('#node_sni').val().trim(),
                 manager_sni: $('#manager_sni').val().trim(),
                 rr_private_key: $('#rr_private_key').val().trim(),

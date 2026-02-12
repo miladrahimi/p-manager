@@ -46,10 +46,10 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xra
 	hasNodes := len(d.Nodes) > 0
 	fallback := &component.VlessFallback{Dest: c.config.HttpServer.Port}
 
-	if hasClients && hasNodes && xs.Rr2RrPort > 0 {
+	if hasClients && hasNodes && xs.RelayRr2RrPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"relay-rr2rr",
-			xs.Rr2RrPort,
+			xs.RelayRr2RrPort,
 			xs.RrPrivateKey,
 			xs.ManagerSni,
 			clients,
@@ -82,7 +82,7 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xra
 		}
 	}
 
-	if hasClients && hasNodes && xs.Rr2SshPort > 0 {
+	if hasClients && hasNodes && xs.RelayRr2SshPort > 0 {
 		outbounds := make([]string, 0, len(d.Nodes))
 		for _, n := range d.Nodes {
 			sshConfig, ok := sshConfigsByNodeIds[n.Id]
@@ -97,7 +97,7 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xra
 		if len(outbounds) > 0 {
 			xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 				"relay-rr2ssh",
-				xs.Rr2SshPort,
+				xs.RelayRr2SshPort,
 				xs.RrPrivateKey,
 				xs.ManagerSni,
 				clients,
@@ -114,10 +114,10 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xra
 		}
 	}
 
-	if hasClients && xs.RrDirectPort > 0 {
+	if hasClients && xs.DirectRrPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"direct-rr",
-			xs.RrDirectPort,
+			xs.DirectRrPort,
 			xs.RrPrivateKey,
 			xs.ManagerSni,
 			clients,
@@ -144,7 +144,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		UpdatedBy: d.MainSettings.Host,
 	}
 
-	if xs.Rr2RrPort > 0 {
+	if xs.RelayRr2RrPort > 0 {
 		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-rr2rr-%s", node.Id))
 		if relayOutbound != nil && relayOutbound.Settings != nil {
 			if len(relayOutbound.Settings.Vnext) > 0 {
@@ -172,10 +172,10 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		}
 	}
 
-	if xs.RrRemotePort > 0 {
+	if xs.RemoteRrPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"remote-rr",
-			xs.RrRemotePort,
+			xs.RemoteRrPort,
 			xs.RrPrivateKey,
 			xs.NodeSni,
 			c.clients(),

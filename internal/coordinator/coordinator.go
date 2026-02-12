@@ -230,7 +230,7 @@ func (c *Coordinator) pushConfigToNode(n *data.Node) {
 
 // pullStatsFromNodes pulls the stats of all nodes.
 func (c *Coordinator) pullStatsFromNodes() {
-	if c.db.Data().XraySettings.RrRemotePort == 0 {
+	if c.db.Data().XraySettings.RemoteRrPort == 0 {
 		return
 	}
 

@@ -24,14 +24,14 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 		links[name] = buildRrLink(host, port, user.VlessId, xs.RrPublicKey, sni, name)
 	}
 
-	addLink("rr_direct", d.MainSettings.Host, xs.RrDirectPort, xs.ManagerSni)
-	addLink("rr_2_rr_relay", d.MainSettings.Host, xs.Rr2RrPort, xs.ManagerSni)
-	addLink("rr_2_ssh", d.MainSettings.Host, xs.Rr2SshPort, xs.ManagerSni)
+	addLink("direct_rr", d.MainSettings.Host, xs.DirectRrPort, xs.ManagerSni)
+	addLink("relay_rr_2_rr", d.MainSettings.Host, xs.RelayRr2RrPort, xs.ManagerSni)
+	addLink("relay_rr_2_ssh", d.MainSettings.Host, xs.RelayRr2SshPort, xs.ManagerSni)
 
-	if xs.RrRemotePort > 0 {
+	if xs.RemoteRrPort > 0 {
 		for _, n := range d.Nodes {
-			name := fmt.Sprintf("rr_remote_%s", strings.ReplaceAll(n.Host, ".", "_"))
-			addLink(name, n.Host, xs.RrRemotePort, xs.NodeSni)
+			name := fmt.Sprintf("remote_rr_%s", strings.ReplaceAll(n.Host, ".", "_"))
+			addLink(name, n.Host, xs.RemoteRrPort, xs.NodeSni)
 		}
 	}
 

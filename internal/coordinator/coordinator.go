@@ -26,13 +26,13 @@ import (
 // Coordinator is the main app component which coordinates the synchronization of the local and remote configs.
 type Coordinator struct {
 	l        *logger.Logger
-	c        *config.Config
+	config   *config.Config
 	db       *database.Database[data.Data]
 	hc       *client.Client
 	xray     *xray.Xray
 	composer *composer.Composer
+	sshPool  *ssh.Pool
 	state    *State
-	ssh      *ssh.Manager
 }
 
 // New creates a new coordinator.
@@ -43,17 +43,17 @@ func New(
 	db *database.Database[data.Data],
 	xray *xray.Xray,
 	writer *composer.Composer,
-	sshManager *ssh.Manager,
+	sshManager *ssh.Pool,
 ) *Coordinator {
 	return &Coordinator{
 		l:        logger,
 		hc:       hc,
-		c:        config,
+		config:   config,
 		db:       db,
 		xray:     xray,
 		composer: writer,
+		sshPool:  sshManager,
 		state:    newState(),
-		ssh:      sshManager,
 	}
 }
 
@@ -126,7 +126,9 @@ func (c *Coordinator) initialize() (err error) {
 // UpdateConfigs updates the local and node configs.
 func (c *Coordinator) UpdateConfigs() {
 	c.l.Info("coordinator: updating configs...")
-	c.syncSshProxies()
+	if err := c.syncSshProxies(); err != nil {
+		c.l.Error("coordinator: cannot sync ssh proxies", zap.Error(err))
+	}
 	if err := c.updateLocalConfig(); err != nil {
 		c.l.Fatal("coordinator:", zap.Error(errors.WithStack(err)))
 	}
@@ -137,7 +139,7 @@ func (c *Coordinator) UpdateConfigs() {
 func (c *Coordinator) updateLocalConfig() error {
 	c.l.Info("coordinator: updating local configs...")
 
-	localConfig, err := c.composer.LocalConfig(c.state.SshLocalPorts())
+	localConfig, err := c.composer.LocalConfig(c.state.SshConfigs())
 	if err != nil {
 		return err
 	}

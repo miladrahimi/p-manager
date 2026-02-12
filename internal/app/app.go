@@ -33,7 +33,7 @@ type App struct {
 	composer    *composer.Composer
 	coordinator *coordinator.Coordinator
 	xray        *xray.Xray
-	sshManager  *ssh.Manager
+	sshPool     *ssh.Pool
 }
 
 // New creates a new instance of the App.
@@ -64,9 +64,9 @@ func New() (a *App, err error) {
 
 	a.httpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
 	a.xray = xray.New(a.context, l, c.Xray.LogLevel, config.XrayConfigPath(root), config.XrayBinaryPath(root))
-	a.sshManager = ssh.New(a.context, l)
+	a.sshPool = ssh.New(l)
 	a.composer = composer.New(c, a.database, a.xray)
-	a.coordinator = coordinator.New(c, a.httpClient, l, a.database, a.xray, a.composer, a.sshManager)
+	a.coordinator = coordinator.New(c, a.httpClient, l, a.database, a.xray, a.composer, a.sshPool)
 	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient)
 
 	l.Info("app: constructed successfully")
@@ -129,8 +129,8 @@ func (a *App) Close() {
 			a.logger.Error("cannot close xray", zap.Error(errors.WithStack(err)))
 		}
 	}
-	if a.sshManager != nil {
-		if err := a.sshManager.StopAll(); err != nil {
+	if a.sshPool != nil {
+		if err := a.sshPool.StopAll(); err != nil {
 			a.logger.Error("cannot close ssh manager", zap.Error(errors.WithStack(err)))
 		}
 	}

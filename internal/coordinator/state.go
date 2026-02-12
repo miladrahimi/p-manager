@@ -2,20 +2,20 @@ package coordinator
 
 import (
 	"time"
+
+	"github.com/miladrahimi/p-manager/pkg/ssh"
 )
 
 // State represents coordinator state.
 type State struct {
-	xrayUpdatedAt time.Time
-	sshTags       map[string]string
-	sshLocalPorts map[string]int
+	xrayUpdatedAt    time.Time
+	sshConfigsByNode map[string]*ssh.Config
 }
 
 func newState() *State {
 	return &State{
-		xrayUpdatedAt: time.Now(),
-		sshTags:       map[string]string{},
-		sshLocalPorts: map[string]int{},
+		xrayUpdatedAt:    time.Now(),
+		sshConfigsByNode: map[string]*ssh.Config{},
 	}
 }
 
@@ -23,36 +23,19 @@ func (s *State) XrayUpdatedAt() time.Time {
 	return s.xrayUpdatedAt
 }
 
-func (s *State) SshTag(nodeId string) (string, bool) {
-	tag, ok := s.sshTags[nodeId]
-	return tag, ok
+func (s *State) SshConfig(nodeId string) (*ssh.Config, bool) {
+	config, ok := s.sshConfigsByNode[nodeId]
+	return config, ok
 }
 
-func (s *State) SetSshTag(nodeId string, tag string) {
-	s.sshTags[nodeId] = tag
+func (s *State) SetSshConfig(nodeId string, c *ssh.Config) {
+	s.sshConfigsByNode[nodeId] = c
 }
 
-func (s *State) RemoveSshTag(nodeId string) {
-	delete(s.sshTags, nodeId)
+func (s *State) RemoveSshConfig(nodeId string) {
+	delete(s.sshConfigsByNode, nodeId)
 }
 
-func (s *State) SshTags() map[string]string {
-	return s.sshTags
-}
-
-func (s *State) SshLocalPort(nodeId string) (int, bool) {
-	port, ok := s.sshLocalPorts[nodeId]
-	return port, ok
-}
-
-func (s *State) SetSshLocalPort(nodeId string, port int) {
-	s.sshLocalPorts[nodeId] = port
-}
-
-func (s *State) RemoveSshLocalPort(nodeId string) {
-	delete(s.sshLocalPorts, nodeId)
-}
-
-func (s *State) SshLocalPorts() map[string]int {
-	return s.sshLocalPorts
+func (s *State) SshConfigs() map[string]*ssh.Config {
+	return s.sshConfigsByNode
 }

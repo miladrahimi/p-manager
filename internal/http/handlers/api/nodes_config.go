@@ -12,6 +12,7 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
+// NodesConfigShow shows a single node configuration required for P-Node pulling.
 func NodesConfigShow(
 	cdr *coordinator.Coordinator,
 	composer *composer.Composer,

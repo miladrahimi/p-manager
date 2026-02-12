@@ -1,7 +1,6 @@
 package ssh
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,87 +14,62 @@ import (
 	"go.uber.org/zap"
 )
 
-// Process represents an SSH SOCKS proxy instance.
+// Process represents an SSH SOCKS proxy process.
 type Process struct {
-	l            *logger.Logger
-	config       *Config
-	command      *exec.Cmd
-	locker       sync.Mutex
-	context      context.Context
-	sshPath      string
-	stopChan     chan struct{}
-	doneChan     chan struct{}
-	restartDelay time.Duration
-	running      bool
+	l        *logger.Logger
+	config   *Config
+	command  *exec.Cmd
+	locker   sync.Mutex
+	sshPath  string
+	stopChan chan struct{}
+	doneChan chan struct{}
+	running  bool
 }
 
-// newProxy creates a new SSH proxy instance.
-func newProxy(c context.Context, l *logger.Logger, config *Config) *Process {
-	return &Process{
-		context:      c,
-		l:            l,
-		config:       config,
-		restartDelay: 2 * time.Second,
-	}
-}
+const defaultRetryDelay = 2 * time.Second
 
-// Run starts the SSH SOCKS proxy and keeps it alive.
-func (s *Process) Run() error {
-	s.locker.Lock()
-	defer s.locker.Unlock()
-
-	if s.running {
-		return nil
+// Start creates and starts an SSH SOCKS proxy process.
+func Start(l *logger.Logger, config *Config) (*Process, error) {
+	if err := config.Validate(); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	if err := s.ensureBinaryLocked(); err != nil {
-		return errors.WithStack(err)
+	p := &Process{
+		l:      l,
+		config: config,
 	}
-	if err := s.config.Validate(); err != nil {
-		return errors.WithStack(err)
-	}
-
-	s.stopChan = make(chan struct{})
-	s.doneChan = make(chan struct{})
-
-	if err := s.startLocked(); err != nil {
-		s.stopChan = nil
-		s.doneChan = nil
-		return errors.WithStack(err)
-	}
-
-	s.running = true
-	currentStop := s.stopChan
-	currentDone := s.doneChan
-	currentCmd := s.command
-	go s.monitor(currentCmd, currentStop, currentDone)
-
-	return nil
+	p.stopChan = make(chan struct{})
+	p.doneChan = make(chan struct{})
+	p.running = true
+	currentStop := p.stopChan
+	currentDone := p.doneChan
+	go p.run(currentStop, currentDone)
+	return p, nil
 }
 
 // Stop stops the SSH proxy.
-func (s *Process) Stop() error {
-	s.locker.Lock()
-	if !s.running {
-		s.locker.Unlock()
+func (p *Process) Stop() error {
+	p.locker.Lock()
+	if !p.running {
+		p.locker.Unlock()
 		return nil
 	}
 
-	stopChan := s.stopChan
-	doneChan := s.doneChan
-	cmd := s.command
-	s.running = false
-	s.stopChan = nil
-	s.doneChan = nil
-	s.command = nil
-	s.locker.Unlock()
+	stopChan := p.stopChan
+	doneChan := p.doneChan
+	cmd := p.command
+	p.running = false
+	p.stopChan = nil
+	p.doneChan = nil
+	p.command = nil
+	p.locker.Unlock()
 
 	if stopChan != nil {
 		close(stopChan)
 	}
 
 	if cmd != nil && cmd.Process != nil {
-		s.l.Debug("ssh: stopping...")
+		p.l.Debug("ssh: stopping...")
 		if err := cmd.Process.Kill(); err != nil {
 			return errors.WithStack(err)
 		}
@@ -105,113 +79,143 @@ func (s *Process) Stop() error {
 		select {
 		case <-doneChan:
 		case <-time.After(5 * time.Second):
-			s.l.Debug("ssh: stop timed out")
+			p.l.Debug("ssh: stop timed out")
 		}
 	}
 
 	return nil
 }
 
-// Restart restarts the SSH proxy.
-func (s *Process) Restart() error {
-	if err := s.Stop(); err != nil {
-		return errors.WithStack(err)
+func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
+	defer close(doneChan)
+
+	for {
+		if p.shouldStop(stopChan) {
+			p.l.Info("ssh: stopped")
+			return
+		}
+
+		if err := p.ensureBinary(); err != nil {
+			p.l.Error("ssh: binary not found", zap.Error(errors.WithStack(err)))
+			if !p.waitRetry(stopChan) {
+				p.l.Info("ssh: stopped")
+				return
+			}
+			continue
+		}
+
+		cmd, err := p.startCommand(stopChan)
+		if err != nil {
+			if p.shouldStop(stopChan) {
+				p.l.Info("ssh: stopped")
+				return
+			}
+			p.l.Error("ssh: start failed", zap.Error(errors.WithStack(err)))
+			if !p.waitRetry(stopChan) {
+				p.l.Info("ssh: stopped")
+				return
+			}
+			continue
+		}
+
+		err = cmd.Wait()
+		p.clearCommand(cmd)
+
+		if p.shouldStop(stopChan) {
+			p.l.Info("ssh: stopped")
+			return
+		}
+
+		if err != nil && err.Error() != "signal: killed" {
+			p.l.Error("ssh: process exited", zap.Error(errors.WithStack(err)))
+		} else {
+			p.l.Info("ssh: exited")
+		}
+
+		if !p.waitRetry(stopChan) {
+			p.l.Info("ssh: stopped")
+			return
+		}
 	}
-	return s.Run()
 }
 
-func (s *Process) startLocked() error {
-	if err := s.config.Validate(); err != nil {
-		return errors.WithStack(err)
-	}
-	if !util.PortFree(s.config.LocalPort) {
-		return errors.Errorf("ssh: local port %d is not free", s.config.LocalPort)
+func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, error) {
+	if !util.PortFree(p.config.LocalPort) {
+		return nil, errors.Errorf("ssh: local port %d is not free", p.config.LocalPort)
 	}
 
-	target := fmt.Sprintf("%s@%s", s.config.User, s.config.Host)
+	target := fmt.Sprintf("%s@%s", p.config.User, p.config.Host)
 	args := []string{
-		"-D", strconv.Itoa(s.config.LocalPort),
+		"-D", strconv.Itoa(p.config.LocalPort),
 		"-C",
 		"-q",
 		"-N",
 		"-v",
-		"-p", strconv.Itoa(s.config.SshPort),
+		"-p", strconv.Itoa(p.config.ServerPort),
 		target,
 	}
 
-	s.command = exec.Command(s.sshPath, args...)
-	s.command.Stdout = os.Stdout
-	s.command.Stderr = os.Stderr
+	cmd := exec.Command(p.sshPath, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	s.l.Info(
+	p.l.Info(
 		"ssh: starting...",
 		zap.String("target", target),
-		zap.Int("ssh_port", s.config.SshPort),
-		zap.Int("local_port", s.config.LocalPort),
+		zap.Int("ssh_port", p.config.ServerPort),
+		zap.Int("local_port", p.config.LocalPort),
 	)
 
-	if err := s.command.Start(); err != nil {
-		s.command = nil
-		return errors.WithStack(err)
+	if err := cmd.Start(); err != nil {
+		return nil, errors.WithStack(err)
 	}
-	return nil
+
+	p.locker.Lock()
+	if p.stopChan != stopChan || !p.running {
+		p.locker.Unlock()
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+		return nil, errors.New("ssh: stopped")
+	}
+	p.command = cmd
+	p.locker.Unlock()
+
+	return cmd, nil
 }
 
-func (s *Process) monitor(cmd *exec.Cmd, stopChan <-chan struct{}, doneChan chan<- struct{}) {
-	defer close(doneChan)
+func (p *Process) clearCommand(cmd *exec.Cmd) {
+	p.locker.Lock()
+	if p.command == cmd {
+		p.command = nil
+	}
+	p.locker.Unlock()
+}
 
-	for {
-		err := cmd.Wait()
-		if err != nil && err.Error() != "signal: killed" {
-			s.l.Error("ssh: process exited", zap.Error(errors.WithStack(err)))
-		}
-
-		select {
-		case <-stopChan:
-			s.l.Info("ssh: stopped")
-			return
-		default:
-		}
-		if s.context.Err() != nil {
-			s.l.Info("ssh: context canceled")
-			return
-		}
-
-		s.l.Info("ssh: restarting...")
-		time.Sleep(s.restartDelay)
-
-		for {
-			select {
-			case <-stopChan:
-				s.l.Info("ssh: stopped")
-				return
-			default:
-			}
-			if s.context.Err() != nil {
-				s.l.Info("ssh: context canceled")
-				return
-			}
-
-			s.locker.Lock()
-			if s.stopChan != stopChan {
-				s.locker.Unlock()
-				return
-			}
-			if err := s.startLocked(); err != nil {
-				s.locker.Unlock()
-				s.l.Error("ssh: cannot restart", zap.Error(errors.WithStack(err)))
-				time.Sleep(s.restartDelay)
-				continue
-			}
-			cmd = s.command
-			s.locker.Unlock()
-			break
-		}
+func (p *Process) shouldStop(stopChan <-chan struct{}) bool {
+	select {
+	case <-stopChan:
+		return true
+	default:
+		return false
 	}
 }
 
-func (s *Process) ensureBinaryLocked() error {
-	if s.sshPath != "" {
+func (p *Process) waitRetry(stopChan <-chan struct{}) bool {
+	timer := time.NewTimer(defaultRetryDelay)
+	defer timer.Stop()
+
+	select {
+	case <-stopChan:
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+// ensureBinary ensures that the SSH binary exists.
+func (p *Process) ensureBinary() error {
+	if p.sshPath != "" {
 		return nil
 	}
 
@@ -219,6 +223,6 @@ func (s *Process) ensureBinaryLocked() error {
 	if err != nil {
 		return errors.Wrap(err, "ssh: binary not found")
 	}
-	s.sshPath = path
+	p.sshPath = path
 	return nil
 }

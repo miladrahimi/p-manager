@@ -42,22 +42,22 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 		current := db.Data().XraySettings
 		if r.VrrvDirectPort > 0 && r.VrrvDirectPort != current.VrrvDirectPort && !util.PortFree(r.VrrvDirectPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.VrrvDirectPort),
+				"message": fmt.Sprintf("ServerPort %d is already in use.", r.VrrvDirectPort),
 			})
 		}
 		if r.VrrvRemotePort > 0 && r.VrrvRemotePort != current.VrrvRemotePort && !util.PortFree(r.VrrvRemotePort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.VrrvRemotePort),
+				"message": fmt.Sprintf("ServerPort %d is already in use.", r.VrrvRemotePort),
 			})
 		}
 		if r.Vrrv2VrrvPort > 0 && r.Vrrv2VrrvPort != current.Vrrv2VrrvPort && !util.PortFree(r.Vrrv2VrrvPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.Vrrv2VrrvPort),
+				"message": fmt.Sprintf("ServerPort %d is already in use.", r.Vrrv2VrrvPort),
 			})
 		}
 		if r.Vrrv2SshPort > 0 && r.Vrrv2SshPort != current.Vrrv2SshPort && !util.PortFree(r.Vrrv2SshPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.Vrrv2SshPort),
+				"message": fmt.Sprintf("ServerPort %d is already in use.", r.Vrrv2SshPort),
 			})
 		}
 

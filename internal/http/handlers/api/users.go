@@ -321,6 +321,11 @@ func UsersImport(
 			ids = append(ids, u.Id)
 		}
 
+		var vlessIds []string
+		for _, u := range db.Data().Users {
+			vlessIds = append(vlessIds, u.VlessId)
+		}
+
 		var names []string
 		for _, u := range db.Data().Users {
 			names = append(names, u.Name)
@@ -332,12 +337,13 @@ func UsersImport(
 				results = append(results, fmt.Sprintf("Skipped: DuplicateId=%s", u.Id))
 				continue
 			}
+			if slices.Index(vlessIds, u.VlessId) != -1 {
+				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateVlessId=%s", u.Id, u.VlessId))
+				continue
+			}
 			if slices.Index(names, u.Name) != -1 {
 				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateName=%s", u.Id, u.Name))
 				continue
-			}
-			if u.VlessId != "" {
-				u.VlessId = util.Uuid()
 			}
 			db.Data().Users = append(db.Data().Users, &u)
 			results = append(results, fmt.Sprintf("Imported: ID=%s Name=%s", u.Id, u.Name))

@@ -9,6 +9,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/composer/vless"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/data"
+	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/xray"
@@ -29,7 +30,7 @@ func New(config *config.Config, database *database.Database[data.Data], xray *xr
 }
 
 // LocalConfig composes the local xray config.
-func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config, error) {
+func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xrayConfig.Config, error) {
 	clients := c.clients()
 	d := c.db.Data()
 	xs := d.XraySettings
@@ -47,7 +48,7 @@ func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config
 
 	if hasClients && hasNodes && xs.Vrrv2VrrvPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-			"relay",
+			"relay-vrrv2vrrv",
 			xs.Vrrv2VrrvPort,
 			xs.VrrvPrivateKey,
 			xs.ManagerSni,
@@ -55,11 +56,11 @@ func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config
 			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
-			InboundTag:  []string{"relay"},
-			BalancerTag: "relay",
+			InboundTag:  []string{"relay-vrrv2vrrv"},
+			BalancerTag: "relay-vrrv2vrrv",
 		})
 		xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
-			Tag: "relay", Selector: []string{},
+			Tag: "relay-vrrv2vrrv", Selector: []string{},
 		})
 		for _, n := range d.Nodes {
 			outboundRelayPort, err := util.FreePort()
@@ -67,16 +68,16 @@ func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config
 				return nil, errors.WithStack(err)
 			}
 			xc.Outbounds = append(xc.Outbounds, vless.MakeVrrvOutbound(
-				fmt.Sprintf("relay-%s", n.Id),
+				fmt.Sprintf("relay-vrrv2vrrv-%s", n.Id),
 				n.Host,
 				outboundRelayPort,
 				util.Uuid(),
 				xs.VrrvPublicKey,
 				xs.NodeSni,
 			))
-			xc.FindBalancer("relay").Selector = append(
-				xc.FindBalancer("relay").Selector,
-				fmt.Sprintf("relay-%s", n.Id),
+			xc.FindBalancer("relay-vrrv2vrrv").Selector = append(
+				xc.FindBalancer("relay-vrrv2vrrv").Selector,
+				fmt.Sprintf("relay-vrrv2vrrv-%s", n.Id),
 			)
 		}
 	}
@@ -84,18 +85,18 @@ func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config
 	if hasClients && hasNodes && xs.Vrrv2SshPort > 0 {
 		outbounds := make([]string, 0, len(d.Nodes))
 		for _, n := range d.Nodes {
-			localPort, ok := sshLocalPorts[n.Id]
-			if !ok || localPort <= 0 {
+			sshConfig, ok := sshConfigsByNodeIds[n.Id]
+			if !ok || sshConfig.LocalPort <= 0 {
 				continue
 			}
-			tag := fmt.Sprintf("vrrv2ssh-%s", n.Id)
-			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", localPort))
+			tag := fmt.Sprintf("relay-vrrv2ssh-%s", n.Id)
+			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", sshConfig.LocalPort))
 			outbounds = append(outbounds, tag)
 		}
 
 		if len(outbounds) > 0 {
 			xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-				"vrrv2ssh",
+				"relay-vrrv2ssh",
 				xs.Vrrv2SshPort,
 				xs.VrrvPrivateKey,
 				xs.ManagerSni,
@@ -103,11 +104,11 @@ func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config
 				fallback,
 			))
 			xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
-				InboundTag:  []string{"vrrv2ssh"},
-				BalancerTag: "vrrv2ssh",
+				InboundTag:  []string{"relay-vrrv2ssh"},
+				BalancerTag: "relay-vrrv2ssh",
 			})
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
-				Tag:      "vrrv2ssh",
+				Tag:      "relay-vrrv2ssh",
 				Selector: outbounds,
 			})
 		}
@@ -115,7 +116,7 @@ func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config
 
 	if hasClients && xs.VrrvDirectPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-			"direct",
+			"direct-vrrv",
 			xs.VrrvDirectPort,
 			xs.VrrvPrivateKey,
 			xs.ManagerSni,
@@ -123,7 +124,7 @@ func (c *Composer) LocalConfig(sshLocalPorts map[string]int) (*xrayConfig.Config
 			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
-			InboundTag:  []string{"direct"},
+			InboundTag:  []string{"direct-vrrv"},
 			OutboundTag: "out",
 		})
 	}
@@ -144,7 +145,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 	}
 
 	if xs.Vrrv2VrrvPort > 0 {
-		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-%s", node.Id))
+		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-vrrv2vrrv-%s", node.Id))
 		if relayOutbound != nil && relayOutbound.Settings != nil {
 			if len(relayOutbound.Settings.Vnext) > 0 {
 				server := relayOutbound.Settings.Vnext[0]
@@ -153,7 +154,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 					users[i] = vless.MakeUser(u.Id, vless.FlowVision, vless.EncryptionEmpty)
 				}
 				xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-					"relay",
+					"relay-vrrv2vrrv",
 					server.Port,
 					xs.VrrvPrivateKey,
 					xs.NodeSni,
@@ -163,7 +164,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 				xc.Routing.Rules = append(
 					xc.Routing.Rules,
 					&component.Rule{
-						InboundTag:  []string{"relay"},
+						InboundTag:  []string{"relay-vrrv2vrrv"},
 						OutboundTag: "out",
 					},
 				)
@@ -173,7 +174,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 
 	if xs.VrrvRemotePort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeVrrvInbound(
-			"remote",
+			"remote-vrrv",
 			xs.VrrvRemotePort,
 			xs.VrrvPrivateKey,
 			xs.NodeSni,
@@ -183,7 +184,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		xc.Routing.Rules = append(
 			xc.Routing.Rules,
 			&component.Rule{
-				InboundTag:  []string{"remote"},
+				InboundTag:  []string{"remote-vrrv"},
 				OutboundTag: "out",
 			},
 		)

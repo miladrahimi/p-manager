@@ -78,8 +78,7 @@ func MakeVrInbound(
 			Fallbacks:  []*component.VlessFallback{fallback},
 		},
 		StreamSettings: &component.StreamSettings{
-			Network:  NetworkRaw,
-			Security: SecurityNone,
+			Network: NetworkRaw,
 		},
 	}
 }

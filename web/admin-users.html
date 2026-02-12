@@ -125,13 +125,6 @@
         validationMode: "blocking",
         columns: [
             {
-                title: "ID",
-                field: "id",
-                resizable: true,
-                headerFilter: "input",
-                formatter: cell => `<small><code class="text-muted">${cell.getValue()}</code></small>`,
-            },
-            {
                 title: "Name", field: "name", resizable: true, headerFilter: "input", editor: "input",
                 validator: ["required", "unique", "minLength:1", "maxLength:32"],
             },

@@ -64,7 +64,7 @@ func New() (a *App, err error) {
 
 	a.httpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
 	a.xray = xray.New(a.context, l, c.Xray.LogLevel, config.XrayConfigPath(root), config.XrayBinaryPath(root))
-	a.sshPool = ssh.New(l)
+	a.sshPool = ssh.New(l, config.SshStdoutPath(root), config.SshStderrPath(root))
 	a.composer = composer.New(c, a.database, a.xray)
 	a.coordinator = coordinator.New(c, a.httpClient, l, a.database, a.xray, a.composer, a.sshPool)
 	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient)

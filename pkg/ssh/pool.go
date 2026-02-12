@@ -9,16 +9,20 @@ import (
 
 // Pool represents a processes of SSH SOCKS proxies.
 type Pool struct {
-	l         *logger.Logger
-	locker    sync.Mutex
-	processes map[string]*Process
+	l          *logger.Logger
+	stdoutPath string
+	stderrPath string
+	locker     sync.Mutex
+	processes  map[string]*Process
 }
 
 // New creates a new SSH proxy manager.
-func New(l *logger.Logger) *Pool {
+func New(l *logger.Logger, stdoutPath, stderrPath string) *Pool {
 	return &Pool{
-		l:         l,
-		processes: map[string]*Process{},
+		l:          l,
+		stdoutPath: stdoutPath,
+		stderrPath: stderrPath,
+		processes:  map[string]*Process{},
 	}
 }
 
@@ -40,7 +44,7 @@ func (m *Pool) Start(tag string, config *Config) error {
 		return nil
 	}
 
-	proxy, err := Start(m.l, config)
+	proxy, err := Start(m.l, config, m.stdoutPath, m.stderrPath)
 	if err != nil {
 		m.locker.Unlock()
 		return errors.WithStack(err)

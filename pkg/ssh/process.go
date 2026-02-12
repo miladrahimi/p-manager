@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -16,27 +17,31 @@ import (
 
 // Process represents an SSH SOCKS proxy process.
 type Process struct {
-	l        *logger.Logger
-	config   *Config
-	command  *exec.Cmd
-	locker   sync.Mutex
-	sshPath  string
-	stopChan chan struct{}
-	doneChan chan struct{}
-	running  bool
+	l          *logger.Logger
+	config     *Config
+	command    *exec.Cmd
+	locker     sync.Mutex
+	sshPath    string
+	stdoutPath string
+	stderrPath string
+	stopChan   chan struct{}
+	doneChan   chan struct{}
+	running    bool
 }
 
 const defaultRetryDelay = 2 * time.Second
 
 // Start creates and starts an SSH SOCKS proxy process.
-func Start(l *logger.Logger, config *Config) (*Process, error) {
+func Start(l *logger.Logger, config *Config, stdoutPath, stderrPath string) (*Process, error) {
 	if err := config.Validate(); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	p := &Process{
-		l:      l,
-		config: config,
+		l:          l,
+		config:     config,
+		stdoutPath: stdoutPath,
+		stderrPath: stderrPath,
 	}
 	p.stopChan = make(chan struct{})
 	p.doneChan = make(chan struct{})
@@ -86,6 +91,7 @@ func (p *Process) Stop() error {
 	return nil
 }
 
+// run runs the SSH SOCKS proxy process.
 func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 	defer close(doneChan)
 
@@ -104,7 +110,7 @@ func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 			continue
 		}
 
-		cmd, err := p.startCommand(stopChan)
+		cmd, stdoutFile, stderrFile, err := p.startCommand(stopChan)
 		if err != nil {
 			if p.shouldStop(stopChan) {
 				p.l.Info("ssh: stopped")
@@ -120,6 +126,7 @@ func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 
 		err = cmd.Wait()
 		p.clearCommand(cmd)
+		p.closeOutputFiles(stdoutFile, stderrFile)
 
 		if p.shouldStop(stopChan) {
 			p.l.Info("ssh: stopped")
@@ -139,9 +146,10 @@ func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 	}
 }
 
-func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, error) {
+// startCommand starts the SSH SOCKS proxy command.
+func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, *os.File, *os.File, error) {
 	if !util.PortFree(p.config.LocalPort) {
-		return nil, errors.Errorf("ssh: local port %d is not free", p.config.LocalPort)
+		return nil, nil, nil, errors.Errorf("ssh: local port %d is not free", p.config.LocalPort)
 	}
 
 	target := fmt.Sprintf("%s@%s", p.config.User, p.config.Host)
@@ -155,9 +163,14 @@ func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, error) {
 		target,
 	}
 
+	stdoutFile, stderrFile, err := p.openLogFiles()
+	if err != nil {
+		return nil, nil, nil, errors.WithStack(err)
+	}
+
 	cmd := exec.Command(p.sshPath, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = stdoutFile
+	cmd.Stderr = stderrFile
 
 	p.l.Info(
 		"ssh: starting...",
@@ -167,7 +180,8 @@ func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, error) {
 	)
 
 	if err := cmd.Start(); err != nil {
-		return nil, errors.WithStack(err)
+		p.closeOutputFiles(stdoutFile, stderrFile)
+		return nil, nil, nil, errors.WithStack(err)
 	}
 
 	p.locker.Lock()
@@ -176,14 +190,16 @@ func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, error) {
 		if cmd.Process != nil {
 			_ = cmd.Process.Kill()
 		}
-		return nil, errors.New("ssh: stopped")
+		p.closeOutputFiles(stdoutFile, stderrFile)
+		return nil, nil, nil, errors.New("ssh: stopped")
 	}
 	p.command = cmd
 	p.locker.Unlock()
 
-	return cmd, nil
+	return cmd, stdoutFile, stderrFile, nil
 }
 
+// clearCommand clears the command reference if it matches the provided command.
 func (p *Process) clearCommand(cmd *exec.Cmd) {
 	p.locker.Lock()
 	if p.command == cmd {
@@ -192,6 +208,7 @@ func (p *Process) clearCommand(cmd *exec.Cmd) {
 	p.locker.Unlock()
 }
 
+// shouldStop checks if the stop channel is closed.
 func (p *Process) shouldStop(stopChan <-chan struct{}) bool {
 	select {
 	case <-stopChan:
@@ -201,6 +218,7 @@ func (p *Process) shouldStop(stopChan <-chan struct{}) bool {
 	}
 }
 
+// waitRetry waits for the retry delay or until the stop channel is closed.
 func (p *Process) waitRetry(stopChan <-chan struct{}) bool {
 	timer := time.NewTimer(defaultRetryDelay)
 	defer timer.Stop()
@@ -210,6 +228,51 @@ func (p *Process) waitRetry(stopChan <-chan struct{}) bool {
 		return false
 	case <-timer.C:
 		return true
+	}
+}
+
+// openLogFiles opens the log files for the SSH proxy output.
+func (p *Process) openLogFiles() (*os.File, *os.File, error) {
+	stdoutFile, err := p.openLogFile(p.stdoutPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	if p.stderrPath == p.stdoutPath {
+		return stdoutFile, stdoutFile, nil
+	}
+
+	stderrFile, err := p.openLogFile(p.stderrPath)
+	if err != nil {
+		_ = stdoutFile.Close()
+		return nil, nil, err
+	}
+
+	return stdoutFile, stderrFile, nil
+}
+
+// openLogFile opens the log file for the SSH proxy output.
+func (p *Process) openLogFile(path string) (*os.File, error) {
+	dir := filepath.Dir(path)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, errors.WithStack(err)
+		}
+	}
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return file, nil
+}
+
+// closeOutputFiles closes the log files for the SSH proxy output.
+func (p *Process) closeOutputFiles(stdoutFile, stderrFile *os.File) {
+	if stdoutFile != nil {
+		_ = stdoutFile.Close()
+	}
+	if stderrFile != nil && stderrFile != stdoutFile {
+		_ = stderrFile.Close()
 	}
 }
 

@@ -5,10 +5,11 @@ import (
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-manager/pkg/util"
+	"go.uber.org/zap"
 )
 
 const (
-	defaultSshUser       = "root"
+	defaultSshUser       = "miladrahimi"
 	defaultSshServerPort = 22
 )
 
@@ -63,9 +64,13 @@ func (c *Coordinator) syncSshProxies() error {
 
 		// Start ssh proxies for the new/updated node.
 		sshConfig = ssh.NewConfig(node.Host, defaultSshUser, defaultSshServerPort, freePort)
-		err = c.sshPool.Start(node.Id, sshConfig)
-		errList = errors.Join(errList, err)
+		if err = c.sshPool.Start(node.Id, sshConfig); err != nil {
+			errList = errors.Join(errList, err)
+		} else {
+			c.state.SetSshConfig(node.Id, sshConfig)
+		}
 	}
 
+	c.l.Info("coordinator: finished syncing ssh proxies", zap.Int("count", len(c.state.sshConfigsByNode)))
 	return errors.WithStack(errList)
 }

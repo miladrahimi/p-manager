@@ -8,11 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	defaultSshUser       = "miladrahimi"
-	defaultSshServerPort = 22
-)
-
+// syncSshProxies syncs the SSH SOCKS proxies for the nodes in the database.
 func (c *Coordinator) syncSshProxies() error {
 	var errList error
 
@@ -45,8 +41,8 @@ func (c *Coordinator) syncSshProxies() error {
 		if hasConfig && sshConfig != nil {
 			// Skip node if it doesn't require update.
 			if sshConfig.Host == node.Host &&
-				sshConfig.User == defaultSshUser &&
-				sshConfig.ServerPort == defaultSshServerPort {
+				sshConfig.User == node.SshUser &&
+				sshConfig.ServerPort == node.SshPort {
 				continue
 			}
 
@@ -63,7 +59,7 @@ func (c *Coordinator) syncSshProxies() error {
 		}
 
 		// Start ssh proxies for the new/updated node.
-		sshConfig = ssh.NewConfig(node.Host, defaultSshUser, defaultSshServerPort, freePort)
+		sshConfig = ssh.NewConfig(node.Host, node.SshUser, node.SshPort, freePort)
 		if err = c.sshPool.Start(node.Id, sshConfig); err != nil {
 			errList = errors.Join(errList, err)
 		} else {
@@ -71,6 +67,6 @@ func (c *Coordinator) syncSshProxies() error {
 		}
 	}
 
-	c.l.Info("coordinator: finished syncing ssh proxies", zap.Int("count", len(c.state.sshConfigsByNode)))
+	c.l.Info("coordinator: finished syncing ssh proxies", zap.Int("c", len(c.state.sshConfigsByNode)))
 	return errors.WithStack(errList)
 }

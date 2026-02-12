@@ -67,6 +67,12 @@ func (c *Coordinator) Run(ctx context.Context) error {
 
 	c.UpdateConfigs()
 
+	go newWorker("syncSshProxies", time.Second*10, c.l, func() {
+		if err := c.syncSshProxies(); err != nil {
+			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
+		}
+	}).Start(ctx)
+
 	go newWorker("pushConfigToStaleNodes", time.Second*10, c.l, func() {
 		c.pushConfigToStaleNodes()
 	}).Start(ctx)

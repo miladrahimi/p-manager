@@ -36,7 +36,11 @@
 
         <div id="table" class="celled striped very compact"></div>
 
-        <div class="btn btn-dark btn-sm d-block" id="create">+ Add Node</div>
+        <div class="input-group input-group-sm mt-2">
+            <input type="text" class="form-control" id="node-json"
+                   placeholder='Paste P-Node JSON here (e.g. {"ip":"...","http_port":1234,"http_token":"...","ssh_port":22,"ssh_user":"root"})'>
+            <button class="btn btn-dark" id="create">+ Add Node</button>
+        </div>
         <a class="btn btn-outline-dark btn-sm d-block mt-1" href="https://github.com/miladrahimi/p-node"
            target="_blank">
             P-Node GitHub
@@ -161,6 +165,23 @@
                 editable: true,
             },
             {
+                title: "SSH User",
+                field: "ssh_user",
+                editor: "input",
+                widthGrow: 1,
+                validator: ["required"],
+                editable: true,
+            },
+            {
+                title: "SSH Port",
+                field: "ssh_port",
+                visible: true,
+                editor: "number",
+                widthGrow: 1,
+                validator: ["required", "min:1", "max:65536"],
+                editable: true
+            },
+            {
                 title: "Usage (GB)",
                 field: "usage",
                 visible: true,
@@ -185,7 +206,8 @@
     table.on("dataLoadError", makeErrorHandler())
 
     table.on("cellEdited", cell => {
-        if (!cell.getData()['host'] || !cell.getData()['http_token'] || !cell.getData()['http_port']) {
+        if (!cell.getData()['host'] || !cell.getData()['http_token'] || !cell.getData()['http_port'] ||
+            !cell.getData()['ssh_user'] || !cell.getData()['ssh_port']) {
             return
         }
 
@@ -212,17 +234,61 @@
     })
 
     $("#create").click(() => {
-        table.addRow({
-            id: "",
-            host: "",
-            http_token: "",
-            http_port: "",
-            usage: 0,
-            push_status: "",
-            pull_status: "",
-            pull_command: "Not available",
-            pushed_at: 0,
-            pulled_at: 0,
+        let raw = $("#node-json").val().trim()
+        if (!raw) {
+            table.alert("Paste the P-Node JSON first.", "error")
+            return
+        }
+
+        let payload
+        try {
+            payload = JSON.parse(raw)
+        } catch (e) {
+            try {
+                payload = JSON.parse(raw.replace(/,(\s*[}\]])/g, "$1"))
+            } catch (parseError) {
+                table.alert("Invalid JSON payload.", "error")
+                return
+            }
+        }
+
+        let host = payload.ip || payload.host || ""
+        let httpPort = parseInt(payload.http_port, 10)
+        let sshPort = parseInt(payload.ssh_port, 10)
+        let httpToken = payload.http_token || ""
+        let sshUser = payload.ssh_user || ""
+
+        if (!host || !httpToken || !httpPort || !sshUser || !sshPort) {
+            table.alert("JSON payload is missing required fields.", "error")
+            return
+        }
+
+        let request = {
+            host: host,
+            http_token: httpToken,
+            http_port: httpPort,
+            ssh_user: sshUser,
+            ssh_port: sshPort,
+        }
+
+        table.alert("Adding the node...", "msg")
+
+        $.ajax({
+            type: "POST",
+            url: "/api/nodes",
+            contentType: "application/json",
+            data: JSON.stringify(request),
+            dataType: "json",
+            processData: true,
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            },
+            success: () => {
+                table.alert("Item saved successfully.", "msg")
+                setTimeout(() => window.location.reload(), 1000)
+            },
+            error: makeErrorHandler(message => table.alert(message, "error")),
+            complete: () => setTimeout(() => table.clearAlert(), 1500),
         })
     })
 </script>

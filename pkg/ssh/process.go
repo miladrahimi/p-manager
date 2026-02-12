@@ -159,6 +159,8 @@ func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, *os.File, *
 		"-q",
 		"-N",
 		"-v",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "BatchMode=yes",
 		"-p", strconv.Itoa(p.config.ServerPort),
 		target,
 	}

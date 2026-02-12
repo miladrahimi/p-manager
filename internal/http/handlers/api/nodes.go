@@ -19,9 +19,12 @@ type NodeResponse struct {
 }
 
 type NodesStoreRequest struct {
-	Host      string `json:"host" validate:"required,max=64"`
+	Host      string `json:"host" validate:"required,max=128"`
+	Ip        string `json:"ip" validate:"max=128"`
 	HttpToken string `json:"http_token" validate:"required"`
 	HttpPort  int    `json:"http_port" validate:"required,min=1,max=65535"`
+	SshUser   string `json:"ssh_user" validate:"required"`
+	SshPort   int    `json:"ssh_port" validate:"required,min=1,max=65535"`
 }
 
 type NodesUpdateRequest struct {
@@ -57,6 +60,9 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 				"message": "Cannot parse the request body.",
 			})
 		}
+		if r.Host == "" && r.Ip != "" {
+			r.Host = r.Ip
+		}
 		if err := validator.New().Struct(r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
@@ -74,10 +80,12 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 			if n.Host == r.Host && n.HttpPort == r.HttpPort {
 				node = n
 				node.HttpToken = r.HttpToken
+				node.SshUser = r.SshUser
+				node.SshPort = r.SshPort
 			}
 		}
 		if node == nil {
-			node = data.NewNode(util.Uuid(), r.Host, r.HttpToken, r.HttpPort)
+			node = data.NewNode(util.Uuid(), r.Host, r.HttpToken, r.HttpPort, r.SshUser, r.SshPort)
 			db.Data().Nodes = append(db.Data().Nodes, node)
 		}
 
@@ -99,6 +107,9 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 				"message": "Cannot parse the request body.",
 			})
 		}
+		if r.Host == "" && r.Ip != "" {
+			r.Host = r.Ip
+		}
 		if err := validator.New().Struct(r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
@@ -118,6 +129,8 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 		node.Host = r.Host
 		node.HttpToken = r.HttpToken
 		node.HttpPort = r.HttpPort
+		node.SshUser = r.SshUser
+		node.SshPort = r.SshPort
 
 		if err := db.Save(); err != nil {
 			return errors.WithStack(err)

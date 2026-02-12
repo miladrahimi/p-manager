@@ -16,6 +16,8 @@ type Node struct {
 	Host       string     `json:"host" validate:"required,max=128"`
 	HttpToken  string     `json:"http_token" validate:"required"`
 	HttpPort   int        `json:"http_port" validate:"required,min=1,max=65535"`
+	SshUser    string     `json:"ssh_user" validate:"required"`
+	SshPort    int        `json:"ssh_port" validate:"required,min=1,max=65535"`
 	Usage      float64    `json:"usage" validate:"min=0"`
 	UsageBytes int64      `json:"usage_bytes" validate:"min=0"`
 	PushStatus NodeStatus `json:"push_status"`
@@ -25,11 +27,13 @@ type Node struct {
 }
 
 // NewNode creates a new node instance.
-func NewNode(id string, host string, httpToken string, httpPort int) *Node {
+func NewNode(id string, host string, httpToken string, httpPort int, sshUser string, sshPort int) *Node {
 	return &Node{
 		Id:        id,
 		Host:      host,
 		HttpToken: httpToken,
 		HttpPort:  httpPort,
+		SshUser:   sshUser,
+		SshPort:   sshPort,
 	}
 }

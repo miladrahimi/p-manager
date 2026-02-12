@@ -11,6 +11,7 @@ const (
 	FlowVision      = "xtls-rprx-vision"
 	NetworkRaw      = "raw"
 	SecurityReality = "reality"
+	SecurityNone    = "none"
 	EncryptionNone  = "none"
 	EncryptionEmpty = ""
 )
@@ -24,7 +25,7 @@ func MakeUser(id, flow, encryption string) *component.VlessUser {
 	}
 }
 
-// MakeVrrvInbound makes a VLESS/Raw/Reality inbound.
+// MakeVrrvInbound makes a VLESS/Raw/Reality/Vision inbound.
 func MakeVrrvInbound(
 	tag string,
 	port int,
@@ -56,6 +57,29 @@ func MakeVrrvInbound(
 			Enabled:      true,
 			RouteOnly:    true,
 			DestOverride: []string{"http", "tls", "quic"},
+		},
+	}
+}
+
+// MakeVrInbound makes a VLESS/Raw inbound without reality and flow.
+func MakeVrInbound(
+	tag string,
+	port int,
+	clients []*component.VlessUser,
+	fallback *component.VlessFallback,
+) *component.Inbound {
+	return &component.Inbound{
+		Tag:      tag,
+		Port:     port,
+		Protocol: Protocol,
+		Settings: &component.InboundSettings{
+			Clients:    clients,
+			Decryption: EncryptionNone,
+			Fallbacks:  []*component.VlessFallback{fallback},
+		},
+		StreamSettings: &component.StreamSettings{
+			Network:  NetworkRaw,
+			Security: SecurityNone,
 		},
 	}
 }

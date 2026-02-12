@@ -137,10 +137,30 @@
                         </td>
                     </tr>
                     <tr>
+                        <td class="align-middle px-2">VR→VRRV Relay Port</td>
+                        <td>
+                            <input id="vr_2_vrrv_port" type="number" class="form-control"
+                                   title="VR->VRRV Relay Port"
+                                   min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Relay port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="align-middle px-2">VRRV→SSH Port</td>
                         <td>
                             <input id="vrrv_2_ssh_port" type="number" class="form-control"
                                    title="VRRV->SSH Port"
+                                   min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="SSH port or zero to disable.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">VR→SSH Port</td>
+                        <td>
+                            <input id="vr_2_ssh_port" type="number" class="form-control"
+                                   title="VR->SSH Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="SSH port or zero to disable.">
@@ -162,6 +182,24 @@
                                    title="Manager SNI" minlength="1" maxlength="255" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
                                    data-bs-title="SNI name used by reality for P-Manager direct proxies." />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">VRRV Private Key</td>
+                        <td>
+                            <input id="vrrv_private_key" type="text" class="form-control"
+                                   title="VRRV Private Key" minlength="1" maxlength="255"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Reality private key used by VRRV inbounds.">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle px-2">VRRV Public Key</td>
+                        <td>
+                            <input id="vrrv_public_key" type="text" class="form-control"
+                                   title="VRRV Public Key" minlength="1" maxlength="255"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Reality public key used by VRRV outbounds.">
                         </td>
                     </tr>
                 </table>
@@ -360,10 +398,14 @@
             xraySettings = response
             setPortValue('#vrrv_direct_port', response['vrrv_direct_port'])
             setPortValue('#vrrv_2_vrrv_port', response['vrrv_2_vrrv_port'])
+            setPortValue('#vr_2_vrrv_port', response['vr_2_vrrv_port'])
             setPortValue('#vrrv_2_ssh_port', response['vrrv_2_ssh_port'])
+            setPortValue('#vr_2_ssh_port', response['vr_2_ssh_port'])
             setPortValue('#vrrv_remote_port', response['vrrv_remote_port'])
             $('#node_sni').val(response['node_sni'] || "")
             $('#manager_sni').val(response['manager_sni'] || "")
+            $('#vrrv_private_key').val(response['vrrv_private_key'] || "")
+            $('#vrrv_public_key').val(response['vrrv_public_key'] || "")
         },
         error: makeErrorHandler(),
         processData: true,
@@ -551,12 +593,14 @@
             data: JSON.stringify({
                 vrrv_direct_port: parsePort($('#vrrv_direct_port').val()),
                 vrrv_2_vrrv_port: parsePort($('#vrrv_2_vrrv_port').val()),
+                vr_2_vrrv_port: parsePort($('#vr_2_vrrv_port').val()),
                 vrrv_2_ssh_port: parsePort($('#vrrv_2_ssh_port').val()),
+                vr_2_ssh_port: parsePort($('#vr_2_ssh_port').val()),
                 vrrv_remote_port: parsePort($('#vrrv_remote_port').val()),
                 node_sni: $('#node_sni').val().trim(),
                 manager_sni: $('#manager_sni').val().trim(),
-                vrrv_private_key: xraySettings['vrrv_private_key'] || "",
-                vrrv_public_key: xraySettings['vrrv_public_key'] || "",
+                vrrv_private_key: $('#vrrv_private_key').val().trim(),
+                vrrv_public_key: $('#vrrv_public_key').val().trim(),
             }),
             processData: true,
             dataType: 'json',

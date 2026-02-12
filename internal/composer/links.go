@@ -24,9 +24,18 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 		links[name] = buildVrrvLink(host, port, user.VlessId, xs.VrrvPublicKey, sni, name)
 	}
 
+	addVrLink := func(name, host string, port int) {
+		if host == "" || port <= 0 {
+			return
+		}
+		links[name] = buildVrLink(host, port, user.VlessId, name)
+	}
+
 	addLink("vrrv_direct", d.MainSettings.Host, xs.VrrvDirectPort, xs.ManagerSni)
 	addLink("vrrv_2_vrrv_relay", d.MainSettings.Host, xs.Vrrv2VrrvPort, xs.ManagerSni)
 	addLink("vrrv_2_ssh", d.MainSettings.Host, xs.Vrrv2SshPort, xs.ManagerSni)
+	addVrLink("vr_2_vrrv_relay", d.MainSettings.Host, xs.Vr2VrrvPort)
+	addVrLink("vr_2_ssh", d.MainSettings.Host, xs.Vr2SshPort)
 
 	if xs.VrrvRemotePort > 0 {
 		for _, n := range d.Nodes {
@@ -54,6 +63,25 @@ func buildVrrvLink(host string, port int, userId string, publicKey string, nodeS
 	query.Set("security", vless.SecurityReality)
 	query.Set("sni", nodeSni)
 	query.Set("pbk", publicKey)
+
+	vlessUrl.RawQuery = query.Encode()
+
+	return vlessUrl.String()
+}
+
+func buildVrLink(host string, port int, userId string, tag string) string {
+	address := net.JoinHostPort(host, strconv.Itoa(port))
+	vlessUrl := url.URL{
+		Scheme:   vless.Protocol,
+		User:     url.User(userId),
+		Host:     address,
+		Fragment: tag,
+	}
+
+	query := url.Values{}
+	query.Set("encryption", vless.EncryptionNone)
+	query.Set("type", vless.NetworkRaw)
+	query.Set("security", vless.SecurityNone)
 
 	vlessUrl.RawQuery = query.Encode()
 

@@ -15,8 +15,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// Ssh represents an SSH SOCKS proxy instance.
-type Ssh struct {
+// Process represents an SSH SOCKS proxy instance.
+type Process struct {
 	l            *logger.Logger
 	config       *Config
 	command      *exec.Cmd
@@ -30,8 +30,8 @@ type Ssh struct {
 }
 
 // newProxy creates a new SSH proxy instance.
-func newProxy(c context.Context, l *logger.Logger, config *Config) *Ssh {
-	return &Ssh{
+func newProxy(c context.Context, l *logger.Logger, config *Config) *Process {
+	return &Process{
 		context:      c,
 		l:            l,
 		config:       config,
@@ -40,7 +40,7 @@ func newProxy(c context.Context, l *logger.Logger, config *Config) *Ssh {
 }
 
 // Run starts the SSH SOCKS proxy and keeps it alive.
-func (s *Ssh) Run() error {
+func (s *Process) Run() error {
 	s.locker.Lock()
 	defer s.locker.Unlock()
 
@@ -74,7 +74,7 @@ func (s *Ssh) Run() error {
 }
 
 // Stop stops the SSH proxy.
-func (s *Ssh) Stop() error {
+func (s *Process) Stop() error {
 	s.locker.Lock()
 	if !s.running {
 		s.locker.Unlock()
@@ -113,14 +113,14 @@ func (s *Ssh) Stop() error {
 }
 
 // Restart restarts the SSH proxy.
-func (s *Ssh) Restart() error {
+func (s *Process) Restart() error {
 	if err := s.Stop(); err != nil {
 		return errors.WithStack(err)
 	}
 	return s.Run()
 }
 
-func (s *Ssh) startLocked() error {
+func (s *Process) startLocked() error {
 	if err := s.config.Validate(); err != nil {
 		return errors.WithStack(err)
 	}
@@ -157,7 +157,7 @@ func (s *Ssh) startLocked() error {
 	return nil
 }
 
-func (s *Ssh) monitor(cmd *exec.Cmd, stopChan <-chan struct{}, doneChan chan<- struct{}) {
+func (s *Process) monitor(cmd *exec.Cmd, stopChan <-chan struct{}, doneChan chan<- struct{}) {
 	defer close(doneChan)
 
 	for {
@@ -210,7 +210,7 @@ func (s *Ssh) monitor(cmd *exec.Cmd, stopChan <-chan struct{}, doneChan chan<- s
 	}
 }
 
-func (s *Ssh) ensureBinaryLocked() error {
+func (s *Process) ensureBinaryLocked() error {
 	if s.sshPath != "" {
 		return nil
 	}

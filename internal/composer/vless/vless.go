@@ -11,7 +11,6 @@ const (
 	FlowVision      = "xtls-rprx-vision"
 	NetworkRaw      = "raw"
 	SecurityReality = "reality"
-	SecurityNone    = "none"
 	EncryptionNone  = "none"
 	EncryptionEmpty = ""
 )

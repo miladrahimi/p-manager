@@ -129,7 +129,7 @@
             },
             error: response => {
                 console.log('ERROR', 'Load Profile', response.status, response.responseText)
-                alert('Cannot load profile :(')
+                alert(response.responseText)
             },
         })
 

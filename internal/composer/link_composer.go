@@ -2,7 +2,6 @@ package composer
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/miladrahimi/p-manager/internal/data"
 )
@@ -17,7 +16,9 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 		if host == "" || port <= 0 {
 			return
 		}
-		links[name] = buildRrLink(host, port, user.VlessId, xs.RrPublicKey, sni, name)
+		tag := name
+		tag = fmt.Sprintf("%s@%s", name, d.MainSettings.Host)
+		links[name] = buildRrLink(host, port, user.VlessId, xs.RrPublicKey, sni, tag)
 	}
 
 	addLink("direct_rr", d.MainSettings.Host, xs.DirectRrPort, xs.ManagerSni)
@@ -26,7 +27,7 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 
 	if xs.RemoteRrPort > 0 {
 		for _, n := range d.Nodes {
-			name := fmt.Sprintf("remote_rr_%s", strings.ReplaceAll(n.Host, ".", "_"))
+			name := fmt.Sprintf("remote_rr_%s", n.Host)
 			addLink(name, n.Host, xs.RemoteRrPort, xs.NodeSni)
 		}
 	}

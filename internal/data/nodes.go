@@ -18,10 +18,10 @@ type Node struct {
 	HttpPort   int        `json:"http_port" validate:"required,min=1,max=65535"`
 	SshUser    string     `json:"ssh_user" validate:"required"`
 	SshPort    int        `json:"ssh_port" validate:"required,min=1,max=65535"`
+	SshStatus  NodeStatus `json:"ssh_status"`
 	Usage      float64    `json:"usage" validate:"min=0"`
 	UsageBytes int64      `json:"usage_bytes" validate:"min=0"`
 	PushStatus NodeStatus `json:"push_status"`
-	PullStatus NodeStatus `json:"pull_status"`
 	PushedAt   int64      `json:"pushed_at"`
 	PulledAt   int64      `json:"pulled_at"`
 }

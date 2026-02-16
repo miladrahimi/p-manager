@@ -33,6 +33,7 @@ type App struct {
 	composer    *composer.Composer
 	coordinator *coordinator.Coordinator
 	xray        *xray.Xray
+	sshClient   *ssh.Client
 	sshPool     *ssh.Pool
 }
 
@@ -62,12 +63,16 @@ func New() (a *App, err error) {
 		return a, errors.WithStack(err)
 	}
 
+	if a.sshClient, err = ssh.NewClient(l); err != nil {
+		return a, errors.WithStack(err)
+	}
+
 	a.httpClient = client.New(c.HttpClient.Timeout, config.AppName, config.AppVersion)
 	a.xray = xray.New(a.context, l, c.Xray.LogLevel, config.XrayConfigPath(root), config.XrayBinaryPath(root))
-	a.sshPool = ssh.New(l, config.SshStdoutPath(root), config.SshStderrPath(root))
+	a.sshPool = ssh.New(l, a.sshClient, config.SshStdoutPath(root), config.SshStderrPath(root))
 	a.composer = composer.New(c, a.database, a.xray)
-	a.coordinator = coordinator.New(c, a.httpClient, l, a.database, a.xray, a.composer, a.sshPool)
-	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient)
+	a.coordinator = coordinator.New(a.httpClient, l, a.database, a.xray, a.composer, a.sshPool, a.sshClient)
+	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient, a.sshClient)
 
 	l.Info("app: constructed successfully")
 

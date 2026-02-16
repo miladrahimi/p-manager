@@ -1,27 +1,25 @@
 package ssh
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/logger"
-	"github.com/miladrahimi/p-node/pkg/util"
 	"go.uber.org/zap"
 )
 
 // Process represents an SSH SOCKS proxy process.
 type Process struct {
 	l          *logger.Logger
-	config     *Config
+	config     *ProxyConfig
+	buildCmd   func() (*exec.Cmd, func(), error)
 	command    *exec.Cmd
 	locker     sync.Mutex
-	sshPath    string
 	stdoutPath string
 	stderrPath string
 	stopChan   chan struct{}
@@ -31,17 +29,19 @@ type Process struct {
 
 const defaultRetryDelay = 2 * time.Second
 
-// Start creates and starts an SSH SOCKS proxy process.
-func Start(l *logger.Logger, config *Config, stdoutPath, stderrPath string) (*Process, error) {
-	if err := config.Validate(); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
+func newProcess(
+	l *logger.Logger,
+	config *ProxyConfig,
+	stdoutPath string,
+	stderrPath string,
+	buildCmd func() (*exec.Cmd, func(), error),
+) *Process {
 	p := &Process{
 		l:          l,
 		config:     config,
 		stdoutPath: stdoutPath,
 		stderrPath: stderrPath,
+		buildCmd:   buildCmd,
 	}
 	p.stopChan = make(chan struct{})
 	p.doneChan = make(chan struct{})
@@ -49,7 +49,7 @@ func Start(l *logger.Logger, config *Config, stdoutPath, stderrPath string) (*Pr
 	currentStop := p.stopChan
 	currentDone := p.doneChan
 	go p.run(currentStop, currentDone)
-	return p, nil
+	return p
 }
 
 // Stop stops the SSH proxy.
@@ -101,22 +101,16 @@ func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 			return
 		}
 
-		if err := p.ensureBinary(); err != nil {
-			p.l.Error("ssh: binary not found", zap.Error(errors.WithStack(err)))
-			if !p.waitRetry(stopChan) {
-				p.l.Info("ssh: stopped")
-				return
-			}
-			continue
-		}
-
-		cmd, stdoutFile, stderrFile, err := p.startCommand(stopChan)
+		cmd, cleanup, stdoutFile, stderrFile, err := p.startCommand(stopChan)
 		if err != nil {
 			if p.shouldStop(stopChan) {
 				p.l.Info("ssh: stopped")
 				return
 			}
 			p.l.Error("ssh: start failed", zap.Error(errors.WithStack(err)))
+			if cleanup != nil {
+				cleanup()
+			}
 			if !p.waitRetry(stopChan) {
 				p.l.Info("ssh: stopped")
 				return
@@ -127,6 +121,9 @@ func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 		err = cmd.Wait()
 		p.clearCommand(cmd)
 		p.closeOutputFiles(stdoutFile, stderrFile)
+		if cleanup != nil {
+			cleanup()
+		}
 
 		if p.shouldStop(stopChan) {
 			p.l.Info("ssh: stopped")
@@ -147,43 +144,39 @@ func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 }
 
 // startCommand starts the SSH SOCKS proxy command.
-func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, *os.File, *os.File, error) {
+func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, func(), *os.File, *os.File, error) {
+	if p.config == nil {
+		return nil, nil, nil, nil, errors.New("ssh: config is nil")
+	}
 	if !util.PortFree(p.config.LocalPort) {
-		return nil, nil, nil, errors.Errorf("ssh: local port %d is not free", p.config.LocalPort)
+		return nil, nil, nil, nil, errors.Errorf("ssh: local port %d is not free", p.config.LocalPort)
+	}
+	if p.buildCmd == nil {
+		return nil, nil, nil, nil, errors.New("ssh: command factory is nil")
 	}
 
-	target := fmt.Sprintf("%s@%s", p.config.User, p.config.Host)
-	args := []string{
-		"-D", strconv.Itoa(p.config.LocalPort),
-		"-C",
-		"-q",
-		"-N",
-		"-v",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "BatchMode=yes",
-		"-p", strconv.Itoa(p.config.ServerPort),
-		target,
+	cmd, cleanup, err := p.buildCmd()
+	if err != nil {
+		return nil, nil, nil, nil, errors.WithStack(err)
 	}
 
 	stdoutFile, stderrFile, err := p.openLogFiles()
 	if err != nil {
-		return nil, nil, nil, errors.WithStack(err)
+		if cleanup != nil {
+			cleanup()
+		}
+		return nil, nil, nil, nil, errors.WithStack(err)
 	}
 
-	cmd := exec.Command(p.sshPath, args...)
 	cmd.Stdout = stdoutFile
 	cmd.Stderr = stderrFile
 
-	p.l.Info(
-		"ssh: starting...",
-		zap.String("target", target),
-		zap.Int("ssh_port", p.config.ServerPort),
-		zap.Int("local_port", p.config.LocalPort),
-	)
-
 	if err := cmd.Start(); err != nil {
 		p.closeOutputFiles(stdoutFile, stderrFile)
-		return nil, nil, nil, errors.WithStack(err)
+		if cleanup != nil {
+			cleanup()
+		}
+		return nil, nil, nil, nil, errors.WithStack(err)
 	}
 
 	p.locker.Lock()
@@ -193,12 +186,15 @@ func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, *os.File, *
 			_ = cmd.Process.Kill()
 		}
 		p.closeOutputFiles(stdoutFile, stderrFile)
-		return nil, nil, nil, errors.New("ssh: stopped")
+		if cleanup != nil {
+			cleanup()
+		}
+		return nil, nil, nil, nil, errors.New("ssh: stopped")
 	}
 	p.command = cmd
 	p.locker.Unlock()
 
-	return cmd, stdoutFile, stderrFile, nil
+	return cmd, cleanup, stdoutFile, stderrFile, nil
 }
 
 // clearCommand clears the command reference if it matches the provided command.
@@ -276,18 +272,4 @@ func (p *Process) closeOutputFiles(stdoutFile, stderrFile *os.File) {
 	if stderrFile != nil && stderrFile != stdoutFile {
 		_ = stderrFile.Close()
 	}
-}
-
-// ensureBinary ensures that the SSH binary exists.
-func (p *Process) ensureBinary() error {
-	if p.sshPath != "" {
-		return nil
-	}
-
-	path, err := exec.LookPath("ssh")
-	if err != nil {
-		return errors.Wrap(err, "ssh: binary not found")
-	}
-	p.sshPath = path
-	return nil
 }

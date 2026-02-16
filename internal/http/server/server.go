@@ -15,6 +15,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/internal/http/handlers"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/api"
+	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	cm "github.com/miladrahimi/p-node/pkg/http/middleware"
@@ -32,6 +33,7 @@ type Server struct {
 	composer    *composer.Composer
 	db          *database.Database[data.Data]
 	hc          *client.Client
+	sshClient   *ssh.Client
 }
 
 // New creates a new instance of HTTP Server.
@@ -42,6 +44,7 @@ func New(
 	coordinator *coordinator.Coordinator,
 	db *database.Database[data.Data],
 	hc *client.Client,
+	sshClient *ssh.Client,
 ) *Server {
 	e := echo.New()
 	e.HideBanner = true
@@ -54,6 +57,7 @@ func New(
 		composer:    composer,
 		db:          db,
 		hc:          hc,
+		sshClient:   sshClient,
 	}
 }
 

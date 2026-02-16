@@ -15,7 +15,7 @@ import (
 )
 
 // LocalConfig composes the local xray config.
-func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xrayConfig.Config, error) {
+func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
 	clients := c.clients()
 	d := c.db.Data()
 	xs := d.XraySettings
@@ -70,12 +70,12 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.Config) (*xra
 	if hasClients && hasNodes && xs.RelayRr2SshPort > 0 {
 		outbounds := make([]string, 0, len(d.Nodes))
 		for _, n := range d.Nodes {
-			sshConfig, ok := sshConfigsByNodeIds[n.Id]
-			if !ok || sshConfig.LocalPort <= 0 {
+			proxyConfig, ok := sshConfigsByNodeIds[n.Id]
+			if !ok || proxyConfig.LocalPort <= 0 {
 				continue
 			}
 			tag := fmt.Sprintf("relay-rr2ssh-%s", n.Id)
-			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", sshConfig.LocalPort))
+			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", proxyConfig.LocalPort))
 			outbounds = append(outbounds, tag)
 		}
 

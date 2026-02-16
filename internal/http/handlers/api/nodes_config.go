@@ -25,7 +25,6 @@ func NodesConfigShow(
 			if n.Id == nodeId {
 				node = n
 				node.PulledAt = time.Now().UnixMilli()
-				node.PullStatus = data.NodeStatusAvailable
 
 				if err := db.Save(); err != nil {
 					return errors.WithStack(err)

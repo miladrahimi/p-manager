@@ -78,16 +78,19 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 		}
 
 		var node *data.Node
+		sshStatus := data.NodeStatusProcessing
 		for _, n := range db.Data().Nodes {
 			if n.Host == r.Host && n.HttpPort == r.HttpPort {
 				node = n
 				node.HttpToken = r.HttpToken
 				node.SshUser = r.SshUser
 				node.SshPort = r.SshPort
+				node.SshStatus = sshStatus
 			}
 		}
 		if node == nil {
 			node = data.NewNode(util.Uuid(), r.Host, r.HttpToken, r.HttpPort, r.SshUser, r.SshPort)
+			node.SshStatus = sshStatus
 			db.Data().Nodes = append(db.Data().Nodes, node)
 		}
 
@@ -95,6 +98,7 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 			return errors.WithStack(err)
 		}
 
+		go coordinator.CheckSshStatus(node.Id)
 		go coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusCreated, node)
@@ -129,16 +133,21 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
 		}
 
+		sshStatus := data.NodeStatusProcessing
+
 		node.Host = r.Host
 		node.HttpToken = r.HttpToken
 		node.HttpPort = r.HttpPort
 		node.SshUser = r.SshUser
 		node.SshPort = r.SshPort
+		node.SshStatus = sshStatus
+		node.SshStatus = sshStatus
 
 		if err := db.Save(); err != nil {
 			return errors.WithStack(err)
 		}
 
+		go coordinator.CheckSshStatus(node.Id)
 		go coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusOK, node)

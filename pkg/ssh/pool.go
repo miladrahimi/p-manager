@@ -10,6 +10,7 @@ import (
 // Pool represents a processes of SSH SOCKS proxies.
 type Pool struct {
 	l          *logger.Logger
+	client     *Client
 	stdoutPath string
 	stderrPath string
 	locker     sync.Mutex
@@ -17,9 +18,10 @@ type Pool struct {
 }
 
 // New creates a new SSH proxy manager.
-func New(l *logger.Logger, stdoutPath, stderrPath string) *Pool {
+func New(l *logger.Logger, client *Client, stdoutPath, stderrPath string) *Pool {
 	return &Pool{
 		l:          l,
+		client:     client,
 		stdoutPath: stdoutPath,
 		stderrPath: stderrPath,
 		processes:  map[string]*Process{},
@@ -27,7 +29,7 @@ func New(l *logger.Logger, stdoutPath, stderrPath string) *Pool {
 }
 
 // Start starts a proxy for the given tag and config if it doesn't already exist.
-func (m *Pool) Start(tag string, config *Config) error {
+func (m *Pool) Start(tag string, config *ProxyConfig) error {
 	if tag == "" {
 		return errors.New("ssh: tag is empty")
 	}
@@ -44,7 +46,12 @@ func (m *Pool) Start(tag string, config *Config) error {
 		return nil
 	}
 
-	proxy, err := Start(m.l, config, m.stdoutPath, m.stderrPath)
+	if m.client == nil {
+		m.locker.Unlock()
+		return errors.New("ssh: client is nil")
+	}
+
+	proxy, err := m.client.StartSocks(config, m.stdoutPath, m.stderrPath)
 	if err != nil {
 		m.locker.Unlock()
 		return errors.WithStack(err)

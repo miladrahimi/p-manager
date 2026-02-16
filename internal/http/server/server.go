@@ -23,6 +23,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Server is the HTTP Server and holds all handler dependencies.
 type Server struct {
 	engine      *echo.Echo
 	logger      *logger.Logger

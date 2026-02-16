@@ -8,6 +8,7 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
+// InsightsIndex returns the insights index.
 func InsightsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		d := db.Data()

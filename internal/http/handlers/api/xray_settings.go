@@ -13,12 +13,14 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
+// XraySettingsShow returns the xray settings.
 func XraySettingsShow(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, db.Data().XraySettings)
 	}
 }
 
+// XraySettingsUpdate updates the xray settings.
 func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r data.XraySettings

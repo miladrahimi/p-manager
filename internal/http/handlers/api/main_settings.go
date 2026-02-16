@@ -11,12 +11,14 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
+// MainSettingsShow returns the main settings.
 func MainSettingsShow(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, db.Data().MainSettings)
 	}
 }
 
+// MainSettingsUpdate updates the main settings.
 func MainSettingsUpdate(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		var r data.Settings

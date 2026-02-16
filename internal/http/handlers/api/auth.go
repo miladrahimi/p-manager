@@ -16,6 +16,7 @@ type SignInRequest struct {
 	Password string `json:"password"`
 }
 
+// SignIn signs in a user and returns a token.
 func SignIn(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer func() {

@@ -7,6 +7,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 )
 
+// PlatformShow returns the platform (app and proxy core) information.
 func PlatformShow() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {

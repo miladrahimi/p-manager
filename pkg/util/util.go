@@ -1,8 +1,6 @@
 package util
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"math"
 	"net"
@@ -21,16 +19,6 @@ func FileExist(path string) bool {
 		return false
 	}
 	return true
-}
-
-// Key32 generates 32-bit keys.
-func Key32() (string, error) {
-	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(key), nil
 }
 
 // Uuid generates Uuid using XraySettings.

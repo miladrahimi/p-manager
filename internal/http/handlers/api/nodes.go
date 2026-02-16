@@ -35,6 +35,7 @@ type NodesUpdatePartialRequest struct {
 	Usage *float64 `json:"usage"`
 }
 
+// NodesIndex returns the list of nodes.
 func NodesIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		token := db.Data().MainSettings.AdminPassword
@@ -52,6 +53,7 @@ func NodesIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	}
 }
 
+// NodesStore stores a new node.
 func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesStoreRequest
@@ -99,6 +101,7 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 	}
 }
 
+// NodesUpdate updates a node.
 func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesUpdateRequest
@@ -143,6 +146,7 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 	}
 }
 
+// NodesUpdatePartialBatch updates the usage of multiple nodes.
 func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request NodesUpdatePartialRequest
@@ -174,6 +178,7 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.
 	}
 }
 
+// NodesDelete deletes a node.
 func NodesDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		for i, s := range db.Data().Nodes {

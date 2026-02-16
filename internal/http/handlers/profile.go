@@ -10,6 +10,7 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
+// Profile returns the profile page for a user.
 func Profile(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")

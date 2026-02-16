@@ -40,12 +40,14 @@ type UsersImportRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+// UsersIndex returns the list of users.
 func UsersIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, db.Data().Users)
 	}
 }
 
+// UsersStore stores a new user.
 func UsersStore(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersStoreRequest
@@ -98,6 +100,7 @@ func UsersStore(coordinator *coordinator.Coordinator, db *database.Database[data
 	}
 }
 
+// UsersUpdate updates a user.
 func UsersUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersUpdateRequest
@@ -146,6 +149,7 @@ func UsersUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 	}
 }
 
+// UsersUpdatePartial updates a user partially.
 func UsersUpdatePartial(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersUpdatePartialRequest
@@ -188,6 +192,7 @@ func UsersUpdatePartial(coordinator *coordinator.Coordinator, db *database.Datab
 	}
 }
 
+// UsersUpdatePartialBatch updates multiple users partially.
 func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request UsersUpdatePartialRequest
@@ -222,6 +227,7 @@ func UsersUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.
 	}
 }
 
+// UsersDelete deletes a user.
 func UsersDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		for i, u := range db.Data().Users {
@@ -239,6 +245,7 @@ func UsersDelete(coordinator *coordinator.Coordinator, db *database.Database[dat
 	}
 }
 
+// UsersDeleteBatch deletes multiple users.
 func UsersDeleteBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		enabledParam := c.QueryParam("enabled")
@@ -281,6 +288,7 @@ func UsersDeleteBatch(coordinator *coordinator.Coordinator, db *database.Databas
 	}
 }
 
+// UsersImport imports users from another P-Manager.
 func UsersImport(
 	coordinator *coordinator.Coordinator,
 	db *database.Database[data.Data],

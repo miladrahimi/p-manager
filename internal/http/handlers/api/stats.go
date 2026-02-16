@@ -24,6 +24,7 @@ type StatsResponse struct {
 	ActiveUsers       int     `json:"active_users"`
 }
 
+// StatsIndex returns the statistics of the platform.
 func StatsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		d := db.Data()
@@ -36,6 +37,7 @@ func StatsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	}
 }
 
+// StatsUpdatePartial updates the statistics of the platform.
 func StatsUpdatePartial(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request StatsUpdatePartialRequest

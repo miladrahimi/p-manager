@@ -55,6 +55,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - Admin panel username is `admin` and password is defined in `internal/data/main_settings.go` as `AdminPassword`
 - Default admin password is `password` and could be changed after first login
 - `make update` is destructive (`git reset --hard` + `git clean -fd`)
+- The built `p-manager` binary is tracked and should be committed when updated
 - It uses some packages from P-Node repository ("github.com/miladrahimi/p-node")
 - On local environment P-Node could be replaced by `../p-node` in `go.mod` to use local version of P-Node
 - Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` is `clientID`, etc.)

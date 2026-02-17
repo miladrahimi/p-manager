@@ -21,7 +21,10 @@ type ProfileResponse struct {
 // ProfileShow returns the profile of a user.
 func ProfileShow(composer *composer.Composer, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		userId := c.QueryParam("u")
+		userId := c.Param("userId")
+		if userId == "" {
+			userId = c.QueryParam("u")
+		}
 		if userId == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "User is required.",
@@ -51,7 +54,10 @@ func ProfileShow(composer *composer.Composer, db *database.Database[data.Data]) 
 // ProfileLinksRenew renews the proxy links of a user.
 func ProfileLinksRenew(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		userId := c.QueryParam("u")
+		userId := c.Param("userId")
+		if userId == "" {
+			userId = c.QueryParam("u")
+		}
 		if userId == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "User is required.",

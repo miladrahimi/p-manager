@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Profile</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
-    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
-    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="stylesheet" href="/assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
+    <link rel="icon" href="/assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="apple-touch-icon" href="/assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
     <style>
         .link {
             border: solid rgb(210, 210, 210) 1px;
@@ -32,7 +32,7 @@
 <div class="container py-4 text-center">
     <div class="col col-md-6 col-lg-4 offset-md-3 offset-lg-4">
         <div class="text-center">
-            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
+            <img src="/assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
         </div>
 
         <div class="card mt-4">
@@ -86,14 +86,17 @@
     </div>
 </div>
 
-<script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+<script src="/assets/third_party/jquery-3.7.1.min.js"></script>
+<script src="/assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
+<script src="/assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
 <script>
     jQuery(() => {
+        const pathParts = window.location.pathname.split('/').filter(Boolean)
+        const userId = pathParts.length >= 2 ? pathParts[pathParts.length - 1] : null
+        const profileUrl = userId ? `/api/profile/${userId}` : `/api/profile${window.location.search}`
         $.ajax({
             type: "GET",
-            url: `/api/profile${window.location.search}`,
+            url: profileUrl,
             processData: true,
             dataType: "json",
             success: r => {
@@ -220,9 +223,10 @@
             let me = $(this)
             me.attr('disabled', 'disabled').html('RENEWING...')
 
+            const renewUrl = userId ? `/api/profile/${userId}/links/renew` : `/api/profile/links/renew${window.location.search}`
             $.ajax({
                 type: 'POST',
-                url: `/api/profile/links/renew${window.location.search}`,
+                url: renewUrl,
                 dataType: 'json',
                 processData: true,
                 success: () => {

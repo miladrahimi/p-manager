@@ -120,7 +120,7 @@
             table.alert("User ID is missing for this user.", "error")
             return
         }
-        window.open(`/profile?u=${userId}`, '_blank')
+        window.open(`/profile/${userId}`, '_blank')
     }
 
     let actionsFormatter = cell => [

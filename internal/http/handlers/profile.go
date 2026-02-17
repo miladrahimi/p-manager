@@ -17,7 +17,10 @@ func Profile(db *database.Database[data.Data]) echo.HandlerFunc {
 		c.Response().Header().Set("Pragma", "no-cache")
 		c.Response().Header().Set("Expires", "0")
 
-		userId := c.QueryParams().Get("u")
+		userId := c.Param("userId")
+		if userId == "" {
+			userId = c.QueryParams().Get("u")
+		}
 		for _, u := range db.Data().Users {
 			if u.Id == userId {
 				content, err := os.ReadFile(filepath.Join("web", "profile.html"))

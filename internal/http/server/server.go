@@ -69,14 +69,19 @@ func (s *Server) Run() {
 
 	// Serve static admin panel UI
 	s.engine.Static("/", "web")
+
+	// Pages: Public
 	s.engine.GET("/profile", handlers.Profile(s.db))
+	s.engine.GET("/profile/:userId", handlers.Profile(s.db))
 	s.engine.GET("/subscription/:proxyId", api.SubscriptionShow(s.composer, s.db))
 
-	// APIs: Guest
+	// APIs: Public
 	g1 := s.engine.Group("api")
 	g1.POST("/sign-in", api.SignIn(s.db))
 	g1.GET("/profile", api.ProfileShow(s.composer, s.db))
+	g1.GET("/profile/:userId", api.ProfileShow(s.composer, s.db))
 	g1.POST("/profile/links/renew", api.ProfileLinksRenew(s.coordinator, s.db))
+	g1.POST("/profile/:userId/links/renew", api.ProfileLinksRenew(s.coordinator, s.db))
 
 	// APIs: Admin
 	g2 := s.engine.Group("api")

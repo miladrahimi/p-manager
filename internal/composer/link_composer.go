@@ -21,7 +21,7 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 		links[nameWithHost] = makeVlessLink(vlessLinkOptions{
 			host:      host,
 			port:      port,
-			userId:    user.VlessId,
+			userId:    user.ProxyId,
 			tag:       nameWithHost,
 			flow:      vless.FlowVision,
 			network:   vless.NetworkRaw,

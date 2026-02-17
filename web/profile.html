@@ -59,6 +59,16 @@
                                    data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
                         </div>
                     </div>
+                    <div id="subscription" class="my-1 d-none">
+                        <small class="text-dark-emphasis">Subscription:</small>
+                        <div class="link small overflow-auto d-flex">
+                            <a id="subscription-value"
+                               class="text-nowrap align-self-center overflow-auto px-2"
+                               href="#" target="_blank" rel="noopener">---</a>
+                            <input type="button" class="copy btn btn-dark" value="Copy"
+                                   data-bs-trigger="manual" data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
+                        </div>
+                    </div>
                     <div id="proxies"></div>
                 </div>
                 <div class="text-center text-secondary mt-3">
@@ -90,6 +100,13 @@
 
                 if (r['user']["enabled"] === false) {
                     $("#disabled-badge").removeClass('d-none')
+                }
+
+                const proxyId = r['user']['proxy_id']
+                if (proxyId) {
+                    const subscriptionUrl = `${window.location.origin}/subscription/${proxyId}`
+                    $("#subscription-value").text(subscriptionUrl).attr('href', subscriptionUrl)
+                    $("#subscription").removeClass('d-none')
                 }
 
                 const proxyContainer = $("#proxies")

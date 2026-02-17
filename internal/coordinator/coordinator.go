@@ -129,6 +129,15 @@ func (c *Coordinator) initialize() (err error) {
 	if d.XraySettings.ManagerSni == "" {
 		d.XraySettings.ManagerSni = config.DefaultManagerSni
 	}
+	// TODO: Remove this in next version
+	for _, u := range d.Users {
+		if u.ProxyId == "" && u.VlessId != "" {
+			u.ProxyId = u.VlessId
+		}
+		if u.VlessId == "" && u.ProxyId != "" {
+			u.VlessId = u.ProxyId
+		}
+	}
 	return errors.WithStack(c.db.Save())
 }
 

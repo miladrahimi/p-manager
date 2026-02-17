@@ -76,9 +76,10 @@ func UsersStore(coordinator *coordinator.Coordinator, db *database.Database[data
 			}
 		}
 
+		proxyId := util.Uuid()
 		user := data.NewUser(
 			util.Uuid(),
-			util.Uuid(),
+			proxyId,
 			request.Name,
 			request.Quota,
 			request.Usage,
@@ -329,9 +330,15 @@ func UsersImport(
 			ids = append(ids, u.Id)
 		}
 
-		var vlessIds []string
+		var proxyIds []string
 		for _, u := range db.Data().Users {
-			vlessIds = append(vlessIds, u.VlessId)
+			proxyId := u.ProxyId
+			if proxyId == "" {
+				proxyId = u.VlessId
+			}
+			if proxyId != "" {
+				proxyIds = append(proxyIds, proxyId)
+			}
 		}
 
 		var names []string
@@ -345,8 +352,14 @@ func UsersImport(
 				results = append(results, fmt.Sprintf("Skipped: DuplicateId=%s", u.Id))
 				continue
 			}
-			if slices.Index(vlessIds, u.VlessId) != -1 {
-				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateVlessId=%s", u.Id, u.VlessId))
+			if u.ProxyId == "" {
+				u.ProxyId = u.VlessId
+			}
+			if u.VlessId == "" {
+				u.VlessId = u.ProxyId
+			}
+			if slices.Index(proxyIds, u.ProxyId) != -1 {
+				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateProxyId=%s", u.Id, u.ProxyId))
 				continue
 			}
 			if slices.Index(names, u.Name) != -1 {

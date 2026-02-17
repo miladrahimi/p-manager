@@ -113,7 +113,7 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 	shouldSync := false
 	db := s.db.Data()
 	for _, u := range db.Users {
-		if bytes, found := users[u.VlessId]; found {
+		if bytes, found := users[u.ProxyId]; found {
 			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
 			u.Usage = util.Bytes2GB(u.UsageBytes)
 			if u.Quota > 0 && u.Usage > u.Quota {
@@ -212,7 +212,7 @@ func (s *statsSyncer) loadLocalStats() error {
 
 	shouldSync := false
 	for _, u := range db.Users {
-		if bytes, found := users[u.VlessId]; found {
+		if bytes, found := users[u.ProxyId]; found {
 			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
 			u.Usage = util.Bytes2GB(u.UsageBytes)
 			if u.Quota > 0 && u.Usage > u.Quota {

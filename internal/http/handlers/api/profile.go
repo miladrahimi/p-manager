@@ -64,7 +64,8 @@ func ProfileLinksRenew(coordinator *coordinator.Coordinator, db *database.Databa
 			})
 		}
 
-		user.VlessId = util.Uuid()
+		user.ProxyId = util.Uuid()
+		user.VlessId = user.ProxyId
 
 		if err := db.Save(); err != nil {
 			return errors.WithStack(err)

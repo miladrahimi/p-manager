@@ -3,7 +3,8 @@ package data
 // User is a struct that represents a user in the application.
 type User struct {
 	Id           string  `json:"id" validate:"required,uuid"`
-	VlessId      string  `json:"vless_id" validate:"required,uuid"`
+	VlessId      string  `json:"vless_id" validate:"omitempty,uuid"`
+	ProxyId      string  `json:"proxy_id" validate:"omitempty,uuid"`
 	Name         string  `json:"name" validate:"required,min=1,max=64"`
 	Quota        float64 `json:"quota" validate:"min=0"`
 	Usage        float64 `json:"usage" validate:"min=0"`
@@ -16,7 +17,7 @@ type User struct {
 // NewUser creates a new user instance.
 func NewUser(
 	id string,
-	uuid string,
+	proxyId string,
 	name string,
 	quota float64,
 	usage float64,
@@ -27,7 +28,8 @@ func NewUser(
 ) *User {
 	return &User{
 		Id:           id,
-		VlessId:      uuid,
+		VlessId:      proxyId,
+		ProxyId:      proxyId,
 		Name:         name,
 		Quota:        quota,
 		Usage:        usage,

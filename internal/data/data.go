@@ -51,3 +51,13 @@ func (s *Data) FindUserById(id string) *User {
 	}
 	return nil
 }
+
+// FindUserByProxyId finds a user by its proxy ID.
+func (s *Data) FindUserByProxyId(proxyId string) *User {
+	for _, u := range s.Users {
+		if u.ProxyId == proxyId {
+			return u
+		}
+	}
+	return nil
+}

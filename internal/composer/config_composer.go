@@ -190,7 +190,7 @@ func (c *Composer) rrClients() []*component.Client {
 		if !u.Enabled {
 			continue
 		}
-		clients = append(clients, vless.MakeUser(u.VlessId, vless.FlowVision, vless.EncryptionEmpty))
+		clients = append(clients, vless.MakeUser(u.ProxyId, vless.FlowVision, vless.EncryptionEmpty))
 	}
 	return clients
 }

@@ -165,8 +165,8 @@
 
         $("#node-info-id").text(data.id)
         $("#node-info-command").text(command)
-        $("#node-info-push").text(ts2datetime(data.pushed_at))
-        $("#node-info-pull").text(ts2datetime(data.pulled_at))
+        $("#node-info-push").text(ts2datetime(data.pushed_at, "Never"))
+        $("#node-info-pull").text(ts2datetime(data.pulled_at, "Never"))
 
         let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("node-info-modal"))
         modal.show()
@@ -373,7 +373,7 @@
     $(document).on('click', '.copy', function () {
         const me = $(this)
         const targetId = me.data('copyTarget')
-        let text = ""
+        let text
 
         if (targetId) {
             text = $(`#${targetId}`).text()

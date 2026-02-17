@@ -42,16 +42,16 @@ function parseErrorMessage(response) {
     return ""
 }
 
-function ts2date(timestamp) {
+function ts2date(timestamp, defaultValue = "-") {
     if (!timestamp) {
-        return "-"
+        return defaultValue
     }
     return (new Date(timestamp)).toLocaleDateString()
 }
 
-function ts2datetime(timestamp) {
+function ts2datetime(timestamp, defaultValue = "-") {
     if (!timestamp) {
-        return "-"
+        return defaultValue
     }
 
     return (new Date(timestamp)).toLocaleString()

@@ -29,7 +29,7 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 
 	hasClients := len(clients) > 0
 	hasNodes := len(d.Nodes) > 0
-	fallback := &component.VlessFallback{Dest: c.config.HttpServer.Port}
+	fallback := &component.Fallback{Dest: c.config.HttpServer.Port}
 
 	if hasClients && hasNodes && xs.RelayRr2RrPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
@@ -122,7 +122,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 	d := c.db.Data()
 	xs := d.XraySettings
 	xc := xrayConfig.New(c.config.Xray.LogLevel)
-	fallback := &component.VlessFallback{Dest: node.HttpPort}
+	fallback := &component.Fallback{Dest: node.HttpPort}
 
 	xc.Metadata = &component.Metadata{
 		UpdatedAt: lastUpdate.Format(time.RFC3339),
@@ -134,7 +134,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		if relayOutbound != nil && relayOutbound.Settings != nil {
 			if len(relayOutbound.Settings.Vnext) > 0 {
 				server := relayOutbound.Settings.Vnext[0]
-				users := make([]*component.VlessUser, len(server.Users))
+				users := make([]*component.Client, len(server.Users))
 				for i, u := range server.Users {
 					users[i] = vless.MakeUser(u.Id, vless.FlowVision, vless.EncryptionEmpty)
 				}
@@ -179,8 +179,8 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 }
 
 // clients returns the list of clients from the database users.
-func (c *Composer) clients() []*component.VlessUser {
-	var clients []*component.VlessUser
+func (c *Composer) clients() []*component.Client {
+	var clients []*component.Client
 	for _, u := range c.db.Data().Users {
 		if !u.Enabled {
 			continue

@@ -10,7 +10,7 @@ func MakeOutbound(tag string, address string, port int) *component.Outbound {
 		Tag:      tag,
 		Protocol: Protocol,
 		Settings: &component.OutboundSettings{
-			Servers: []*component.SocksOutboundServer{
+			Servers: []*component.Server{
 				{
 					Address: address,
 					Port:    port,

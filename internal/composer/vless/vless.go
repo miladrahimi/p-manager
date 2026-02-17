@@ -16,8 +16,8 @@ const (
 )
 
 // MakeUser makes a VLESS user.
-func MakeUser(id, flow, encryption string) *component.VlessUser {
-	return &component.VlessUser{
+func MakeUser(id, flow, encryption string) *component.Client {
+	return &component.Client{
 		Id:         id,
 		Flow:       flow,
 		Email:      id,
@@ -31,8 +31,8 @@ func MakeRrInbound(
 	port int,
 	privateKey string,
 	sni string,
-	clients []*component.VlessUser,
-	fallback *component.VlessFallback,
+	clients []*component.Client,
+	fallback *component.Fallback,
 ) *component.Inbound {
 	return &component.Inbound{
 		Tag:      tag,
@@ -41,7 +41,7 @@ func MakeRrInbound(
 		Settings: &component.InboundSettings{
 			Clients:    clients,
 			Decryption: EncryptionNone,
-			Fallbacks:  []*component.VlessFallback{fallback},
+			Fallbacks:  []*component.Fallback{fallback},
 		},
 		StreamSettings: &component.StreamSettings{
 			Network:  NetworkRaw,
@@ -76,11 +76,11 @@ func MakeRrOutbound(
 		Tag:      tag,
 		Protocol: Protocol,
 		Settings: &component.OutboundSettings{
-			Vnext: []*component.VlessOutboundServer{
+			Vnext: []*component.Vnext{
 				{
 					Address: address,
 					Port:    port,
-					Users:   []*component.VlessUser{user},
+					Users:   []*component.Client{user},
 				},
 			},
 		},

@@ -70,7 +70,7 @@ func (s *Server) Run() {
 	// Serve static admin panel UI
 	s.engine.Static("/", "web")
 	s.engine.GET("/profile", handlers.Profile(s.db))
-	s.engine.GET("/subscription/:proxyId", api.SubscriptionShow(s.db))
+	s.engine.GET("/subscription/:proxyId", api.SubscriptionShow(s.composer, s.db))
 
 	// APIs: Guest
 	g1 := s.engine.Group("api")

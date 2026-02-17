@@ -1,23 +1,19 @@
 package api
 
 import (
-	"fmt"
+	"encoding/base64"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/miladrahimi/p-manager/internal/composer/vless"
+	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-node/pkg/database"
-	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
 
-type SubscriptionItem struct {
-	Remarks   string                `json:"remarks"`
-	Outbounds []*component.Outbound `json:"outbounds"`
-}
-
 // SubscriptionShow returns the proxy subscription for a user proxy ID.
-func SubscriptionShow(db *database.Database[data.Data]) echo.HandlerFunc {
+func SubscriptionShow(composer *composer.Composer, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		proxyId := c.Param("proxyId")
 		if proxyId == "" {
@@ -33,45 +29,19 @@ func SubscriptionShow(db *database.Database[data.Data]) echo.HandlerFunc {
 			})
 		}
 
-		d := db.Data()
-		xs := d.XraySettings
-
-		var items []SubscriptionItem
-		addRrItem := func(name, host string, port int, sni string) {
-			if host == "" || port <= 0 {
-				return
-			}
-			nameWithHost := fmt.Sprintf("%s@%s", name, d.MainSettings.Host)
-			items = append(items, SubscriptionItem{
-				Remarks: nameWithHost,
-				Outbounds: []*component.Outbound{
-					vless.MakeRrOutbound(
-						nameWithHost,
-						host,
-						port,
-						u.ProxyId,
-						xs.RealityPublicKey,
-						sni,
-					),
-				},
-			})
+		links := composer.UserLinks(u)
+		var items []string
+		for _, link := range links {
+			items = append(items, link)
 		}
+		slices.Sort(items)
+		payload := base64.StdEncoding.EncodeToString([]byte(strings.Join(items, "\n")))
 
-		addRrItem("direct-rr", d.MainSettings.Host, xs.DirectRrPort, xs.ManagerSni)
-		addRrItem("relay-rr2rr", d.MainSettings.Host, xs.RelayRr2RrPort, xs.ManagerSni)
-		addRrItem("relay-rr2ssh", d.MainSettings.Host, xs.RelayRr2SshPort, xs.ManagerSni)
-
-		if xs.RemoteRrPort > 0 {
-			for _, n := range d.Nodes {
-				name := fmt.Sprintf("remote-rr-%s", n.Host)
-				addRrItem(name, n.Host, xs.RemoteRrPort, xs.NodeSni)
-			}
-		}
-
+		c.Response().Header().Set("Content-Type", "text/plain")
 		c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		c.Response().Header().Set("Pragma", "no-cache")
 		c.Response().Header().Set("Expires", "0")
 
-		return c.JSON(http.StatusOK, items)
+		return c.String(http.StatusOK, payload)
 	}
 }

@@ -116,8 +116,8 @@ func (c *Coordinator) Run(ctx context.Context) error {
 func (c *Coordinator) initialize() (err error) {
 	d := c.db.Data()
 
-	if d.XraySettings.RrPrivateKey == "" || d.XraySettings.RrPublicKey == "" {
-		d.XraySettings.RrPrivateKey, d.XraySettings.RrPublicKey, err = c.xray.GenerateX25519()
+	if d.XraySettings.RealityPrivateKey == "" || d.XraySettings.RealityPublicKey == "" {
+		d.XraySettings.RealityPrivateKey, d.XraySettings.RealityPublicKey, err = c.xray.GenerateX25519()
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -129,7 +129,6 @@ func (c *Coordinator) initialize() (err error) {
 	if d.XraySettings.ManagerSni == "" {
 		d.XraySettings.ManagerSni = config.DefaultManagerSni
 	}
-
 	return errors.WithStack(c.db.Save())
 }
 

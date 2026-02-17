@@ -165,21 +165,21 @@
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">RR Private Key</td>
+                        <td class="align-middle px-2">Reality Private Key</td>
                         <td>
-                            <input id="rr_private_key" type="text" class="form-control"
-                                   title="RR Private Key" minlength="1" maxlength="255"
+                            <input id="reality_private_key" type="text" class="form-control"
+                                   title="Reality Private Key" minlength="1" maxlength="255"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="RR private key used by RR inbounds.">
+                                   data-bs-title="Reality private key used by RR inbounds.">
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">RR Public Key</td>
+                        <td class="align-middle px-2">Reality Public Key</td>
                         <td>
-                            <input id="rr_public_key" type="text" class="form-control"
-                                   title="RR Public Key" minlength="1" maxlength="255"
+                            <input id="reality_public_key" type="text" class="form-control"
+                                   title="Reality Public Key" minlength="1" maxlength="255"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="RR public key used by RR outbounds.">
+                                   data-bs-title="Reality public key used by RR outbounds.">
                         </td>
                     </tr>
                 </table>
@@ -312,6 +312,18 @@
         return Number.isNaN(parsed) ? 0 : parsed
     }
 
+    const parseCsv = value => {
+        if (!value) {
+            return []
+        }
+        return value
+            .split(',')
+            .map(item => item.trim())
+            .filter(item => item.length > 0)
+    }
+
+    const joinCsv = value => Array.isArray(value) ? value.join(',') : ''
+
     const setPortValue = (selector, value) => {
         const normalized = value === "" || value === null || value === undefined ? 0 : value
         $(selector).val(normalized)
@@ -371,8 +383,8 @@
             setPortValue('#remote_rr_port', response['remote_rr_port'])
             $('#node_sni').val(response['node_sni'] || "")
             $('#manager_sni').val(response['manager_sni'] || "")
-            $('#rr_private_key').val(response['rr_private_key'] || "")
-            $('#rr_public_key').val(response['rr_public_key'] || "")
+            $('#reality_private_key').val(response['reality_private_key'] || "")
+            $('#reality_public_key').val(response['reality_public_key'] || "")
         },
         error: makeErrorHandler(),
         processData: true,
@@ -564,8 +576,8 @@
                 remote_rr_port: parsePort($('#remote_rr_port').val()),
                 node_sni: $('#node_sni').val().trim(),
                 manager_sni: $('#manager_sni').val().trim(),
-                rr_private_key: $('#rr_private_key').val().trim(),
-                rr_public_key: $('#rr_public_key').val().trim(),
+                reality_private_key: $('#reality_private_key').val().trim(),
+                reality_public_key: $('#reality_public_key').val().trim(),
             }),
             processData: true,
             dataType: 'json',

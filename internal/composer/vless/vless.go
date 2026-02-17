@@ -25,7 +25,7 @@ func MakeUser(id, flow, encryption string) *component.Client {
 	}
 }
 
-// MakeRrInbound makes a VLESS/Raw/Reality/Vision inbound.
+// MakeRrInbound makes a VLESS/Reality/Raw inbound.
 func MakeRrInbound(
 	tag string,
 	port int,
@@ -34,7 +34,7 @@ func MakeRrInbound(
 	clients []*component.Client,
 	fallback *component.Fallback,
 ) *component.Inbound {
-	return &component.Inbound{
+	inbound := &component.Inbound{
 		Tag:      tag,
 		Port:     port,
 		Protocol: Protocol,
@@ -48,6 +48,7 @@ func MakeRrInbound(
 			Security: SecurityReality,
 			RealitySettings: &component.RealitySettings{
 				Dest:        net.JoinHostPort(sni, "443"),
+				Target:      net.JoinHostPort(sni, "443"),
 				PrivateKey:  privateKey,
 				ServerNames: []string{sni},
 				ShortIds:    []string{""},
@@ -59,9 +60,11 @@ func MakeRrInbound(
 			DestOverride: []string{"http", "tls", "quic"},
 		},
 	}
+
+	return inbound
 }
 
-// MakeRrOutbound makes a VLESS/Raw/Reality outbound.
+// MakeRrOutbound makes a VLESS/Reality/Raw outbound.
 func MakeRrOutbound(
 	tag string,
 	address string,

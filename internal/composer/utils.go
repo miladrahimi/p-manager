@@ -8,23 +8,52 @@ import (
 	"github.com/miladrahimi/p-manager/internal/composer/vless"
 )
 
-// BuildRrLink builds a vless link for clients.
-func buildRrLink(host string, port int, userId string, publicKey string, nodeSni string, tag string) string {
-	address := net.JoinHostPort(host, strconv.Itoa(port))
+type vlessLinkOptions struct {
+	host        string
+	port        int
+	userId      string
+	tag         string
+	flow        string
+	network     string
+	security    string
+	sni         string
+	publicKey   string
+	path        string
+	fingerprint string
+}
+
+func makeVlessLink(opts vlessLinkOptions) string {
+	address := net.JoinHostPort(opts.host, strconv.Itoa(opts.port))
 	vlessUrl := url.URL{
 		Scheme:   vless.Protocol,
-		User:     url.User(userId),
+		User:     url.User(opts.userId),
 		Host:     address,
-		Fragment: tag,
+		Fragment: opts.tag,
 	}
 
 	query := url.Values{}
-	query.Set("flow", vless.FlowVision)
+	if opts.flow != "" {
+		query.Set("flow", opts.flow)
+	}
 	query.Set("encryption", vless.EncryptionNone)
-	query.Set("type", vless.NetworkRaw)
-	query.Set("security", vless.SecurityReality)
-	query.Set("sni", nodeSni)
-	query.Set("pbk", publicKey)
+	if opts.network != "" {
+		query.Set("type", opts.network)
+	}
+	if opts.security != "" {
+		query.Set("security", opts.security)
+	}
+	if opts.sni != "" {
+		query.Set("sni", opts.sni)
+	}
+	if opts.publicKey != "" {
+		query.Set("pbk", opts.publicKey)
+	}
+	if opts.path != "" {
+		query.Set("path", opts.path)
+	}
+	if opts.fingerprint != "" {
+		query.Set("fp", opts.fingerprint)
+	}
 
 	vlessUrl.RawQuery = query.Encode()
 

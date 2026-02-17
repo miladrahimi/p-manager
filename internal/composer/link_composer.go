@@ -3,6 +3,7 @@ package composer
 import (
 	"fmt"
 
+	"github.com/miladrahimi/p-manager/internal/composer/vless"
 	"github.com/miladrahimi/p-manager/internal/data"
 )
 
@@ -12,22 +13,32 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 	xs := d.XraySettings
 	links := make(map[string]string)
 
-	addLink := func(name, host string, port int, sni string) {
+	addRrLink := func(name, host string, port int, sni string) {
 		if host == "" || port <= 0 {
 			return
 		}
 		nameWithHost := fmt.Sprintf("%s@%s", name, d.MainSettings.Host)
-		links[nameWithHost] = buildRrLink(host, port, user.VlessId, xs.RrPublicKey, sni, nameWithHost)
+		links[nameWithHost] = makeVlessLink(vlessLinkOptions{
+			host:      host,
+			port:      port,
+			userId:    user.VlessId,
+			tag:       nameWithHost,
+			flow:      vless.FlowVision,
+			network:   vless.NetworkRaw,
+			security:  vless.SecurityReality,
+			sni:       sni,
+			publicKey: xs.RealityPublicKey,
+		})
 	}
 
-	addLink("direct-rr", d.MainSettings.Host, xs.DirectRrPort, xs.ManagerSni)
-	addLink("relay-rr2rr", d.MainSettings.Host, xs.RelayRr2RrPort, xs.ManagerSni)
-	addLink("relay-rr2ssh", d.MainSettings.Host, xs.RelayRr2SshPort, xs.ManagerSni)
+	addRrLink("direct-rr", d.MainSettings.Host, xs.DirectRrPort, xs.ManagerSni)
+	addRrLink("relay-rr2rr", d.MainSettings.Host, xs.RelayRr2RrPort, xs.ManagerSni)
+	addRrLink("relay-rr2ssh", d.MainSettings.Host, xs.RelayRr2SshPort, xs.ManagerSni)
 
 	if xs.RemoteRrPort > 0 {
 		for _, n := range d.Nodes {
 			name := fmt.Sprintf("remote-rr-%s", n.Host)
-			addLink(name, n.Host, xs.RemoteRrPort, xs.NodeSni)
+			addRrLink(name, n.Host, xs.RemoteRrPort, xs.NodeSni)
 		}
 	}
 

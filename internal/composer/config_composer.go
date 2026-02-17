@@ -16,7 +16,7 @@ import (
 
 // LocalConfig composes the local xray config.
 func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
-	clients := c.clients()
+	rrClients := c.rrClients()
 	d := c.db.Data()
 	xs := d.XraySettings
 	xc := xrayConfig.New(c.config.Xray.LogLevel)
@@ -27,7 +27,7 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 	}
 	xc.FindInbound("api").Port = apiPort
 
-	hasClients := len(clients) > 0
+	hasClients := len(rrClients) > 0
 	hasNodes := len(d.Nodes) > 0
 	fallback := &component.Fallback{Dest: c.config.HttpServer.Port}
 
@@ -35,9 +35,9 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"relay-rr2rr",
 			xs.RelayRr2RrPort,
-			xs.RrPrivateKey,
+			xs.RealityPrivateKey,
 			xs.ManagerSni,
-			clients,
+			rrClients,
 			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
@@ -57,7 +57,7 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 				n.Host,
 				outboundRelayPort,
 				util.Uuid(),
-				xs.RrPublicKey,
+				xs.RealityPublicKey,
 				xs.NodeSni,
 			))
 			xc.FindBalancer("relay-rr2rr").Selector = append(
@@ -83,9 +83,9 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 			xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 				"relay-rr2ssh",
 				xs.RelayRr2SshPort,
-				xs.RrPrivateKey,
+				xs.RealityPrivateKey,
 				xs.ManagerSni,
-				clients,
+				rrClients,
 				fallback,
 			))
 			xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
@@ -103,9 +103,9 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"direct-rr",
 			xs.DirectRrPort,
-			xs.RrPrivateKey,
+			xs.RealityPrivateKey,
 			xs.ManagerSni,
-			clients,
+			rrClients,
 			fallback,
 		))
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
@@ -136,12 +136,17 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 				server := relayOutbound.Settings.Vnext[0]
 				users := make([]*component.Client, len(server.Users))
 				for i, u := range server.Users {
-					users[i] = vless.MakeUser(u.Id, vless.FlowVision, vless.EncryptionEmpty)
+					if u == nil {
+						continue
+					}
+					copyUser := *u
+					copyUser.Encryption = vless.EncryptionEmpty
+					users[i] = &copyUser
 				}
 				xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 					"relay-rr2rr",
 					server.Port,
-					xs.RrPrivateKey,
+					xs.RealityPrivateKey,
 					xs.NodeSni,
 					users,
 					fallback,
@@ -161,9 +166,9 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"remote-rr",
 			xs.RemoteRrPort,
-			xs.RrPrivateKey,
+			xs.RealityPrivateKey,
 			xs.NodeSni,
-			c.clients(),
+			c.rrClients(),
 			fallback,
 		))
 		xc.Routing.Rules = append(
@@ -178,8 +183,8 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 	return xc
 }
 
-// clients returns the list of clients from the database users.
-func (c *Composer) clients() []*component.Client {
+// rrClients returns the RR-ready client list.
+func (c *Composer) rrClients() []*component.Client {
 	var clients []*component.Client
 	for _, u := range c.db.Data().Users {
 		if !u.Enabled {

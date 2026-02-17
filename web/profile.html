@@ -69,7 +69,10 @@
                                    data-bs-trigger="manual" data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
                         </div>
                     </div>
-                    <div id="proxies"></div>
+                    <div id="proxies" class="d-none"></div>
+                    <div class="my-2 d-none" id="proxies-toggle">
+                        <button class="btn btn-sm btn-outline-dark w-100" id="toggle-proxies">Show more</button>
+                    </div>
                 </div>
                 <div class="text-center text-secondary mt-3">
                     <small>Registered @</small>
@@ -103,13 +106,22 @@
                 }
 
                 const proxyId = r['user']['proxy_id']
+                const isHttps = window.location.protocol === 'https:'
+                const subscription = $("#subscription")
                 if (proxyId) {
-                    const subscriptionUrl = `${window.location.origin}/subscription/${proxyId}`
-                    $("#subscription-value").text(subscriptionUrl).attr('href', subscriptionUrl)
-                    $("#subscription").removeClass('d-none')
+                    const host = r['host'] || window.location.host
+                    const subscriptionUrl = `${window.location.origin}/subscription/${proxyId}#${host}`
+                    const subscriptionLink = $("#subscription-value")
+                    subscriptionLink.text(subscriptionUrl)
+                    subscriptionLink.attr('href', subscriptionUrl).removeClass('text-muted')
+                    if (isHttps) {
+                        subscription.removeClass('d-none')
+                    } else {
+                        subscription.insertAfter("#proxies-toggle")
+                    }
                 }
 
-                const proxyContainer = $("#proxies")
+                const proxiesContainer = $("#proxies")
                 const proxies = r['proxies'] || {}
                 const proxyEntries = Object.entries(proxies).filter(([, value]) => value)
 
@@ -125,8 +137,31 @@
 
                     linkRow.append(link, button)
                     wrapper.append(linkRow)
-                    proxyContainer.append(wrapper)
+                    proxiesContainer.append(wrapper)
                 })
+                if (proxyEntries.length > 0) {
+                    const proxies = proxiesContainer
+                    const toggle = $("#toggle-proxies")
+                    if (isHttps) {
+                        proxies.addClass('d-none')
+                        $("#proxies-toggle").removeClass('d-none')
+                        toggle.on('click', () => {
+                            const isHidden = proxies.hasClass('d-none')
+                            proxies.toggleClass('d-none', !isHidden)
+                            toggle.text(isHidden ? 'Hide more' : 'Show more')
+                        })
+                    } else {
+                        proxies.removeClass('d-none')
+                        if (subscription.hasClass('d-none')) {
+                            $("#proxies-toggle").removeClass('d-none')
+                            toggle.on('click', () => {
+                                const isHidden = subscription.hasClass('d-none')
+                                subscription.toggleClass('d-none', !isHidden)
+                                toggle.text(isHidden ? 'Hide more' : 'Show more')
+                            })
+                        }
+                    }
+                }
 
                 let progressBar = $("#progressbar")
                 if (r['user']['quota'] !== 0) {

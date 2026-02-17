@@ -15,6 +15,7 @@ import (
 type ProfileResponse struct {
 	User    data.User         `json:"user"`
 	Proxies map[string]string `json:"proxies"`
+	Host    string            `json:"host"`
 }
 
 // ProfileShow returns the profile of a user.
@@ -37,7 +38,7 @@ func ProfileShow(composer *composer.Composer, db *database.Database[data.Data]) 
 		d := db.Data()
 		TrafficRatio := d.MainSettings.TrafficRatio
 
-		r := ProfileResponse{User: *u, Proxies: make(map[string]string)}
+		r := ProfileResponse{User: *u, Proxies: make(map[string]string), Host: d.MainSettings.Host}
 		r.User.Usage = r.User.Usage * TrafficRatio
 		r.User.Quota = r.User.Quota * TrafficRatio
 

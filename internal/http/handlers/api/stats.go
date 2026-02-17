@@ -20,8 +20,8 @@ type StatsUpdatePartialRequest struct {
 type StatsResponse struct {
 	TotalUsageResetAt int64   `json:"total_usage_reset_at"`
 	TotalUsage        float64 `json:"total_usage"`
-	TotalUsers        int     `json:"total_users"`
-	ActiveUsers       int     `json:"active_users"`
+	TotalAccounts     int     `json:"total_accounts"`
+	ActiveAccounts    int     `json:"active_accounts"`
 }
 
 // StatsIndex returns the statistics of the platform.
@@ -31,8 +31,8 @@ func StatsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, &StatsResponse{
 			TotalUsageResetAt: d.Stats.TotalUsageResetAt,
 			TotalUsage:        d.Stats.TotalUsage,
-			TotalUsers:        len(d.Users),
-			ActiveUsers:       d.CountActiveUsers(),
+			TotalAccounts:     len(d.Accounts),
+			ActiveAccounts:    d.CountActiveAccounts(),
 		})
 	}
 }
@@ -67,8 +67,8 @@ func StatsUpdatePartial(db *database.Database[data.Data]) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, &StatsResponse{
 			TotalUsageResetAt: d.Stats.TotalUsageResetAt,
 			TotalUsage:        d.Stats.TotalUsage,
-			TotalUsers:        len(d.Users),
-			ActiveUsers:       d.CountActiveUsers(),
+			TotalAccounts:     len(d.Accounts),
+			ActiveAccounts:    d.CountActiveAccounts(),
 		})
 	}
 }

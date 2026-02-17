@@ -7,8 +7,8 @@ import (
 	"github.com/miladrahimi/p-manager/internal/data"
 )
 
-// UserLinks builds all available proxy links for a user.
-func (c *Composer) UserLinks(user *data.User) map[string]string {
+// AccountLinks builds all available proxy links for an account.
+func (c *Composer) AccountLinks(account *data.Account) map[string]string {
 	d := c.db.Data()
 	xs := d.XraySettings
 	links := make(map[string]string)
@@ -21,7 +21,7 @@ func (c *Composer) UserLinks(user *data.User) map[string]string {
 		links[nameWithHost] = makeVlessLink(vlessLinkOptions{
 			host:      host,
 			port:      port,
-			userId:    user.ProxyId,
+			userId:    account.ProxyId,
 			tag:       nameWithHost,
 			flow:      vless.FlowVision,
 			network:   vless.NetworkRaw,

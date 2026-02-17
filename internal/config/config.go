@@ -11,9 +11,9 @@ import (
 )
 
 const AppName = "P-Manager"
-const AppVersion = "v26.2.8"
+const AppVersion = "v26.2.17"
 const CoreVersion = "Xray v26.1.23"
-const MaxUsersCount = 1024
+const MaxAccountsCount = 1024
 const DefaultNodeSni = "stackoverflow.com"
 const DefaultManagerSni = "aparat.com"
 

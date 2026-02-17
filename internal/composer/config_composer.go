@@ -186,7 +186,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 // rrClients returns the RR-ready client list.
 func (c *Composer) rrClients() []*component.Client {
 	var clients []*component.Client
-	for _, u := range c.db.Data().Users {
+	for _, u := range c.db.Data().Accounts {
 		if !u.Enabled {
 			continue
 		}

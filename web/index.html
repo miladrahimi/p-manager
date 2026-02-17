@@ -48,7 +48,7 @@
                 processData: true,
                 success: response => {
                     localStorage.setItem("token", response['token'])
-                    window.location = "admin-users.html"
+                    window.location = "admin-accounts.html"
                 },
                 error: response => {
                     me.removeClass('btn-primary').addClass('btn-danger')

@@ -13,11 +13,11 @@ func InsightsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		d := db.Data()
 		return c.JSON(http.StatusOK, struct {
-			TotalUsers  int `json:"total_users"`
-			ActiveUsers int `json:"active_users"`
+			TotalAccounts  int `json:"total_accounts"`
+			ActiveAccounts int `json:"active_accounts"`
 		}{
-			TotalUsers:  len(d.Users),
-			ActiveUsers: d.CountActiveUsers(),
+			TotalAccounts:  len(d.Accounts),
+			ActiveAccounts: d.CountActiveAccounts(),
 		})
 	}
 }

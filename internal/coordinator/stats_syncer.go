@@ -112,14 +112,14 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 
 	shouldSync := false
 	db := s.db.Data()
-	for _, u := range db.Users {
+	for _, u := range db.Accounts {
 		if bytes, found := users[u.ProxyId]; found {
 			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
 			u.Usage = util.Bytes2GB(u.UsageBytes)
 			if u.Quota > 0 && u.Usage > u.Quota {
 				u.Enabled = false
 				shouldSync = true
-				s.l.Debug("coordinator: user disabled", zap.String("id", u.Id))
+				s.l.Debug("coordinator: account disabled", zap.String("id", u.Id))
 			}
 		}
 	}
@@ -211,14 +211,14 @@ func (s *statsSyncer) loadLocalStats() error {
 	db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
 
 	shouldSync := false
-	for _, u := range db.Users {
+	for _, u := range db.Accounts {
 		if bytes, found := users[u.ProxyId]; found {
 			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
 			u.Usage = util.Bytes2GB(u.UsageBytes)
 			if u.Quota > 0 && u.Usage > u.Quota {
 				u.Enabled = false
 				shouldSync = true
-				s.l.Debug("coordinator: user disabled", zap.String("id", u.Id))
+				s.l.Debug("coordinator: account disabled", zap.String("id", u.Id))
 			}
 		}
 	}
@@ -230,15 +230,15 @@ func (s *statsSyncer) loadLocalStats() error {
 	return errors.WithStack(err)
 }
 
-// resetUsageForUsers resets the usages of all users.
-func (s *statsSyncer) resetUsageForUsers() error {
+// resetUsageForAccounts resets the usages of all accounts.
+func (s *statsSyncer) resetUsageForAccounts() error {
 	if s.db.Data().MainSettings.ResetPolicy != "monthly" {
 		return nil
 	}
 
-	s.l.Info("coordinator: resetting usage for all users...")
+	s.l.Info("coordinator: resetting usage for all accounts...")
 
-	for _, u := range s.db.Data().Users {
+	for _, u := range s.db.Data().Accounts {
 		if time.Unix(u.UsageResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
 			continue
 		}

@@ -12,7 +12,7 @@ import (
 	"github.com/miladrahimi/p-node/pkg/database"
 )
 
-// SubscriptionShow returns the proxy subscription for a user proxy ID.
+// SubscriptionShow returns the proxy subscription for an account proxy ID.
 func SubscriptionShow(composer *composer.Composer, db *database.Database[data.Data]) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		proxyId := c.Param("proxyId")
@@ -22,14 +22,14 @@ func SubscriptionShow(composer *composer.Composer, db *database.Database[data.Da
 			})
 		}
 
-		u := db.Data().FindUserByProxyId(proxyId)
-		if u == nil {
+		account := db.Data().FindAccountByProxyId(proxyId)
+		if account == nil {
 			return c.JSON(http.StatusNotFound, map[string]string{
-				"message": "User not found.",
+				"message": "Account not found.",
 			})
 		}
 
-		links := composer.UserLinks(u)
+		links := composer.AccountLinks(account)
 		var items []string
 		for _, link := range links {
 			items = append(items, link)

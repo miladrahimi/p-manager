@@ -71,17 +71,14 @@ func (s *Server) Run() {
 	s.engine.Static("/", "web")
 
 	// Pages: Public
-	s.engine.GET("/profile", handlers.Profile(s.db))
-	s.engine.GET("/profile/:userId", handlers.Profile(s.db))
+	s.engine.GET("/account/:accountId", handlers.Account(s.db))
 	s.engine.GET("/subscription/:proxyId", api.SubscriptionShow(s.composer, s.db))
 
 	// APIs: Public
 	g1 := s.engine.Group("api")
 	g1.POST("/sign-in", api.SignIn(s.db))
-	g1.GET("/profile", api.ProfileShow(s.composer, s.db))
-	g1.GET("/profile/:userId", api.ProfileShow(s.composer, s.db))
-	g1.POST("/profile/links/renew", api.ProfileLinksRenew(s.coordinator, s.db))
-	g1.POST("/profile/:userId/links/renew", api.ProfileLinksRenew(s.coordinator, s.db))
+	g1.GET("/account/:accountId", api.AccountShow(s.composer, s.db))
+	g1.POST("/account/:accountId/links/renew", api.AccountLinksRenew(s.coordinator, s.db))
 
 	// APIs: Admin
 	g2 := s.engine.Group("api")
@@ -89,14 +86,14 @@ func (s *Server) Run() {
 		return s.db.Data().MainSettings.AdminPassword
 	}))
 
-	g2.GET("/users", api.UsersIndex(s.db))
-	g2.POST("/users", api.UsersStore(s.coordinator, s.db))
-	g2.PATCH("/users", api.UsersUpdatePartialBatch(s.coordinator, s.db))
-	g2.PUT("/users/:id", api.UsersUpdate(s.coordinator, s.db))
-	g2.PATCH("/users/:id", api.UsersUpdatePartial(s.coordinator, s.db))
-	g2.DELETE("/users/:id", api.UsersDelete(s.coordinator, s.db))
-	g2.DELETE("/users", api.UsersDeleteBatch(s.coordinator, s.db))
-	g2.POST("/users/import", api.UsersImport(s.coordinator, s.db, s.hc))
+	g2.GET("/accounts", api.AccountsIndex(s.db))
+	g2.POST("/accounts", api.AccountsStore(s.coordinator, s.db))
+	g2.PATCH("/accounts", api.AccountsUpdatePartialBatch(s.coordinator, s.db))
+	g2.PUT("/accounts/:id", api.AccountsUpdate(s.coordinator, s.db))
+	g2.PATCH("/accounts/:id", api.AccountsUpdatePartial(s.coordinator, s.db))
+	g2.DELETE("/accounts/:id", api.AccountsDelete(s.coordinator, s.db))
+	g2.DELETE("/accounts", api.AccountsDeleteBatch(s.coordinator, s.db))
+	g2.POST("/accounts/import", api.AccountsImport(s.coordinator, s.db, s.hc))
 
 	g2.GET("/nodes", api.NodesIndex(s.db))
 	g2.POST("/nodes", api.NodesStore(s.coordinator, s.db))

@@ -21,7 +21,7 @@
 
         <ul class="nav nav-tabs small">
             <li class="nav-item">
-                <a class="nav-link px-2" href="admin-users.html">Users</a>
+                <a class="nav-link px-2" href="admin-accounts.html">Accounts</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link px-2" href="admin-nodes.html">Nodes</a>
@@ -49,12 +49,12 @@
                             <span id="stats-total-usage-reset-at" class="text-muted"></span>
                         </div>
                         <div class="my-1">
-                            <span>Total Users:</span>
-                            <span id="stats-total-users" class="text-muted"></span>
+                            <span>Total Accounts:</span>
+                            <span id="stats-total-accounts" class="text-muted"></span>
                         </div>
                         <div class="my-1">
-                            <span>Active users:</span>
-                            <span id="stats-active-users" class="text-muted"></span>
+                            <span>Active Accounts:</span>
+                            <span id="stats-active-accounts" class="text-muted"></span>
                         </div>
                     </div>
                     <div class="col col-12 col-md-6">
@@ -86,19 +86,19 @@
                     <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="reset-node-usages">
                         Reset Node Usages
                     </button>
-                    <button class="btn btn-outline-danger btn-sm m-1 flex-fill" id="reset-user-usages">
-                        Reset User Usages
+                    <button class="btn btn-outline-danger btn-sm m-1 flex-fill" id="reset-account-usages">
+                        Reset Account Usages
                     </button>
                 </div>
                 <div class="d-flex flex-column flex-md-row mt-2">
                     <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="restart-xray-core">
                         Restart Xray Core
                     </button>
-                    <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="delete-disabled-users">
-                        Delete Disabled Users
+                    <button class="btn btn-outline-dark btn-sm m-1 flex-fill" id="delete-disabled-accounts">
+                        Delete Disabled Accounts
                     </button>
-                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="delete-all-users">
-                        Delete All of Users
+                    <button class="btn btn-danger btn-sm m-1 flex-fill" id="delete-all-accounts">
+                        Delete All of Accounts
                     </button>
                 </div>
             </div>
@@ -187,22 +187,22 @@
                     <p class="ps-2 py-1 rounded-1 bg-light flex-fill m-1">
                         <span>Direct:</span>
                         <code class="text-muted">
-                            [User] → P-Manager → [Internet]
+                            [Account] → P-Manager → [Internet]
                         </code>
                         <br>
                         <span>Remote:</span>
                         <code class="text-muted">
-                            [User] → P-Node → [Internet]
+                            [Account] → P-Node → [Internet]
                         </code>
                         <br>
                         <span>Relay:</span>
                         <code class="text-muted">
-                            [User] → P-Manager → P-Node → [Internet]
+                            [Account] → P-Manager → P-Node → [Internet]
                         </code>
                         <br>
                         <span>Reverse:</span>
                         <code class="text-muted">
-                            [User] → P-Manager ↪ P-Node → [Internet]
+                            [Account] → P-Manager ↪ P-Node → [Internet]
                         </code>
                     </p>
                     <p class="ps-2 py-1 rounded-1 bg-light flex-fill m-1">
@@ -236,7 +236,7 @@
                         <td>
                             <input id="admin_password" type="text" class="form-control" title="Admin Password"
                                    required="required" data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Password for admin user to access admin panel.">
+                                   data-bs-title="Password for admin account to access admin panel.">
                         </td>
                     </tr>
                     <tr>
@@ -244,7 +244,7 @@
                         <td>
                             <input id="host" type="text" class="form-control" title="Host" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Host for proxy server and profile links.">
+                                   data-bs-title="Host for proxy server and account links.">
                         </td>
                     </tr>
                     <tr>
@@ -252,7 +252,7 @@
                         <td>
                             <select id="reset_policy" type="text" class="form-select" title="Reset Policy"
                                     data-bs-toggle="tooltip" data-bs-placement="top"
-                                    data-bs-title="When to reset user usages.">
+                                    data-bs-title="When to reset account usages.">
                                 <option value="" selected="selected">Never</option>
                                 <option value="monthly">First of each month</option>
                             </select>
@@ -264,7 +264,7 @@
                             <input id="usage_ratio" type="number" step="0.01" class="form-control"
                                    title="Usage Ratio"
                                    required="required" data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Usage multiplier for displaying to users!">
+                                   data-bs-title="Usage multiplier for displaying to accounts!">
                         </td>
                     </tr>
                     <tr>
@@ -285,14 +285,14 @@
         </div>
 
         <div class="card bg-light pt-3 mt-3">
-            <div class="card-title fw-bold text-center">Import users from another P-Manager</div>
+            <div class="card-title fw-bold text-center">Import accounts from another P-Manager</div>
             <form class="card-body text-start">
                 <div class="d-flex flex-column mt-2">
                     <input type="url" placeholder="https://domain-or-ip" id="import-url" title="URL"
                            class="form-control my-1" required="required">
                     <input type="text" placeholder="Admin Password" id="import-password" title="Admin Password"
                            class="form-control my-1" required="required">
-                    <button class="btn btn-outline-dark btn-sm my-1" id="import-users">Import Users</button>
+                    <button class="btn btn-outline-dark btn-sm my-1" id="import-accounts">Import Accounts</button>
                 </div>
             </form>
         </div>
@@ -336,8 +336,8 @@
         success: function (response) {
             $("#stats-total-usage").html(parseFloat(response['total_usage']).toFixed(2))
             $("#stats-total-usage-reset-at").html(ts2date(response['total_usage_reset_at']))
-            $("#stats-total-users").html(response['total_users'])
-            $("#stats-active-users").html(response['active_users'])
+            $("#stats-total-accounts").html(response['total_accounts'])
+            $("#stats-active-accounts").html(response['active_accounts'])
         },
         error: makeErrorHandler(),
         processData: true,
@@ -439,8 +439,8 @@
         })
     })
 
-    $('#reset-user-usages').click(function () {
-        let confirmed = confirm("Click 'OK' to reset usage for all users and activate their accounts.")
+    $('#reset-account-usages').click(function () {
+        let confirmed = confirm("Click 'OK' to reset usage for all accounts and activate them.")
         if (!confirmed) {
             return
         }
@@ -450,7 +450,7 @@
 
         $.ajax({
             type: 'PATCH',
-            url: `/api/users`,
+            url: `/api/accounts`,
             data: JSON.stringify({
                 usage: 0,
                 enabled: true,
@@ -458,7 +458,7 @@
             processData: true,
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
-            success: () => alert('User usages has been reset successfully.'),
+            success: () => alert('Account usages have been reset successfully.'),
             error: makeErrorHandler(),
         })
     })
@@ -483,8 +483,8 @@
         })
     })
 
-    $('#delete-disabled-users').click(function () {
-        let confirmed = confirm("Click 'OK' to delete disabled users.")
+    $('#delete-disabled-accounts').click(function () {
+        let confirmed = confirm("Click 'OK' to delete disabled accounts.")
         if (!confirmed) {
             return
         }
@@ -494,17 +494,17 @@
 
         $.ajax({
             type: 'DELETE',
-            url: `/api/users?enabled=false`,
+            url: `/api/accounts?enabled=false`,
             processData: true,
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
-            success: () => alert('Disabled users deleted successfully.'),
+            success: () => alert('Disabled accounts deleted successfully.'),
             error: makeErrorHandler(),
         })
     })
 
-    $('#delete-all-users').click(function () {
-        let confirmed = confirm("Click 'OK' to delete all users.")
+    $('#delete-all-accounts').click(function () {
+        let confirmed = confirm("Click 'OK' to delete all accounts.")
         if (!confirmed) {
             return
         }
@@ -514,11 +514,11 @@
 
         $.ajax({
             type: 'DELETE',
-            url: `/api/users`,
+            url: `/api/accounts`,
             processData: true,
             dataType: 'json',
             complete: () => me.removeAttr('disabled'),
-            success: () => alert('All users deleted successfully.'),
+            success: () => alert('All accounts deleted successfully.'),
             error: makeErrorHandler(),
         })
     })
@@ -587,8 +587,8 @@
         })
     })
 
-    $('#import-users').click(function () {
-        const form = document.querySelector('#import-users').closest('form');
+    $('#import-accounts').click(function () {
+        const form = document.querySelector('#import-accounts').closest('form');
         if (!form.checkValidity()) {
             form.reportValidity()
             return
@@ -599,7 +599,7 @@
 
         $.ajax({
             type: 'POST',
-            url: `/api/users/import`,
+            url: `/api/accounts/import`,
             contentType: 'application/json',
             processData: true,
             dataType: 'json',
@@ -609,10 +609,10 @@
             }),
             complete: () => me.removeAttr('disabled'),
             success: response => {
-                console.log('Import from P-Manager: Import Users', response)
+                console.log('Import from P-Manager: Import Accounts', response)
                 $('#import-url').val('')
                 $('#import-password').val('')
-                alert('Users imported successfully, See the results in your console.')
+                alert('Accounts imported successfully, See the results in your console.')
             },
             error: makeErrorHandler(),
         })

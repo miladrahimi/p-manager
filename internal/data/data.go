@@ -2,7 +2,7 @@ package data
 
 // Data is the database data (schema).
 type Data struct {
-	Users        []*User       `json:"users"`
+	Accounts     []*Account    `json:"accounts"`
 	Nodes        []*Node       `json:"nodes"`
 	Stats        *Stats        `json:"stats"`
 	MainSettings *Settings     `json:"main_settings"`
@@ -10,9 +10,9 @@ type Data struct {
 }
 
 // New creates a new instance of Data.
-func New(users []*User, nodes []*Node, stats *Stats, mainSettings *Settings, xraySettings *XraySettings) *Data {
+func New(accounts []*Account, nodes []*Node, stats *Stats, mainSettings *Settings, xraySettings *XraySettings) *Data {
 	return &Data{
-		Users:        users,
+		Accounts:     accounts,
 		Nodes:        nodes,
 		Stats:        stats,
 		MainSettings: mainSettings,
@@ -23,7 +23,7 @@ func New(users []*User, nodes []*Node, stats *Stats, mainSettings *Settings, xra
 // Default returns a new data with default values.
 func Default() *Data {
 	return New(
-		[]*User{},
+		[]*Account{},
 		[]*Node{},
 		DefaultStats(),
 		DefaultSettings(),
@@ -31,20 +31,20 @@ func Default() *Data {
 	)
 }
 
-// CountActiveUsers counts the number of active users.
-func (s *Data) CountActiveUsers() int {
-	activeUsersCount := len(s.Users)
-	for _, u := range s.Users {
+// CountActiveAccounts counts the number of active accounts.
+func (s *Data) CountActiveAccounts() int {
+	activeAccountsCount := len(s.Accounts)
+	for _, u := range s.Accounts {
 		if !u.Enabled {
-			activeUsersCount--
+			activeAccountsCount--
 		}
 	}
-	return activeUsersCount
+	return activeAccountsCount
 }
 
-// FindUserById finds a user by its (primary) ID.
-func (s *Data) FindUserById(id string) *User {
-	for _, u := range s.Users {
+// FindAccountById finds an account by its (primary) ID.
+func (s *Data) FindAccountById(id string) *Account {
+	for _, u := range s.Accounts {
 		if u.Id == id {
 			return u
 		}
@@ -52,9 +52,9 @@ func (s *Data) FindUserById(id string) *User {
 	return nil
 }
 
-// FindUserByProxyId finds a user by its proxy ID.
-func (s *Data) FindUserByProxyId(proxyId string) *User {
-	for _, u := range s.Users {
+// FindAccountByProxyId finds an account by its proxy ID.
+func (s *Data) FindAccountByProxyId(proxyId string) *Account {
+	for _, u := range s.Accounts {
 		if u.ProxyId == proxyId {
 			return u
 		}

@@ -10,6 +10,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/internal/worker"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
+	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
@@ -103,8 +104,8 @@ func (c *Coordinator) Run(ctx context.Context) error {
 		}
 	}).Start(ctx)
 
-	go worker.New("resetUsageForUsers", time.Hour, c.l, func() {
-		if err := c.statsSyncer.resetUsageForUsers(); err != nil {
+	go worker.New("resetUsageForAccounts", time.Hour, c.l, func() {
+		if err := c.statsSyncer.resetUsageForAccounts(); err != nil {
 			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
 		}
 	}).Start(ctx)
@@ -130,12 +131,9 @@ func (c *Coordinator) initialize() (err error) {
 		d.XraySettings.ManagerSni = config.DefaultManagerSni
 	}
 	// TODO: Remove this in next version
-	for _, u := range d.Users {
-		if u.ProxyId == "" && u.VlessId != "" {
-			u.ProxyId = u.VlessId
-		}
-		if u.VlessId == "" && u.ProxyId != "" {
-			u.VlessId = u.ProxyId
+	for _, u := range d.Accounts {
+		if u.ProxyId == "" {
+			u.ProxyId = util.Uuid()
 		}
 	}
 	return errors.WithStack(c.db.Save())

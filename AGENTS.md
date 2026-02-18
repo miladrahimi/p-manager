@@ -60,7 +60,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - On local environment P-Node package could be replaced by `../p-node` in `go.mod` to use the local version
 - Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` is `clientID`, etc.)
 
-## Xray
+## Xray Proxy
 Xray is a proxy platform which can be used to run proxy servers with different protocols like Shadowsocks, VMess, VLess,
 Socks, etc. It supports chain of proxies. The high level flow is:
 
@@ -77,6 +77,40 @@ connections to the network where the next node resides.
 
 ## SSH Proxy
 SSH Proxy is the same socks proxy provided by SSH tool. The provided SOCKS proxy will be used as outbound for Xray.
+
+## Supported Methods
+### Direct RR
+The P-Manager works as a proxy-server.
+It accepts direct VLESS Reality Raw requests from clients and forwards them to the Internet.
+Flow:
+```
+[ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -> Internet
+```
+
+## Remote RR
+P-Nodes work as proxy-servers.
+They directly accept VLESS Reality Raw requests from clients and forwards them to the Internet.
+Flow:
+```
+[ Client ] -(VLESS Reality Raw)-> [ P-Node ] -> Internet
+```
+
+## Relay RR2RR
+The P-Manager works as relay server.
+It accepts VLESS Reality Raw requests from clients and forwards them to the P-Nodes.
+Flow:
+```
+[ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(VLESS Reality Raw)-> [ P-Node ] -> Internet
+```
+
+## Relay RR2SSH
+The P-Manager works as relay server.
+It starts SSH connections to P-Nodes and provides SOCKS proxies.
+It also accepts VLESS Reality Raw requests from clients and forwards them to the socks proxies.
+Flow:
+```
+[ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(SOCKS)-> [ SSH to A P-Node ] -> Internet
+```
 
 ## External Links
 - [Xray: Proxy Platform](https://github.com/XTLS/Xray-core)

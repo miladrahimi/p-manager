@@ -29,6 +29,10 @@ setup:
 recover:
 	@./scripts/recover.sh
 
+.PHONY: uninstall
+uninstall:
+	@./scripts/uninstall.sh
+
 .PHONY: clean
 clean:
 	@rm -f storage/logs/*.log

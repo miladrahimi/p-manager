@@ -62,6 +62,14 @@ For earlier updates, run the command below:
 make update
 ```
 
+### Uninstall
+
+The command below uninstalls the P-Manager service, update cron job, and application directory.
+
+```shell
+make uninstall
+```
+
 ### Status and Logs
 
 The application service is named after its directory, with `p-manager` as the default in `systemd`.

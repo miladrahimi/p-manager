@@ -144,7 +144,6 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 					copyUser.Encryption = vless.EncryptionEmpty
 					clients[i] = &copyUser
 				}
-				fmt.Printf("clients: %v\n", clients[0])
 				xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 					"relay-rr2rr",
 					xs.RelayRr2RrNodePort,

@@ -14,8 +14,8 @@ const AppName = "P-Manager"
 const AppVersion = "v26.2.17"
 const CoreVersion = "Xray v26.1.23"
 const MaxAccountsCount = 1024
-const DefaultNodeSni = "stackoverflow.com"
-const DefaultManagerSni = "aparat.com"
+const DefaultNodeSni = "dl.google.com"
+const DefaultManagerSni = "snapp.ir"
 
 // Config represents the application configuration.
 type Config struct {

@@ -32,7 +32,7 @@ func (c *Composer) AccountLinks(account *data.Account) map[string]string {
 	}
 
 	addRrLink("direct-rr", d.MainSettings.Host, xs.DirectRrPort, xs.ManagerSni)
-	addRrLink("relay-rr2rr", d.MainSettings.Host, xs.RelayRr2RrPort, xs.ManagerSni)
+	addRrLink("relay-rr2rr", d.MainSettings.Host, xs.RelayRr2RrManagerPort, xs.ManagerSni)
 	addRrLink("relay-rr2ssh", d.MainSettings.Host, xs.RelayRr2SshPort, xs.ManagerSni)
 
 	if xs.RemoteRrPort > 0 {

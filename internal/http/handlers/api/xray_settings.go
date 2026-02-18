@@ -38,7 +38,8 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 		if !util.PortsDistinct([]int{
 			r.DirectRrPort,
 			r.RemoteRrPort,
-			r.RelayRr2RrPort,
+			r.RelayRr2RrManagerPort,
+			r.RelayRr2RrNodePort,
 			r.RelayRr2SshPort,
 		}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
@@ -46,23 +47,19 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 			})
 		}
 
-		current := db.Data().XraySettings
-		if r.DirectRrPort > 0 && r.DirectRrPort != current.DirectRrPort && !util.PortFree(r.DirectRrPort) {
+		d := db.Data().XraySettings
+		if r.DirectRrPort > 0 && r.DirectRrPort != d.DirectRrPort && !util.PortFree(r.DirectRrPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Port %d is already in use.", r.DirectRrPort),
 			})
 		}
-		if r.RemoteRrPort > 0 && r.RemoteRrPort != current.RemoteRrPort && !util.PortFree(r.RemoteRrPort) {
+		if r.RelayRr2RrManagerPort > 0 && r.RelayRr2RrManagerPort != d.RelayRr2RrManagerPort &&
+			!util.PortFree(r.RelayRr2RrManagerPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.RemoteRrPort),
+				"message": fmt.Sprintf("Port %d is already in use.", r.RelayRr2RrManagerPort),
 			})
 		}
-		if r.RelayRr2RrPort > 0 && r.RelayRr2RrPort != current.RelayRr2RrPort && !util.PortFree(r.RelayRr2RrPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.RelayRr2RrPort),
-			})
-		}
-		if r.RelayRr2SshPort > 0 && r.RelayRr2SshPort != current.RelayRr2SshPort && !util.PortFree(r.RelayRr2SshPort) {
+		if r.RelayRr2SshPort > 0 && r.RelayRr2SshPort != d.RelayRr2SshPort && !util.PortFree(r.RelayRr2SshPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Port %d is already in use.", r.RelayRr2SshPort),
 			})

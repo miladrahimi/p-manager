@@ -127,13 +127,18 @@
                         </td>
                     </tr>
                     <tr>
-                        <td class="align-middle px-2">Relay RR→RR Port</td>
-                        <td>
-                            <input id="relay_rr_2_rr_port" type="number" class="form-control"
-                                   title="Relay RR->RR Port"
+                        <td class="align-middle px-2">Relay RR→RR Ports</td>
+                        <td class="d-flex gap-2">
+                            <input id="relay_rr_2_rr_manager_port" type="number" class="form-control"
+                                   title="Relay RR->RR Manager Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Relay port or zero to disable.">
+                                   data-bs-title="Manager relay port or zero to disable.">
+                            <input id="relay_rr_2_rr_node_port" type="number" class="form-control"
+                                   title="Relay RR->RR Node Port"
+                                   min="0" max="65535" required="required"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   data-bs-title="Node relay port or zero to disable.">
                         </td>
                     </tr>
                     <tr>
@@ -208,17 +213,22 @@
                     <p class="ps-2 py-1 rounded-1 bg-light flex-fill m-1">
                         <span>RR:</span>
                         <span class="badge bg-secondary-subtle">
-                                <code class="fw-bold text-black">protocol:</code> <code>vless</code>
-                            </span>
+                            <code class="fw-bold text-black">protocol:</code> <code>vless</code>
+                        </span>
                         <span class="badge bg-secondary-subtle">
-                                <code class="fw-bold text-black">network:</code> <code>raw</code>
-                            </span>
+                            <code class="fw-bold text-black">network:</code> <code>raw</code>
+                        </span>
                         <span class="badge bg-secondary-subtle">
-                                <code class="fw-bold text-black">security:</code> <code>reality</code>
-                            </span>
+                            <code class="fw-bold text-black">security:</code> <code>reality</code>
+                        </span>
                         <span class="badge bg-secondary-subtle">
-                                <code class="fw-bold text-black">flow:</code> <code>xtls-rprx-vision</code>
-                            </span>
+                            <code class="fw-bold text-black">flow:</code> <code>xtls-rprx-vision</code>
+                        </span>
+                        <br>
+                        <span>SSH:</span>
+                        <span class="badge bg-secondary-subtle">
+                            <code class="fw-bold text-black">protocol:</code> <code>socks</code>
+                        </span>
                     </p>
                 </div>
             </form>
@@ -378,7 +388,8 @@
         success: response => {
             xraySettings = response
             setPortValue('#direct_rr_port', response['direct_rr_port'])
-            setPortValue('#relay_rr_2_rr_port', response['relay_rr_2_rr_port'])
+            setPortValue('#relay_rr_2_rr_manager_port', response['relay_rr_2_rr_manager_port'])
+            setPortValue('#relay_rr_2_rr_node_port', response['relay_rr_2_rr_node_port'])
             setPortValue('#relay_rr_2_ssh_port', response['relay_rr_2_ssh_port'])
             setPortValue('#remote_rr_port', response['remote_rr_port'])
             $('#node_sni').val(response['node_sni'] || "")
@@ -571,7 +582,8 @@
             url: "/api/xray-settings",
             data: JSON.stringify({
                 direct_rr_port: parsePort($('#direct_rr_port').val()),
-                relay_rr_2_rr_port: parsePort($('#relay_rr_2_rr_port').val()),
+                relay_rr_2_rr_manager_port: parsePort($('#relay_rr_2_rr_manager_port').val()),
+                relay_rr_2_rr_node_port: parsePort($('#relay_rr_2_rr_node_port').val()),
                 relay_rr_2_ssh_port: parsePort($('#relay_rr_2_ssh_port').val()),
                 remote_rr_port: parsePort($('#remote_rr_port').val()),
                 node_sni: $('#node_sni').val().trim(),

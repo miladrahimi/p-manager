@@ -25,7 +25,7 @@ func MakeUser(id, flow, encryption string) *component.Client {
 	}
 }
 
-// MakeRrInbound makes a VLESS/Reality/Raw inbound.
+// MakeRrInbound makes a Reality Raw inbound.
 func MakeRrInbound(
 	tag string,
 	port int,
@@ -64,7 +64,7 @@ func MakeRrInbound(
 	return inbound
 }
 
-// MakeRrOutbound makes a VLESS/Reality/Raw outbound.
+// MakeRrOutbound makes a Reality Raw outbound.
 func MakeRrOutbound(
 	tag string,
 	address string,

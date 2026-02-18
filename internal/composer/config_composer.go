@@ -14,8 +14,8 @@ import (
 	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
 
-// LocalConfig composes the local xray config.
-func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
+// ManagerConfig composes the P-Manager (local) xray config.
+func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
 	rrClients := c.rrClients()
 	d := c.db.Data()
 	xs := d.XraySettings
@@ -31,10 +31,10 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 	hasNodes := len(d.Nodes) > 0
 	fallback := &component.Fallback{Dest: c.config.HttpServer.Port}
 
-	if hasClients && hasNodes && xs.RelayRr2RrPort > 0 {
+	if hasClients && hasNodes && xs.RelayRr2RrManagerPort > 0 && xs.RelayRr2RrNodePort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"relay-rr2rr",
-			xs.RelayRr2RrPort,
+			xs.RelayRr2RrManagerPort,
 			xs.RealityPrivateKey,
 			xs.ManagerSni,
 			rrClients,
@@ -48,14 +48,10 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 			Tag: "relay-rr2rr", Selector: []string{},
 		})
 		for _, n := range d.Nodes {
-			outboundRelayPort, err := util.FreePort()
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
 			xc.Outbounds = append(xc.Outbounds, vless.MakeRrOutbound(
 				fmt.Sprintf("relay-rr2rr-%s", n.Id),
 				n.Host,
-				outboundRelayPort,
+				xs.RelayRr2RrNodePort,
 				util.Uuid(),
 				xs.RealityPublicKey,
 				xs.NodeSni,
@@ -117,7 +113,7 @@ func (c *Composer) LocalConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) 
 	return xc, nil
 }
 
-// NodeConfig composes the (remote) node xray config.
+// NodeConfig composes the (remote) P-Node xray config.
 func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig.Config {
 	d := c.db.Data()
 	xs := d.XraySettings
@@ -129,26 +125,27 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 		UpdatedBy: d.MainSettings.Host,
 	}
 
-	if xs.RelayRr2RrPort > 0 {
+	if xs.RelayRr2RrNodePort > 0 {
 		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-rr2rr-%s", node.Id))
 		if relayOutbound != nil && relayOutbound.Settings != nil {
 			if len(relayOutbound.Settings.Vnext) > 0 {
 				server := relayOutbound.Settings.Vnext[0]
-				users := make([]*component.Client, len(server.Users))
+				clients := make([]*component.Client, len(server.Users))
 				for i, u := range server.Users {
 					if u == nil {
 						continue
 					}
 					copyUser := *u
 					copyUser.Encryption = vless.EncryptionEmpty
-					users[i] = &copyUser
+					clients[i] = &copyUser
 				}
+				fmt.Printf("clients: %v\n", clients[0])
 				xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 					"relay-rr2rr",
-					server.Port,
+					xs.RelayRr2RrNodePort,
 					xs.RealityPrivateKey,
 					xs.NodeSni,
-					users,
+					clients,
 					fallback,
 				))
 				xc.Routing.Rules = append(

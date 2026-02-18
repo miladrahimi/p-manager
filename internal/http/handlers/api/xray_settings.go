@@ -64,6 +64,7 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 				"message": fmt.Sprintf("Port %d is already in use.", r.RelayRr2SshPort),
 			})
 		}
+
 		db.Data().XraySettings = &r
 		if err := db.Save(); err != nil {
 			return errors.WithStack(err)

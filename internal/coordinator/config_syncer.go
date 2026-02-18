@@ -48,7 +48,7 @@ func newConfigSyncer(
 func (c *configSyncer) updateLocalConfig() error {
 	c.l.Info("coordinator: updating local configs...")
 
-	localConfig, err := c.composer.ManagerConfig(c.state.SshConfigs())
+	localConfig, err := c.composer.ManagerConfig(c.state.SshConfigsByNode())
 	if err != nil {
 		return err
 	}

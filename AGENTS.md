@@ -109,7 +109,7 @@ It starts SSH connections to P-Nodes and provides SOCKS proxies.
 It also accepts VLESS Reality Raw requests from clients and forwards them to the socks proxies.
 Flow:
 ```
-[ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(SOCKS)-> [ SSH to A P-Node ] -> Internet
+[ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(SOCKS)-> [ SSH to P-Node ] -> Internet
 ```
 
 ## External Links

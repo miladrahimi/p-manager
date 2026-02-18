@@ -15,7 +15,7 @@ import (
 )
 
 // ManagerConfig composes the P-Manager (local) xray config.
-func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
+func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
 	rrClients := c.rrClients()
 	d := c.db.Data()
 	xs := d.XraySettings
@@ -66,13 +66,18 @@ func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string]*ssh.ProxyConfig
 	if hasClients && hasNodes && xs.RelayRr2SshPort > 0 {
 		outbounds := make([]string, 0, len(d.Nodes))
 		for _, n := range d.Nodes {
-			proxyConfig, ok := sshConfigsByNodeIds[n.Id]
-			if !ok || proxyConfig.LocalPort <= 0 {
+			proxyConfigs, ok := sshConfigsByNodeIds[n.Id]
+			if !ok || len(proxyConfigs) == 0 {
 				continue
 			}
-			tag := fmt.Sprintf("relay-rr2ssh-%s", n.Id)
-			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", proxyConfig.LocalPort))
-			outbounds = append(outbounds, tag)
+			for i, proxyConfig := range proxyConfigs {
+				if proxyConfig == nil || proxyConfig.LocalPort <= 0 {
+					continue
+				}
+				tag := fmt.Sprintf("relay-rr2ssh-%s-%d", n.Id, i+1)
+				xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", proxyConfig.LocalPort))
+				outbounds = append(outbounds, tag)
+			}
 		}
 
 		if len(outbounds) > 0 {

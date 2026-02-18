@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -45,8 +46,8 @@ func (s *sshSyncer) syncSshProxies() error {
 
 	// Stop All if RelayRr2SshPort is disabled.
 	if s.db.Data().XraySettings.RelayRr2SshPort <= 0 {
-		for nodeId := range s.state.SshConfigs() {
-			s.state.RemoveSshConfig(nodeId)
+		for nodeId := range s.state.SshConfigsByNode() {
+			s.state.RemoveSshConfigs(nodeId)
 		}
 		return errors.WithStack(s.pool.StopAll())
 	}
@@ -58,44 +59,68 @@ func (s *sshSyncer) syncSshProxies() error {
 	}
 
 	// Stop all ssh proxies that are not belong to current nodes.
-	for nodeId := range s.state.SshConfigs() {
+	for nodeId, configs := range s.state.SshConfigsByNode() {
 		if _, exists := currentNodes[nodeId]; !exists {
-			s.state.RemoveSshConfig(nodeId)
-			errList = errors.Join(errList, s.pool.Stop(nodeId))
+			s.state.RemoveSshConfigs(nodeId)
+			errList = errors.Join(errList, s.stopNodeProxies(nodeId, configs))
 		}
+	}
+
+	desiredConnections := s.db.Data().XraySettings.RelayRr2SshConnections
+	if desiredConnections < 1 {
+		desiredConnections = 1
 	}
 
 	// Start/Update ssh proxies for current nodes.
 	for _, node := range currentNodes {
-		proxyConfig, hasConfig := s.state.SshConfig(node.Id)
+		proxyConfigs, hasConfig := s.state.SshConfigs(node.Id)
 
-		if hasConfig && proxyConfig != nil && proxyConfig.Connection != nil {
-			// Skip node if it doesn't require update.
-			if proxyConfig.Connection.Host == node.Host &&
-				proxyConfig.Connection.User == node.SshUser &&
-				proxyConfig.Connection.Port == node.SshPort {
-				continue
+		requiresReset := !hasConfig || len(proxyConfigs) != desiredConnections
+		if !requiresReset {
+			for _, proxyConfig := range proxyConfigs {
+				if proxyConfig == nil || proxyConfig.Connection == nil {
+					requiresReset = true
+					break
+				}
+				if proxyConfig.Connection.Host != node.Host ||
+					proxyConfig.Connection.User != node.SshUser ||
+					proxyConfig.Connection.Port != node.SshPort {
+					requiresReset = true
+					break
+				}
 			}
-
-			// Stop node if it requires update.
-			err := s.pool.Stop(node.Id)
-			errList = errors.Join(errList, err)
 		}
 
-		// Find a free port for the new/updated node.
-		freePort, err := util.FreePort()
-		if err != nil {
-			errList = errors.Join(errList, err)
+		if !requiresReset {
 			continue
 		}
 
-		// Start ssh proxies for the new/updated node.
+		if hasConfig {
+			errList = errors.Join(errList, s.stopNodeProxies(node.Id, proxyConfigs))
+		}
+
 		connectionConfig := ssh.NewConnectionConfig(node.Host, node.SshUser, node.SshPort)
-		newProxyConfig := ssh.NewProxyConfig(connectionConfig, freePort)
-		if err = s.pool.Start(node.Id, newProxyConfig); err != nil {
-			errList = errors.Join(errList, err)
+		newConfigs := make([]*ssh.ProxyConfig, 0, desiredConnections)
+
+		for i := 0; i < desiredConnections; i++ {
+			freePort, err := util.FreePort()
+			if err != nil {
+				errList = errors.Join(errList, err)
+				continue
+			}
+
+			newProxyConfig := ssh.NewProxyConfig(connectionConfig, freePort)
+			if err = s.pool.Start(s.makeSshProxyTag(node.Id, i), newProxyConfig); err != nil {
+				errList = errors.Join(errList, err)
+				continue
+			}
+			newConfigs = append(newConfigs, newProxyConfig)
+		}
+
+		if len(newConfigs) == 0 {
+			s.state.RemoveSshConfigs(node.Id)
 		} else {
-			s.state.SetSshConfig(node.Id, newProxyConfig)
+			s.state.SetSshConfigs(node.Id, newConfigs)
 		}
 	}
 
@@ -161,4 +186,17 @@ func (s *sshSyncer) updateNodeSshStatus(node *data.Node) (bool, error) {
 	}
 	node.SshStatus = status
 	return true, nil
+}
+
+// makeSshProxyTag generates a unique tag for an SSH proxy.
+func (s *sshSyncer) makeSshProxyTag(nodeId string, index int) string {
+	return nodeId + "-" + strconv.Itoa(index+1)
+}
+
+// stopNodeProxies stops all SSH proxies for a single node.
+func (s *sshSyncer) stopNodeProxies(nodeId string, configs []*ssh.ProxyConfig) (err error) {
+	for i := range configs {
+		err = errors.Join(err, s.pool.Stop(s.makeSshProxyTag(nodeId, i)))
+	}
+	return errors.WithStack(err)
 }

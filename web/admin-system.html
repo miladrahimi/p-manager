@@ -114,7 +114,7 @@
                             <input id="direct_rr_port" type="number" class="form-control"
                                    title="Direct RR Port" min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Direct port or zero to disable.">
+                                   data-bs-title="RR port for the P-Manager or zero to disable.">
                         </td>
                     </tr>
                     <tr>
@@ -123,7 +123,7 @@
                             <input id="remote_rr_port" type="number" class="form-control"
                                    title="Remote RR Port" min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Remote port or zero to disable.">
+                                   data-bs-title="RR port for P-Nodes or zero to disable.">
                         </td>
                     </tr>
                     <tr>
@@ -133,12 +133,12 @@
                                    title="Relay RR->RR Manager Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Manager relay port or zero to disable.">
+                                   data-bs-title="RR port for the P-Manager or zero to disable.">
                             <input id="relay_rr_2_rr_node_port" type="number" class="form-control"
                                    title="Relay RR->RR Node Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Node relay port or zero to disable.">
+                                   data-bs-title="RR port for P-Nodes or zero to disable.">
                         </td>
                     </tr>
                     <tr>
@@ -148,7 +148,7 @@
                                    title="Relay RR->SSH Port"
                                    min="0" max="65535" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="SSH port or zero to disable.">
+                                   data-bs-title="RR port for the P-Manager or zero to disable.">
                         </td>
                     </tr>
                     <tr>
@@ -157,7 +157,7 @@
                             <input id="node_sni" type="text" class="form-control"
                                    title="Node SNI" minlength="1" maxlength="255" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="SNI name used by reality for P-Nodes." />
+                                   data-bs-title="SNI name used in reality for connections to P-Nodes." />
                         </td>
                     </tr>
                     <tr>
@@ -166,7 +166,7 @@
                             <input id="manager_sni" type="text" class="form-control"
                                    title="Manager SNI" minlength="1" maxlength="255" required="required"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="SNI name used by reality for P-Manager direct proxies." />
+                                   data-bs-title="SNI name used in reality for connections to the P-Manager." />
                         </td>
                     </tr>
                     <tr>
@@ -175,7 +175,7 @@
                             <input id="reality_private_key" type="text" class="form-control"
                                    title="Reality Private Key" minlength="1" maxlength="255"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Reality private key used by RR inbounds.">
+                                   data-bs-title="Reality private key used by RR proxies.">
                         </td>
                     </tr>
                     <tr>
@@ -184,7 +184,7 @@
                             <input id="reality_public_key" type="text" class="form-control"
                                    title="Reality Public Key" minlength="1" maxlength="255"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   data-bs-title="Reality public key used by RR outbounds.">
+                                   data-bs-title="Reality public key used by RR proxies.">
                         </td>
                     </tr>
                 </table>
@@ -212,6 +212,9 @@
                     </p>
                     <p class="ps-2 py-1 rounded-1 bg-light flex-fill m-1">
                         <span>RR:</span>
+                        <span class="badge bg-dark-subtle">
+                            <code>Xray</code>
+                        </span>
                         <span class="badge bg-secondary-subtle">
                             <code class="fw-bold text-black">protocol:</code> <code>vless</code>
                         </span>
@@ -226,6 +229,9 @@
                         </span>
                         <br>
                         <span>SSH:</span>
+                        <span class="badge bg-dark-subtle">
+                            <code>OpenSSH</code>
+                        </span>
                         <span class="badge bg-secondary-subtle">
                             <code class="fw-bold text-black">protocol:</code> <code>socks</code>
                         </span>

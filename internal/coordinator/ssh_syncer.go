@@ -3,13 +3,11 @@ package coordinator
 import (
 	"context"
 	"strconv"
-	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-manager/pkg/util"
-	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -17,16 +15,25 @@ import (
 // sshSyncer is a syncer that syncs the SSH status of the nodes in the database.
 type sshSyncer struct {
 	l      *logger.Logger
-	db     *database.Database[data.Data]
+	db     *data.Store
 	pool   *ssh.Pool
 	client *ssh.Client
 	state  *State
 }
 
+// nodeSshInfo is a snapshot of the SSH-relevant fields of a node, captured
+// under the store read lock so the rest of the sync can run lock-free.
+type nodeSshInfo struct {
+	id      string
+	host    string
+	sshUser string
+	sshPort int
+}
+
 // newSshSyncer creates a new SSH syncer.
 func newSshSyncer(
 	l *logger.Logger,
-	db *database.Database[data.Data],
+	db *data.Store,
 	pool *ssh.Pool,
 	client *ssh.Client,
 	state *State,
@@ -44,18 +51,36 @@ func newSshSyncer(
 func (s *sshSyncer) syncSshProxies() error {
 	var errList error
 
+	// Snapshot the SSH-relevant state under the read lock so the (slower)
+	// pool operations below run without holding the store lock.
+	var relayPort, desiredConnections int
+	var nodes []nodeSshInfo
+	s.db.Read(func(d *data.Data) {
+		relayPort = d.XraySettings.RelayRr2SshPort
+		desiredConnections = d.XraySettings.RelayRr2SshConnections
+		nodes = make([]nodeSshInfo, 0, len(d.Nodes))
+		for _, node := range d.Nodes {
+			nodes = append(nodes, nodeSshInfo{
+				id:      node.Id,
+				host:    node.Host,
+				sshUser: node.SshUser,
+				sshPort: node.SshPort,
+			})
+		}
+	})
+
 	// Stop All if RelayRr2SshPort is disabled.
-	if s.db.Data().XraySettings.RelayRr2SshPort <= 0 {
+	if relayPort <= 0 {
 		for nodeId := range s.state.SshConfigsByNode() {
 			s.state.RemoveSshConfigs(nodeId)
 		}
 		return errors.WithStack(s.pool.StopAll())
 	}
 
-	// Get current nodes from database.
-	currentNodes := make(map[string]*data.Node)
-	for _, node := range s.db.Data().Nodes {
-		currentNodes[node.Id] = node
+	// Get current nodes from the snapshot.
+	currentNodes := make(map[string]nodeSshInfo)
+	for _, node := range nodes {
+		currentNodes[node.id] = node
 	}
 
 	// Stop all ssh proxies that are not belong to current nodes.
@@ -66,14 +91,13 @@ func (s *sshSyncer) syncSshProxies() error {
 		}
 	}
 
-	desiredConnections := s.db.Data().XraySettings.RelayRr2SshConnections
 	if desiredConnections < 1 {
 		desiredConnections = 1
 	}
 
 	// Start/Update ssh proxies for current nodes.
-	for _, node := range currentNodes {
-		proxyConfigs, hasConfig := s.state.SshConfigs(node.Id)
+	for _, node := range nodes {
+		proxyConfigs, hasConfig := s.state.SshConfigs(node.id)
 
 		requiresReset := !hasConfig || len(proxyConfigs) != desiredConnections
 		if !requiresReset {
@@ -82,9 +106,9 @@ func (s *sshSyncer) syncSshProxies() error {
 					requiresReset = true
 					break
 				}
-				if proxyConfig.Connection.Host != node.Host ||
-					proxyConfig.Connection.User != node.SshUser ||
-					proxyConfig.Connection.Port != node.SshPort {
+				if proxyConfig.Connection.Host != node.host ||
+					proxyConfig.Connection.User != node.sshUser ||
+					proxyConfig.Connection.Port != node.sshPort {
 					requiresReset = true
 					break
 				}
@@ -96,10 +120,10 @@ func (s *sshSyncer) syncSshProxies() error {
 		}
 
 		if hasConfig {
-			errList = errors.Join(errList, s.stopNodeProxies(node.Id, proxyConfigs))
+			errList = errors.Join(errList, s.stopNodeProxies(node.id, proxyConfigs))
 		}
 
-		connectionConfig := ssh.NewConnectionConfig(node.Host, node.SshUser, node.SshPort)
+		connectionConfig := ssh.NewConnectionConfig(node.host, node.sshUser, node.sshPort)
 		newConfigs := make([]*ssh.ProxyConfig, 0, desiredConnections)
 
 		for i := 0; i < desiredConnections; i++ {
@@ -110,7 +134,7 @@ func (s *sshSyncer) syncSshProxies() error {
 			}
 
 			newProxyConfig := ssh.NewProxyConfig(connectionConfig, freePort)
-			if err = s.pool.Start(s.makeSshProxyTag(node.Id, i), newProxyConfig); err != nil {
+			if err = s.pool.Start(s.makeSshProxyTag(node.id, i), newProxyConfig); err != nil {
 				errList = errors.Join(errList, err)
 				continue
 			}
@@ -118,13 +142,13 @@ func (s *sshSyncer) syncSshProxies() error {
 		}
 
 		if len(newConfigs) == 0 {
-			s.state.RemoveSshConfigs(node.Id)
+			s.state.RemoveSshConfigs(node.id)
 		} else {
-			s.state.SetSshConfigs(node.Id, newConfigs)
+			s.state.SetSshConfigs(node.id, newConfigs)
 		}
 	}
 
-	s.l.Info("coordinator: finished syncing ssh proxies", zap.Int("c", len(s.state.sshConfigsByNode)))
+	s.l.Info("coordinator: finished syncing ssh proxies", zap.Int("c", s.state.SshConfigsCount()))
 	return errors.WithStack(errList)
 }
 
@@ -134,21 +158,29 @@ func (s *sshSyncer) checkSshStatuses() error {
 		return errors.New("ssh: client is nil")
 	}
 
-	changed := false
-	for _, node := range s.db.Data().Nodes {
-		nodeChanged, err := s.updateNodeSshStatus(node)
-		if err != nil {
-			return err
+	// Snapshot nodes and their connection configs under the read lock; the SSH
+	// probes below run outside the lock.
+	type target struct {
+		node *data.Node
+		cfg  *ssh.ConnectionConfig
+	}
+	var targets []target
+	s.db.Read(func(d *data.Data) {
+		targets = make([]target, 0, len(d.Nodes))
+		for _, node := range d.Nodes {
+			targets = append(targets, target{
+				node: node,
+				cfg:  ssh.NewConnectionConfig(node.Host, node.SshUser, node.SshPort),
+			})
 		}
-		if nodeChanged {
-			changed = true
-		}
+	})
+
+	statuses := make(map[*data.Node]data.NodeStatus, len(targets))
+	for _, t := range targets {
+		statuses[t.node] = s.probe(t.cfg)
 	}
 
-	if changed {
-		return errors.WithStack(s.db.Save())
-	}
-	return nil
+	return errors.WithStack(s.applyStatuses(statuses))
 }
 
 // checkSshStatus checks SSH connectivity for a single node.
@@ -160,32 +192,38 @@ func (s *sshSyncer) checkSshStatus(node *data.Node) error {
 		return errors.New("ssh: node is nil")
 	}
 
-	previous := node.SshStatus
-	changed, err := s.updateNodeSshStatus(node)
-	if err != nil {
-		return err
-	}
-	if changed && node.SshStatus != previous {
-		return errors.WithStack(s.db.Save())
-	}
-	return nil
+	var cfg *ssh.ConnectionConfig
+	s.db.Read(func(d *data.Data) {
+		cfg = ssh.NewConnectionConfig(node.Host, node.SshUser, node.SshPort)
+	})
+
+	return errors.WithStack(s.applyStatuses(map[*data.Node]data.NodeStatus{node: s.probe(cfg)}))
 }
 
-// updateNodeSshStatus updates the SSH status of a single node.
-func (s *sshSyncer) updateNodeSshStatus(node *data.Node) (bool, error) {
-	config := ssh.NewConnectionConfig(node.Host, node.SshUser, node.SshPort)
-	var status data.NodeStatus = data.NodeStatusAvailable
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	if err := s.client.Check(ctx, config); err != nil {
-		status = data.NodeStatusUnavailable
-		s.l.Debug("coordinator: ssh check failed", zap.String("host", node.Host), zap.Error(err))
+// probe checks SOCKS feasibility and returns the resulting node status. It must
+// be called without holding the store lock (it performs network I/O). The SSH
+// client bounds the probe with its own timeout.
+func (s *sshSyncer) probe(config *ssh.ConnectionConfig) data.NodeStatus {
+	if err := s.client.Check(context.Background(), config); err != nil {
+		s.l.Debug("coordinator: ssh check failed", zap.String("host", config.Host), zap.Error(err))
+		return data.NodeStatusUnavailable
 	}
-	cancel()
-	if node.SshStatus == status {
-		return false, nil
-	}
-	node.SshStatus = status
-	return true, nil
+	return data.NodeStatusAvailable
+}
+
+// applyStatuses writes the probed statuses back under the write lock and saves
+// only when at least one node status changed.
+func (s *sshSyncer) applyStatuses(statuses map[*data.Node]data.NodeStatus) error {
+	return s.db.Mutate(func(d *data.Data) (bool, error) {
+		changed := false
+		for node, status := range statuses {
+			if node.SshStatus != status {
+				node.SshStatus = status
+				changed = true
+			}
+		}
+		return changed, nil
+	})
 }
 
 // makeSshProxyTag generates a unique tag for an SSH proxy.

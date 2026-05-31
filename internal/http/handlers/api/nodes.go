@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
@@ -10,12 +11,30 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
-	"github.com/miladrahimi/p-node/pkg/database"
 )
+
+// pullStaleAfter is how long a node may go without pulling its config before
+// its pull status is considered unavailable. P-Nodes pull every 30s, so this
+// allows for a couple of missed cycles.
+const pullStaleAfter = 90 * time.Second
 
 type NodeResponse struct {
 	data.Node
-	PullCommand string `json:"pull_command"`
+	PullStatus  data.NodeStatus `json:"pull_status"`
+	PullCommand string          `json:"pull_command"`
+}
+
+// pullStatus derives a node's pull status from the last time it pulled its
+// config. It mirrors how push/ssh statuses read in the UI without tracking any
+// new state — pulled_at is already recorded when a node pulls.
+func pullStatus(pulledAt int64) data.NodeStatus {
+	if pulledAt == 0 {
+		return data.NodeStatusProcessing
+	}
+	if time.Since(time.UnixMilli(pulledAt)) <= pullStaleAfter {
+		return data.NodeStatusAvailable
+	}
+	return data.NodeStatusUnavailable
 }
 
 type NodesStoreRequest struct {
@@ -36,25 +55,28 @@ type NodesUpdatePartialRequest struct {
 }
 
 // NodesIndex returns the list of nodes.
-func NodesIndex(db *database.Database[data.Data]) echo.HandlerFunc {
+func NodesIndex(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		token := db.Data().MainSettings.AdminPassword
-
-		var response = make([]NodeResponse, 0, len(db.Data().Nodes))
-		for _, node := range db.Data().Nodes {
-			cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%s\" TOKEN=\"%s\"", node.Id, token)
-			response = append(response, NodeResponse{
-				Node:        *node,
-				PullCommand: cmd,
-			})
-		}
+		var response []NodeResponse
+		db.Read(func(d *data.Data) {
+			token := d.MainSettings.AdminPassword
+			response = make([]NodeResponse, 0, len(d.Nodes))
+			for _, node := range d.Nodes {
+				cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%s\" TOKEN=\"%s\"", node.Id, token)
+				response = append(response, NodeResponse{
+					Node:        *node,
+					PullStatus:  pullStatus(node.PulledAt),
+					PullCommand: cmd,
+				})
+			}
+		})
 
 		return c.JSON(http.StatusOK, response)
 	}
 }
 
 // NodesStore stores a new node.
-func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func NodesStore(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesStoreRequest
 		if err := c.Bind(&r); err != nil {
@@ -71,34 +93,43 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 			})
 		}
 
-		if len(db.Data().Nodes) > 5 {
-			return c.JSON(http.StatusForbidden, map[string]string{
-				"message": fmt.Sprintf("Cannot add more nodes!"),
-			})
-		}
-
-		var node *data.Node
-		sshStatus := data.NodeStatusProcessing
-		for _, n := range db.Data().Nodes {
-			if n.Host == r.Host && n.HttpPort == r.HttpPort {
-				node = n
-				node.HttpToken = r.HttpToken
-				node.SshUser = r.SshUser
-				node.SshPort = r.SshPort
-				node.SshStatus = sshStatus
+		var node data.Node
+		var nodeId string
+		var failure *httpResult
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			if len(d.Nodes) > 5 {
+				failure = &httpResult{http.StatusForbidden, "Cannot add more nodes!"}
+				return false, nil
 			}
-		}
-		if node == nil {
-			node = data.NewNode(util.Uuid(), r.Host, r.HttpToken, r.HttpPort, r.SshUser, r.SshPort)
-			node.SshStatus = sshStatus
-			db.Data().Nodes = append(db.Data().Nodes, node)
-		}
 
-		if err := db.Save(); err != nil {
+			var target *data.Node
+			for _, n := range d.Nodes {
+				if n.Host == r.Host && n.HttpPort == r.HttpPort {
+					target = n
+					target.HttpToken = r.HttpToken
+					target.SshUser = r.SshUser
+					target.SshPort = r.SshPort
+					target.SshStatus = data.NodeStatusProcessing
+				}
+			}
+			if target == nil {
+				target = data.NewNode(util.Uuid(), r.Host, r.HttpToken, r.HttpPort, r.SshUser, r.SshPort)
+				target.SshStatus = data.NodeStatusProcessing
+				d.Nodes = append(d.Nodes, target)
+			}
+
+			nodeId = target.Id
+			node = *target
+			return true, nil
+		})
+		if err != nil {
 			return errors.WithStack(err)
 		}
+		if failure != nil {
+			return failure.write(c)
+		}
 
-		go coordinator.CheckSshStatus(node.Id)
+		go coordinator.CheckSshStatus(nodeId)
 		go coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusCreated, node)
@@ -106,7 +137,7 @@ func NodesStore(coordinator *coordinator.Coordinator, db *database.Database[data
 }
 
 // NodesUpdate updates a node.
-func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func NodesUpdate(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesUpdateRequest
 		if err := c.Bind(&r); err != nil {
@@ -123,40 +154,48 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *database.Database[dat
 			})
 		}
 
-		var node *data.Node
-		for _, n := range db.Data().Nodes {
-			if n.Id == c.Param("id") {
-				node = n
+		var node data.Node
+		var nodeId string
+		found := false
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			var target *data.Node
+			for _, n := range d.Nodes {
+				if n.Id == c.Param("id") {
+					target = n
+				}
 			}
+			if target == nil {
+				return false, nil
+			}
+
+			target.Host = r.Host
+			target.HttpToken = r.HttpToken
+			target.HttpPort = r.HttpPort
+			target.SshUser = r.SshUser
+			target.SshPort = r.SshPort
+			target.SshStatus = data.NodeStatusProcessing
+
+			found = true
+			nodeId = target.Id
+			node = *target
+			return true, nil
+		})
+		if err != nil {
+			return errors.WithStack(err)
 		}
-		if node == nil {
+		if !found {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
 		}
 
-		sshStatus := data.NodeStatusProcessing
-
-		node.Host = r.Host
-		node.HttpToken = r.HttpToken
-		node.HttpPort = r.HttpPort
-		node.SshUser = r.SshUser
-		node.SshPort = r.SshPort
-		node.SshStatus = sshStatus
-		node.SshStatus = sshStatus
-
-		if err := db.Save(); err != nil {
-			return errors.WithStack(err)
-		}
-
-		go coordinator.CheckSshStatus(node.Id)
+		go coordinator.CheckSshStatus(nodeId)
 		go coordinator.UpdateConfigs()
 
 		return c.JSON(http.StatusOK, node)
-
 	}
 }
 
 // NodesUpdatePartialBatch updates the usage of multiple nodes.
-func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request NodesUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -170,14 +209,15 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.
 			})
 		}
 
-		for _, node := range db.Data().Nodes {
-			if request.Usage != nil {
-				node.Usage = *request.Usage
-				node.UsageBytes = util.GB2Bytes(*request.Usage)
+		err := db.Write(func(d *data.Data) {
+			for _, node := range d.Nodes {
+				if request.Usage != nil {
+					node.Usage = *request.Usage
+					node.UsageBytes = util.GB2Bytes(*request.Usage)
+				}
 			}
-		}
-
-		if err := db.Save(); err != nil {
+		})
+		if err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -188,17 +228,24 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.
 }
 
 // NodesDelete deletes a node.
-func NodesDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func NodesDelete(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		for i, s := range db.Data().Nodes {
-			if s.Id == c.Param("id") {
-				db.Data().Nodes = append(db.Data().Nodes[:i], db.Data().Nodes[i+1:]...)
-				if err := db.Save(); err != nil {
-					return errors.WithStack(err)
+		deleted := false
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			for i, s := range d.Nodes {
+				if s.Id == c.Param("id") {
+					d.Nodes = append(d.Nodes[:i], d.Nodes[i+1:]...)
+					deleted = true
+					return true, nil
 				}
-				go coordinator.UpdateConfigs()
-				break
 			}
+			return false, nil
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if deleted {
+			go coordinator.UpdateConfigs()
 		}
 
 		return c.NoContent(http.StatusNoContent)

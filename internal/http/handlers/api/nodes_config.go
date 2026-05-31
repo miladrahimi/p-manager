@@ -9,27 +9,30 @@ import (
 	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 // NodesConfigShow shows a single node configuration required for P-Node pulling.
 func NodesConfigShow(
 	cdr *coordinator.Coordinator,
 	composer *composer.Composer,
-	db *database.Database[data.Data],
+	db *data.Store,
 ) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		nodeId := c.Param("id")
-		var node *data.Node
-		for _, n := range db.Data().Nodes {
-			if n.Id == nodeId {
-				node = n
-				node.PulledAt = time.Now().UnixMilli()
 
-				if err := db.Save(); err != nil {
-					return errors.WithStack(err)
+		var node *data.Node
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			for _, n := range d.Nodes {
+				if n.Id == nodeId {
+					node = n
+					node.PulledAt = time.Now().UnixMilli()
+					return true, nil
 				}
 			}
+			return false, nil
+		})
+		if err != nil {
+			return errors.WithStack(err)
 		}
 		if node == nil {
 			return c.NoContent(http.StatusNotFound)

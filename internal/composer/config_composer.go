@@ -16,15 +16,29 @@ import (
 
 // ManagerConfig composes the P-Manager (local) xray config.
 func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
-	rrClients := c.rrClients()
-	d := c.db.Data()
-	xs := d.XraySettings
-	xc := xrayConfig.New(c.config.Xray.LogLevel)
-
 	apiPort, err := util.FreePort()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
+	var xc *xrayConfig.Config
+	c.db.Read(func(d *data.Data) {
+		xc = c.composeManagerConfig(d, sshConfigsByNodeIds, apiPort)
+	})
+	return xc, nil
+}
+
+// composeManagerConfig builds the manager config. The caller must hold the
+// store read lock.
+func (c *Composer) composeManagerConfig(
+	d *data.Data,
+	sshConfigsByNodeIds map[string][]*ssh.ProxyConfig,
+	apiPort int,
+) *xrayConfig.Config {
+	rrClients := c.rrClients(d)
+	xs := d.XraySettings
+	xc := xrayConfig.New(c.config.Xray.LogLevel)
+
 	xc.FindInbound("api").Port = apiPort
 
 	hasClients := len(rrClients) > 0
@@ -115,12 +129,21 @@ func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConf
 		})
 	}
 
-	return xc, nil
+	return xc
 }
 
 // NodeConfig composes the (remote) P-Node xray config.
 func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig.Config {
-	d := c.db.Data()
+	var xc *xrayConfig.Config
+	c.db.Read(func(d *data.Data) {
+		xc = c.composeNodeConfig(d, node, lastUpdate)
+	})
+	return xc
+}
+
+// composeNodeConfig builds the node config. The caller must hold the store
+// read lock.
+func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate time.Time) *xrayConfig.Config {
 	xs := d.XraySettings
 	xc := xrayConfig.New(c.config.Xray.LogLevel)
 	fallback := &component.Fallback{Dest: node.HttpPort}
@@ -144,7 +167,6 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 					copyUser.Encryption = vless.EncryptionEmpty
 					clients[i] = &copyUser
 				}
-				fmt.Printf("clients: %v\n", clients[0])
 				xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 					"relay-rr2rr",
 					xs.RelayRr2RrNodePort,
@@ -170,7 +192,7 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 			xs.RemoteRrPort,
 			xs.RealityPrivateKey,
 			xs.NodeSni,
-			c.rrClients(),
+			c.rrClients(d),
 			fallback,
 		))
 		xc.Routing.Rules = append(
@@ -185,10 +207,11 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 	return xc
 }
 
-// rrClients returns the RR-ready client list.
-func (c *Composer) rrClients() []*component.Client {
+// rrClients returns the RR-ready client list. The caller must hold the store
+// read lock.
+func (c *Composer) rrClients(d *data.Data) []*component.Client {
 	var clients []*component.Client
-	for _, u := range c.db.Data().Accounts {
+	for _, u := range d.Accounts {
 		if !u.Enabled {
 			continue
 		}

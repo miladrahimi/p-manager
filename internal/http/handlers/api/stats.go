@@ -10,7 +10,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
-	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 type StatsUpdatePartialRequest struct {
@@ -25,20 +24,18 @@ type StatsResponse struct {
 }
 
 // StatsIndex returns the statistics of the platform.
-func StatsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
+func StatsIndex(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		d := db.Data()
-		return c.JSON(http.StatusOK, &StatsResponse{
-			TotalUsageResetAt: d.Stats.TotalUsageResetAt,
-			TotalUsage:        d.Stats.TotalUsage,
-			TotalAccounts:     len(d.Accounts),
-			ActiveAccounts:    d.CountActiveAccounts(),
+		var response StatsResponse
+		db.Read(func(d *data.Data) {
+			response = newStatsResponse(d)
 		})
+		return c.JSON(http.StatusOK, &response)
 	}
 }
 
 // StatsUpdatePartial updates the statistics of the platform.
-func StatsUpdatePartial(db *database.Database[data.Data]) echo.HandlerFunc {
+func StatsUpdatePartial(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request StatsUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -52,23 +49,29 @@ func StatsUpdatePartial(db *database.Database[data.Data]) echo.HandlerFunc {
 			})
 		}
 
-		d := db.Data()
-
-		if request.TotalUsage != nil {
-			d.Stats.TotalUsage = *request.TotalUsage
-			d.Stats.TotalUsageBytes = util.GB2Bytes(*request.TotalUsage)
-			d.Stats.TotalUsageResetAt = time.Now().UnixMilli()
-		}
-
-		if err := db.Save(); err != nil {
+		var response StatsResponse
+		err := db.Write(func(d *data.Data) {
+			if request.TotalUsage != nil {
+				d.Stats.TotalUsage = *request.TotalUsage
+				d.Stats.TotalUsageBytes = util.GB2Bytes(*request.TotalUsage)
+				d.Stats.TotalUsageResetAt = time.Now().UnixMilli()
+			}
+			response = newStatsResponse(d)
+		})
+		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		return c.JSON(http.StatusOK, &StatsResponse{
-			TotalUsageResetAt: d.Stats.TotalUsageResetAt,
-			TotalUsage:        d.Stats.TotalUsage,
-			TotalAccounts:     len(d.Accounts),
-			ActiveAccounts:    d.CountActiveAccounts(),
-		})
+		return c.JSON(http.StatusOK, &response)
+	}
+}
+
+// newStatsResponse builds a stats response. The caller must hold the store lock.
+func newStatsResponse(d *data.Data) StatsResponse {
+	return StatsResponse{
+		TotalUsageResetAt: d.Stats.TotalUsageResetAt,
+		TotalUsage:        d.Stats.TotalUsage,
+		TotalAccounts:     len(d.Accounts),
+		ActiveAccounts:    d.CountActiveAccounts(),
 	}
 }

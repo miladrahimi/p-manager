@@ -6,7 +6,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 const sleepAfterSignInRequest = 3 * time.Second
@@ -17,7 +16,7 @@ type SignInRequest struct {
 }
 
 // SignIn signs in an admin account and returns a token.
-func SignIn(db *database.Database[data.Data]) echo.HandlerFunc {
+func SignIn(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer func() {
 			time.Sleep(sleepAfterSignInRequest)
@@ -30,9 +29,14 @@ func SignIn(db *database.Database[data.Data]) echo.HandlerFunc {
 			})
 		}
 
-		if r.Username == "admin" && r.Password == db.Data().MainSettings.AdminPassword {
+		var password string
+		db.Read(func(d *data.Data) {
+			password = d.MainSettings.AdminPassword
+		})
+
+		if r.Username == "admin" && r.Password == password {
 			return c.JSON(http.StatusOK, map[string]string{
-				"token": db.Data().MainSettings.AdminPassword,
+				"token": password,
 			})
 		}
 

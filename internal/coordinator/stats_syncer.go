@@ -10,7 +10,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
-	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"github.com/miladrahimi/p-node/pkg/xray"
@@ -21,7 +20,7 @@ import (
 // statsSyncer is a syncer that syncs the stats of the nodes in the database.
 type statsSyncer struct {
 	l             *logger.Logger
-	db            *database.Database[data.Data]
+	db            *data.Store
 	hc            *client.Client
 	xray          *xray.Xray
 	updateConfigs func()
@@ -30,7 +29,7 @@ type statsSyncer struct {
 // newStatsSyncer creates a new stats syncer.
 func newStatsSyncer(
 	l *logger.Logger,
-	db *database.Database[data.Data],
+	db *data.Store,
 	hc *client.Client,
 	xray *xray.Xray,
 	updateConfigs func(),
@@ -46,23 +45,35 @@ func newStatsSyncer(
 
 // pullStatsFromNodes pulls the stats of all nodes.
 func (s *statsSyncer) pullStatsFromNodes() {
-	if s.db.Data().XraySettings.RemoteRrPort == 0 {
+	var enabled bool
+	var nodes []*data.Node
+	s.db.Read(func(d *data.Data) {
+		enabled = d.XraySettings.RemoteRrPort != 0
+		if enabled {
+			nodes = append(nodes, d.Nodes...)
+		}
+	})
+	if !enabled {
 		return
 	}
 
 	s.l.Info("coordinator: pulling stats from all nodes...")
-	for _, node := range s.db.Data().Nodes {
+	for _, node := range nodes {
 		go s.pullStatsFromNode(node)
 	}
 }
 
 // pullStatsFromNode pulls the stats of a single node.
 func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
-	url := fmt.Sprintf("%s://%s:%d/xray/stats", "http", node.Host, node.HttpPort)
+	var url, token string
+	s.db.Read(func(d *data.Data) {
+		url = fmt.Sprintf("%s://%s:%d/xray/stats", "http", node.Host, node.HttpPort)
+		token = node.HttpToken
+	})
 
 	s.l.Info("coordinator: pulling stats from a node...", zap.String("url", url))
 
-	response, err := s.hc.Do(http.MethodGet, url, node.HttpToken, nil)
+	response, err := s.hc.Do(http.MethodGet, url, token, nil)
 	if err != nil {
 		s.l.Error("cannot fetch node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
 		return
@@ -72,20 +83,6 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 	if err = json.Unmarshal(response, &queryStats); err != nil {
 		s.l.Error("cannot read remote node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
 		return
-	}
-
-	parseTrafficStat := func(name string) (string, string, bool) {
-		parts := strings.Split(name, ">>>")
-		if len(parts) != 4 {
-			return "", "", false
-		}
-		if parts[2] != "traffic" {
-			return "", "", false
-		}
-		if parts[3] != "uplink" && parts[3] != "downlink" {
-			return "", "", false
-		}
-		return parts[0], parts[1], true
 	}
 
 	users := map[string]int64{}
@@ -111,30 +108,31 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 	}
 
 	shouldSync := false
-	db := s.db.Data()
-	for _, u := range db.Accounts {
-		if bytes, found := users[u.ProxyId]; found {
-			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
-			u.Usage = util.Bytes2GB(u.UsageBytes)
-			if u.Quota > 0 && u.Usage > u.Quota {
-				u.Enabled = false
-				shouldSync = true
-				s.l.Debug("coordinator: account disabled", zap.String("id", u.Id))
+	err = s.db.Write(func(db *data.Data) {
+		for _, u := range db.Accounts {
+			if bytes, found := users[u.ProxyId]; found {
+				u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
+				u.Usage = util.Bytes2GB(u.UsageBytes)
+				if u.Quota > 0 && u.Usage > u.Quota {
+					u.Enabled = false
+					shouldSync = true
+					s.l.Debug("coordinator: account disabled", zap.String("id", u.Id))
+				}
 			}
 		}
+
+		node.UsageBytes = util.SafeSumI64(node.UsageBytes, nodeUsageBytes)
+		node.Usage = util.Bytes2GB(node.UsageBytes)
+
+		db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, nodeUsageBytes)
+		db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
+	})
+	if err != nil {
+		s.l.Error("cannot save remote node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
 	}
+
 	if shouldSync && s.updateConfigs != nil {
 		go s.updateConfigs()
-	}
-
-	node.UsageBytes = util.SafeSumI64(node.UsageBytes, nodeUsageBytes)
-	node.Usage = util.Bytes2GB(node.UsageBytes)
-
-	db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, nodeUsageBytes)
-	db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
-
-	if err = s.db.Save(); err != nil {
-		s.l.Error("cannot save remote node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
 	}
 }
 
@@ -150,20 +148,6 @@ func (s *statsSyncer) loadLocalStats() error {
 		s.l.Debug("coordinator: cannot marshal local stats", zap.Error(errors.WithStack(err)))
 	} else {
 		s.l.Debug("coordinator: local stats response", zap.String("stats", string(payload)))
-	}
-
-	parseTrafficStat := func(name string) (string, string, bool) {
-		parts := strings.Split(name, ">>>")
-		if len(parts) != 4 {
-			return "", "", false
-		}
-		if parts[2] != "traffic" {
-			return "", "", false
-		}
-		if parts[3] != "uplink" && parts[3] != "downlink" {
-			return "", "", false
-		}
-		return parts[0], parts[1], true
 	}
 
 	nodes := map[string]int64{}
@@ -196,60 +180,69 @@ func (s *statsSyncer) loadLocalStats() error {
 		}
 	}
 
-	db := s.db.Data()
-	if totalBytes > 0 {
-		db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, totalBytes)
-	}
-
-	for _, n := range db.Nodes {
-		if bytes, found := nodes[n.Id]; found {
-			n.UsageBytes = util.SafeSumI64(n.UsageBytes, bytes)
-		}
-		n.Usage = util.Bytes2GB(n.UsageBytes)
-	}
-
-	db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
-
 	shouldSync := false
-	for _, u := range db.Accounts {
-		if bytes, found := users[u.ProxyId]; found {
-			u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
-			u.Usage = util.Bytes2GB(u.UsageBytes)
-			if u.Quota > 0 && u.Usage > u.Quota {
-				u.Enabled = false
-				shouldSync = true
-				s.l.Debug("coordinator: account disabled", zap.String("id", u.Id))
+	err = s.db.Write(func(db *data.Data) {
+		if totalBytes > 0 {
+			db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, totalBytes)
+		}
+
+		for _, n := range db.Nodes {
+			if bytes, found := nodes[n.Id]; found {
+				n.UsageBytes = util.SafeSumI64(n.UsageBytes, bytes)
+			}
+			n.Usage = util.Bytes2GB(n.UsageBytes)
+		}
+
+		db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
+
+		for _, u := range db.Accounts {
+			if bytes, found := users[u.ProxyId]; found {
+				u.UsageBytes = util.SafeSumI64(u.UsageBytes, bytes)
+				u.Usage = util.Bytes2GB(u.UsageBytes)
+				if u.Quota > 0 && u.Usage > u.Quota {
+					u.Enabled = false
+					shouldSync = true
+					s.l.Debug("coordinator: account disabled", zap.String("id", u.Id))
+				}
 			}
 		}
+	})
+	if err != nil {
+		return errors.WithStack(err)
 	}
+
 	if shouldSync && s.updateConfigs != nil {
 		go s.updateConfigs()
 	}
 
-	err = s.db.Save()
-	return errors.WithStack(err)
+	return nil
 }
 
 // resetUsageForAccounts resets the usages of all accounts.
 func (s *statsSyncer) resetUsageForAccounts() error {
-	if s.db.Data().MainSettings.ResetPolicy != "monthly" {
+	var policyMonthly bool
+	s.db.Read(func(d *data.Data) {
+		policyMonthly = d.MainSettings.ResetPolicy == "monthly"
+	})
+	if !policyMonthly {
 		return nil
 	}
 
 	s.l.Info("coordinator: resetting usage for all accounts...")
 
-	for _, u := range s.db.Data().Accounts {
-		if time.Unix(u.UsageResetAt, 0).Format("2006-01") == time.Now().Format("2006-01") {
-			continue
+	if err := s.db.Write(func(d *data.Data) {
+		now := time.Now()
+		for _, u := range d.Accounts {
+			if time.Unix(u.UsageResetAt, 0).Format("2006-01") == now.Format("2006-01") {
+				continue
+			}
+
+			u.Usage = 0
+			u.UsageBytes = 0
+			u.Enabled = true
+			u.UsageResetAt = now.Unix()
 		}
-
-		u.Usage = 0
-		u.UsageBytes = 0
-		u.Enabled = true
-		u.UsageResetAt = time.Now().Unix()
-	}
-
-	if err := s.db.Save(); err != nil {
+	}); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -258,4 +251,21 @@ func (s *statsSyncer) resetUsageForAccounts() error {
 	}
 
 	return nil
+}
+
+// parseTrafficStat parses an Xray traffic stat name of the form
+// "<kind>>>><tag>>>>traffic>>><uplink|downlink>" and returns the kind and tag.
+// ok is false for stats that are not uplink/downlink traffic counters.
+func parseTrafficStat(name string) (kind string, tag string, ok bool) {
+	parts := strings.Split(name, ">>>")
+	if len(parts) != 4 {
+		return "", "", false
+	}
+	if parts[2] != "traffic" {
+		return "", "", false
+	}
+	if parts[3] != "uplink" && parts[3] != "downlink" {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
 }

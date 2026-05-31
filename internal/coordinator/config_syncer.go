@@ -8,7 +8,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"github.com/miladrahimi/p-node/pkg/xray"
@@ -18,7 +17,7 @@ import (
 // configSyncer is a syncer that syncs the Xray config of the nodes in the database.
 type configSyncer struct {
 	l        *logger.Logger
-	db       *database.Database[data.Data]
+	db       *data.Store
 	hc       *client.Client
 	xray     *xray.Xray
 	composer *composer.Composer
@@ -28,7 +27,7 @@ type configSyncer struct {
 // newConfigSyncer creates a new config syncer.
 func newConfigSyncer(
 	l *logger.Logger,
-	db *database.Database[data.Data],
+	db *data.Store,
 	hc *client.Client,
 	xray *xray.Xray,
 	composer *composer.Composer,
@@ -65,50 +64,71 @@ func (c *configSyncer) updateLocalConfig() error {
 // pushConfigToNodes pushes the config to all nodes.
 func (c *configSyncer) pushConfigToNodes() {
 	c.l.Info("coordinator: pushing config to all nodes...")
-	for _, s := range c.db.Data().Nodes {
-		go c.pushConfigToNode(s)
+	var nodes []*data.Node
+	c.db.Read(func(d *data.Data) {
+		nodes = append(nodes, d.Nodes...)
+	})
+	for _, n := range nodes {
+		go c.pushConfigToNode(n)
 	}
 }
 
 // pushConfigToStaleNodes pushes the config to stale nodes.
 func (c *configSyncer) pushConfigToStaleNodes() {
 	c.l.Info("coordinator: pushing config to stale nodes...")
-	for _, n := range c.db.Data().Nodes {
-		isStale := n.PushStatus == data.NodeStatusUnavailable || n.PushStatus == data.NodeStatusProcessing
-		if isStale {
-			go c.pushConfigToNode(n)
+	var nodes []*data.Node
+	c.db.Read(func(d *data.Data) {
+		for _, n := range d.Nodes {
+			if n.PushStatus == data.NodeStatusUnavailable || n.PushStatus == data.NodeStatusProcessing {
+				nodes = append(nodes, n)
+			}
 		}
+	})
+	for _, n := range nodes {
+		go c.pushConfigToNode(n)
 	}
 }
 
 // pushConfigToNode pushes the config to a single node.
 func (c *configSyncer) pushConfigToNode(n *data.Node) {
-	url := fmt.Sprintf("%s://%s:%d/xray/config", "http", n.Host, n.HttpPort)
-	proxy := c.db.Data().MainSettings.SingetServer
+	// Snapshot the request inputs under the read lock; the network push runs
+	// without holding the store lock.
+	var url, token, proxy string
+	c.db.Read(func(d *data.Data) {
+		url = fmt.Sprintf("%s://%s:%d/xray/config", "http", n.Host, n.HttpPort)
+		token = n.HttpToken
+		proxy = d.MainSettings.SingetServer
+	})
 	nc := c.composer.NodeConfig(n, c.state.XrayUpdatedAt())
 
 	proxied := false
 	success := false
 
-	_, err := c.hc.Do(http.MethodPost, url, n.HttpToken, nc)
+	_, err := c.hc.Do(http.MethodPost, url, token, nc)
 	if err == nil {
 		success = true
 	} else if proxy != "" {
 		proxied = true
-		_, err = c.hc.DoThrough(proxy, http.MethodPost, url, n.HttpToken, nc)
+		_, err = c.hc.DoThrough(proxy, http.MethodPost, url, token, nc)
 		if err == nil {
 			success = true
 		}
 	}
 
-	if success {
-		n.PushedAt = time.Now().UnixMilli()
-		if proxied {
-			n.PushStatus = data.NodeStatusDirty
+	writeErr := c.db.Write(func(d *data.Data) {
+		if success {
+			n.PushedAt = time.Now().UnixMilli()
+			if proxied {
+				n.PushStatus = data.NodeStatusDirty
+			} else {
+				n.PushStatus = data.NodeStatusAvailable
+			}
 		} else {
-			n.PushStatus = data.NodeStatusAvailable
+			n.PushStatus = data.NodeStatusUnavailable
 		}
+	})
 
+	if success {
 		c.l.Debug(
 			"coordinator: config pushed to a node successfully",
 			zap.String("url", url),
@@ -116,7 +136,6 @@ func (c *configSyncer) pushConfigToNode(n *data.Node) {
 			zap.Bool("proxied", proxied),
 		)
 	} else {
-		n.PushStatus = data.NodeStatusUnavailable
 		c.l.Error(
 			"coordinator: cannot push config to a node",
 			zap.String("url", url),
@@ -126,7 +145,7 @@ func (c *configSyncer) pushConfigToNode(n *data.Node) {
 		)
 	}
 
-	if err = c.db.Save(); err != nil {
-		c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
+	if writeErr != nil {
+		c.l.Error("coordinator:", zap.Error(errors.WithStack(writeErr)))
 	}
 }

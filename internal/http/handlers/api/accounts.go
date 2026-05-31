@@ -16,7 +16,6 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
-	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 )
 
@@ -28,7 +27,7 @@ type AccountsStoreRequest struct {
 }
 
 // AccountShow returns the account info of an account.
-func AccountShow(composer *composer.Composer, db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountShow(composer *composer.Composer, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		accountId := c.Param("accountId")
 		if accountId == "" {
@@ -37,19 +36,22 @@ func AccountShow(composer *composer.Composer, db *database.Database[data.Data]) 
 			})
 		}
 
-		account := db.Data().FindAccountById(accountId)
+		var account *data.Account
+		var r AccountResponse
+		db.Read(func(d *data.Data) {
+			account = d.FindAccountById(accountId)
+			if account == nil {
+				return
+			}
+			r = AccountResponse{Account: *account, Proxies: make(map[string]string), Host: d.MainSettings.Host}
+			r.Account.Usage = r.Account.Usage * d.MainSettings.TrafficRatio
+			r.Account.Quota = r.Account.Quota * d.MainSettings.TrafficRatio
+		})
 		if account == nil {
 			return c.JSON(http.StatusNotFound, map[string]string{
 				"message": "Account not found.",
 			})
 		}
-
-		d := db.Data()
-		trafficRatio := d.MainSettings.TrafficRatio
-
-		r := AccountResponse{Account: *account, Proxies: make(map[string]string), Host: d.MainSettings.Host}
-		r.Account.Usage = r.Account.Usage * trafficRatio
-		r.Account.Quota = r.Account.Quota * trafficRatio
 
 		r.Proxies = composer.AccountLinks(account)
 
@@ -78,14 +80,21 @@ type AccountResponse struct {
 }
 
 // AccountsIndex returns the list of accounts.
-func AccountsIndex(db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountsIndex(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, db.Data().Accounts)
+		var accounts []data.Account
+		db.Read(func(d *data.Data) {
+			accounts = make([]data.Account, len(d.Accounts))
+			for i, a := range d.Accounts {
+				accounts[i] = *a
+			}
+		})
+		return c.JSON(http.StatusOK, accounts)
 	}
 }
 
 // AccountsStore stores a new account.
-func AccountsStore(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountsStore(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request AccountsStoreRequest
 		if err := c.Bind(&request); err != nil {
@@ -99,24 +108,9 @@ func AccountsStore(coordinator *coordinator.Coordinator, db *database.Database[d
 			})
 		}
 
-		if len(db.Data().Accounts) >= config.MaxAccountsCount {
-			return c.JSON(http.StatusForbidden, map[string]string{
-				"message": "You have already reached the maximum number of accounts.",
-			})
-		}
-
-		for _, u := range db.Data().Accounts {
-			if u.Name == request.Name {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"message": "The name is already taken.",
-				})
-			}
-		}
-
-		proxyId := util.Uuid()
 		account := data.NewAccount(
 			util.Uuid(),
-			proxyId,
+			util.Uuid(),
 			request.Name,
 			request.Quota,
 			request.Usage,
@@ -126,10 +120,26 @@ func AccountsStore(coordinator *coordinator.Coordinator, db *database.Database[d
 			time.Now().UnixMilli(),
 		)
 
-		db.Data().Accounts = append(db.Data().Accounts, account)
-
-		if err := db.Save(); err != nil {
+		var failure *httpResult
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			if len(d.Accounts) >= config.MaxAccountsCount {
+				failure = &httpResult{http.StatusForbidden, "You have already reached the maximum number of accounts."}
+				return false, nil
+			}
+			for _, u := range d.Accounts {
+				if u.Name == request.Name {
+					failure = &httpResult{http.StatusBadRequest, "The name is already taken."}
+					return false, nil
+				}
+			}
+			d.Accounts = append(d.Accounts, account)
+			return true, nil
+		})
+		if err != nil {
 			return errors.WithStack(err)
+		}
+		if failure != nil {
+			return failure.write(c)
 		}
 
 		go coordinator.UpdateConfigs()
@@ -139,7 +149,7 @@ func AccountsStore(coordinator *coordinator.Coordinator, db *database.Database[d
 }
 
 // AccountsUpdate updates an account.
-func AccountsUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountsUpdate(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request AccountsUpdateRequest
 		if err := c.Bind(&request); err != nil {
@@ -153,32 +163,44 @@ func AccountsUpdate(coordinator *coordinator.Coordinator, db *database.Database[
 			})
 		}
 
-		var account *data.Account
-		for i, u := range db.Data().Accounts {
-			if u.Id == c.Param("id") {
-				account = db.Data().Accounts[i]
+		var account data.Account
+		found := false
+		var failure *httpResult
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			var target *data.Account
+			for i, u := range d.Accounts {
+				if u.Id == c.Param("id") {
+					target = d.Accounts[i]
+				}
 			}
-		}
-		if account == nil {
-			return c.NoContent(http.StatusNotFound)
-		}
-
-		for _, u := range db.Data().Accounts {
-			if u.Id != account.Id && u.Name == request.Name {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"message": "The name is already taken.",
-				})
+			if target == nil {
+				return false, nil
 			}
-		}
 
-		account.Name = request.Name
-		account.Quota = request.Quota
-		account.Enabled = request.Enabled
-		account.Usage = request.Usage
-		account.UsageBytes = util.GB2Bytes(request.Usage)
+			for _, u := range d.Accounts {
+				if u.Id != target.Id && u.Name == request.Name {
+					failure = &httpResult{http.StatusBadRequest, "The name is already taken."}
+					return false, nil
+				}
+			}
 
-		if err := db.Save(); err != nil {
+			target.Name = request.Name
+			target.Quota = request.Quota
+			target.Enabled = request.Enabled
+			target.Usage = request.Usage
+			target.UsageBytes = util.GB2Bytes(request.Usage)
+			found = true
+			account = *target
+			return true, nil
+		})
+		if err != nil {
 			return errors.WithStack(err)
+		}
+		if failure != nil {
+			return failure.write(c)
+		}
+		if !found {
+			return c.NoContent(http.StatusNotFound)
 		}
 
 		go coordinator.UpdateConfigs()
@@ -188,7 +210,7 @@ func AccountsUpdate(coordinator *coordinator.Coordinator, db *database.Database[
 }
 
 // AccountsUpdatePartial updates an account partially.
-func AccountsUpdatePartial(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountsUpdatePartial(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request AccountsUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -202,26 +224,35 @@ func AccountsUpdatePartial(coordinator *coordinator.Coordinator, db *database.Da
 			})
 		}
 
-		var account *data.Account
-		for i, u := range db.Data().Accounts {
-			if u.Id == c.Param("id") {
-				account = db.Data().Accounts[i]
+		var account data.Account
+		found := false
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			var target *data.Account
+			for i, u := range d.Accounts {
+				if u.Id == c.Param("id") {
+					target = d.Accounts[i]
+				}
 			}
-		}
-		if account == nil {
-			return c.NoContent(http.StatusNotFound)
-		}
+			if target == nil {
+				return false, nil
+			}
 
-		if request.Usage != nil {
-			account.Usage = *request.Usage
-			account.UsageBytes = util.GB2Bytes(*request.Usage)
-		}
-		if request.Enabled != nil {
-			account.Enabled = *request.Enabled
-		}
-
-		if err := db.Save(); err != nil {
+			if request.Usage != nil {
+				target.Usage = *request.Usage
+				target.UsageBytes = util.GB2Bytes(*request.Usage)
+			}
+			if request.Enabled != nil {
+				target.Enabled = *request.Enabled
+			}
+			found = true
+			account = *target
+			return true, nil
+		})
+		if err != nil {
 			return errors.WithStack(err)
+		}
+		if !found {
+			return c.NoContent(http.StatusNotFound)
 		}
 
 		go coordinator.UpdateConfigs()
@@ -231,7 +262,7 @@ func AccountsUpdatePartial(coordinator *coordinator.Coordinator, db *database.Da
 }
 
 // AccountsUpdatePartialBatch updates multiple accounts partially.
-func AccountsUpdatePartialBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountsUpdatePartialBatch(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request AccountsUpdatePartialRequest
 		if err := c.Bind(&request); err != nil {
@@ -245,17 +276,18 @@ func AccountsUpdatePartialBatch(coordinator *coordinator.Coordinator, db *databa
 			})
 		}
 
-		for _, account := range db.Data().Accounts {
-			if request.Usage != nil {
-				account.Usage = *request.Usage
-				account.UsageBytes = util.GB2Bytes(*request.Usage)
+		err := db.Write(func(d *data.Data) {
+			for _, account := range d.Accounts {
+				if request.Usage != nil {
+					account.Usage = *request.Usage
+					account.UsageBytes = util.GB2Bytes(*request.Usage)
+				}
+				if request.Enabled != nil {
+					account.Enabled = *request.Enabled
+				}
 			}
-			if request.Enabled != nil {
-				account.Enabled = *request.Enabled
-			}
-		}
-
-		if err := db.Save(); err != nil {
+		})
+		if err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -266,17 +298,24 @@ func AccountsUpdatePartialBatch(coordinator *coordinator.Coordinator, db *databa
 }
 
 // AccountsDelete deletes an account.
-func AccountsDelete(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountsDelete(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		for i, u := range db.Data().Accounts {
-			if u.Id == c.Param("id") {
-				db.Data().Accounts = slices.Delete(db.Data().Accounts, i, i+1)
-				if err := db.Save(); err != nil {
-					return errors.WithStack(err)
+		deleted := false
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			for i, u := range d.Accounts {
+				if u.Id == c.Param("id") {
+					d.Accounts = slices.Delete(d.Accounts, i, i+1)
+					deleted = true
+					return true, nil
 				}
-				go coordinator.UpdateConfigs()
-				break
 			}
+			return false, nil
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if deleted {
+			go coordinator.UpdateConfigs()
 		}
 
 		return c.NoContent(http.StatusNoContent)
@@ -284,7 +323,7 @@ func AccountsDelete(coordinator *coordinator.Coordinator, db *database.Database[
 }
 
 // AccountsDeleteBatch deletes multiple accounts.
-func AccountsDeleteBatch(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func AccountsDeleteBatch(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		enabledParam := c.QueryParam("enabled")
 		if enabledParam != "" && enabledParam != "true" && enabledParam != "false" {
@@ -299,24 +338,18 @@ func AccountsDeleteBatch(coordinator *coordinator.Coordinator, db *database.Data
 			enabled = &enabledBool
 		}
 
-		var newAccounts []*data.Account
-
-		if enabled != nil {
-			for _, u := range db.Data().Accounts {
-				if u.Enabled != *enabled {
-					newAccounts = append(newAccounts, u)
+		err := db.Write(func(d *data.Data) {
+			newAccounts := []*data.Account{}
+			if enabled != nil {
+				for _, u := range d.Accounts {
+					if u.Enabled != *enabled {
+						newAccounts = append(newAccounts, u)
+					}
 				}
 			}
-			db.Data().Accounts = newAccounts
-		}
-
-		if newAccounts == nil {
-			newAccounts = []*data.Account{}
-		}
-
-		db.Data().Accounts = newAccounts
-
-		if err := db.Save(); err != nil {
+			d.Accounts = newAccounts
+		})
+		if err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -329,7 +362,7 @@ func AccountsDeleteBatch(coordinator *coordinator.Coordinator, db *database.Data
 // AccountsImport imports accounts from another P-Manager.
 func AccountsImport(
 	coordinator *coordinator.Coordinator,
-	db *database.Database[data.Data],
+	db *data.Store,
 	hc *client.Client,
 ) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -362,42 +395,38 @@ func AccountsImport(
 			})
 		}
 
-		var ids []string
-		for _, u := range db.Data().Accounts {
-			ids = append(ids, u.Id)
-		}
-
-		var proxyIds []string
-		for _, u := range db.Data().Accounts {
-			if u.ProxyId != "" {
-				proxyIds = append(proxyIds, u.ProxyId)
-			}
-		}
-
-		var names []string
-		for _, u := range db.Data().Accounts {
-			names = append(names, u.Name)
-		}
-
 		var results []string
-		for _, u := range accounts {
-			if slices.Index(ids, u.Id) != -1 {
-				results = append(results, fmt.Sprintf("Skipped: DuplicateId=%s", u.Id))
-				continue
+		err = db.Write(func(d *data.Data) {
+			ids := make([]string, 0, len(d.Accounts))
+			proxyIds := make([]string, 0, len(d.Accounts))
+			names := make([]string, 0, len(d.Accounts))
+			for _, u := range d.Accounts {
+				ids = append(ids, u.Id)
+				if u.ProxyId != "" {
+					proxyIds = append(proxyIds, u.ProxyId)
+				}
+				names = append(names, u.Name)
 			}
-			if slices.Index(proxyIds, u.ProxyId) != -1 {
-				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateProxyId=%s", u.Id, u.ProxyId))
-				continue
-			}
-			if slices.Index(names, u.Name) != -1 {
-				results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateName=%s", u.Id, u.Name))
-				continue
-			}
-			db.Data().Accounts = append(db.Data().Accounts, &u)
-			results = append(results, fmt.Sprintf("Imported: ID=%s Name=%s", u.Id, u.Name))
-		}
 
-		if err = db.Save(); err != nil {
+			for _, u := range accounts {
+				if slices.Index(ids, u.Id) != -1 {
+					results = append(results, fmt.Sprintf("Skipped: DuplicateId=%s", u.Id))
+					continue
+				}
+				if slices.Index(proxyIds, u.ProxyId) != -1 {
+					results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateProxyId=%s", u.Id, u.ProxyId))
+					continue
+				}
+				if slices.Index(names, u.Name) != -1 {
+					results = append(results, fmt.Sprintf("Skipped: ID=%s DuplicateName=%s", u.Id, u.Name))
+					continue
+				}
+				imported := u
+				d.Accounts = append(d.Accounts, &imported)
+				results = append(results, fmt.Sprintf("Imported: ID=%s Name=%s", u.Id, u.Name))
+			}
+		})
+		if err != nil {
 			return errors.WithStack(err)
 		}
 

@@ -16,7 +16,6 @@ import (
 	"github.com/miladrahimi/p-manager/internal/http/handlers"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/api"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
-	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	cm "github.com/miladrahimi/p-node/pkg/http/middleware"
 	"github.com/miladrahimi/p-node/pkg/http/validator"
@@ -31,7 +30,7 @@ type Server struct {
 	config      *config.Config
 	coordinator *coordinator.Coordinator
 	composer    *composer.Composer
-	db          *database.Database[data.Data]
+	db          *data.Store
 	hc          *client.Client
 	sshClient   *ssh.Client
 }
@@ -42,7 +41,7 @@ func New(
 	logger *logger.Logger,
 	composer *composer.Composer,
 	coordinator *coordinator.Coordinator,
-	db *database.Database[data.Data],
+	db *data.Store,
 	hc *client.Client,
 	sshClient *ssh.Client,
 ) *Server {
@@ -83,7 +82,11 @@ func (s *Server) Run() {
 	// APIs: Admin
 	g2 := s.engine.Group("api")
 	g2.Use(cm.Authorize(func() string {
-		return s.db.Data().MainSettings.AdminPassword
+		var token string
+		s.db.Read(func(d *data.Data) {
+			token = d.MainSettings.AdminPassword
+		})
+		return token
 	}))
 
 	g2.GET("/accounts", api.AccountsIndex(s.db))

@@ -9,9 +9,17 @@ import (
 
 // AccountLinks builds all available proxy links for an account.
 func (c *Composer) AccountLinks(account *data.Account) map[string]string {
-	d := c.db.Data()
-	xs := d.XraySettings
 	links := make(map[string]string)
+	c.db.Read(func(d *data.Data) {
+		c.accountLinks(d, account, links)
+	})
+	return links
+}
+
+// accountLinks fills links with the account's proxy links. The caller must hold
+// the store read lock.
+func (c *Composer) accountLinks(d *data.Data, account *data.Account, links map[string]string) {
+	xs := d.XraySettings
 
 	addRrLink := func(name, host string, port int, sni string) {
 		if host == "" || port <= 0 {
@@ -41,6 +49,4 @@ func (c *Composer) AccountLinks(account *data.Account) map[string]string {
 			addRrLink(name, n.Host, xs.RemoteRrPort, xs.NodeSni)
 		}
 	}
-
-	return links
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/miladrahimi/p-manager/internal/worker"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-manager/pkg/util"
-	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
 	"github.com/miladrahimi/p-node/pkg/xray"
@@ -21,7 +20,7 @@ import (
 // Coordinator is the main app component which coordinates the synchronization of the local and remote configs.
 type Coordinator struct {
 	l         *logger.Logger
-	db        *database.Database[data.Data]
+	db        *data.Store
 	hc        *client.Client
 	xray      *xray.Xray
 	composer  *composer.Composer
@@ -38,7 +37,7 @@ type Coordinator struct {
 func New(
 	hc *client.Client,
 	logger *logger.Logger,
-	db *database.Database[data.Data],
+	db *data.Store,
 	xray *xray.Xray,
 	writer *composer.Composer,
 	sshManager *ssh.Pool,
@@ -114,29 +113,38 @@ func (c *Coordinator) Run(ctx context.Context) error {
 }
 
 // initialize initializes the coordinator.
-func (c *Coordinator) initialize() (err error) {
-	d := c.db.Data()
-
-	if d.XraySettings.RealityPrivateKey == "" || d.XraySettings.RealityPublicKey == "" {
-		d.XraySettings.RealityPrivateKey, d.XraySettings.RealityPublicKey, err = c.xray.GenerateX25519()
-		if err != nil {
+func (c *Coordinator) initialize() error {
+	// X25519 keys are generated outside the store lock (it shells out to xray).
+	var privateKey, publicKey string
+	var needKeys bool
+	c.db.Read(func(d *data.Data) {
+		needKeys = d.XraySettings.RealityPrivateKey == "" || d.XraySettings.RealityPublicKey == ""
+	})
+	if needKeys {
+		var err error
+		if privateKey, publicKey, err = c.xray.GenerateX25519(); err != nil {
 			return errors.WithStack(err)
 		}
 	}
 
-	if d.XraySettings.NodeSni == "" {
-		d.XraySettings.NodeSni = config.DefaultNodeSni
-	}
-	if d.XraySettings.ManagerSni == "" {
-		d.XraySettings.ManagerSni = config.DefaultManagerSni
-	}
-	// TODO: Remove this in next version
-	for _, u := range d.Accounts {
-		if u.ProxyId == "" {
-			u.ProxyId = util.Uuid()
+	return errors.WithStack(c.db.Write(func(d *data.Data) {
+		if needKeys {
+			d.XraySettings.RealityPrivateKey = privateKey
+			d.XraySettings.RealityPublicKey = publicKey
 		}
-	}
-	return errors.WithStack(c.db.Save())
+		if d.XraySettings.NodeSni == "" {
+			d.XraySettings.NodeSni = config.DefaultNodeSni
+		}
+		if d.XraySettings.ManagerSni == "" {
+			d.XraySettings.ManagerSni = config.DefaultManagerSni
+		}
+		// TODO: Remove this in next version
+		for _, u := range d.Accounts {
+			if u.ProxyId == "" {
+				u.ProxyId = util.Uuid()
+			}
+		}
+	}))
 }
 
 // UpdateConfigs updates the local and node configs.
@@ -158,12 +166,14 @@ func (c *Coordinator) CheckSshStatus(nodeId string) {
 	}
 
 	var node *data.Node
-	for _, n := range c.db.Data().Nodes {
-		if n.Id == nodeId {
-			node = n
-			break
+	c.db.Read(func(d *data.Data) {
+		for _, n := range d.Nodes {
+			if n.Id == nodeId {
+				node = n
+				break
+			}
 		}
-	}
+	})
 	if node == nil {
 		return
 	}

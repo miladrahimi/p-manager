@@ -29,7 +29,7 @@ type App struct {
 	logger      *logger.Logger
 	httpClient  *client.Client
 	httpServer  *server.Server
-	database    *database.Database[data.Data]
+	database    *data.Store
 	composer    *composer.Composer
 	coordinator *coordinator.Coordinator
 	xray        *xray.Xray
@@ -59,9 +59,11 @@ func New() (a *App, err error) {
 	}
 	l := a.logger
 
-	if a.database, err = database.New(config.DatabaseDirectory(root), data.Default()); err != nil {
+	db, err := database.New(config.DatabaseDirectory(root), data.Default())
+	if err != nil {
 		return a, errors.WithStack(err)
 	}
+	a.database = data.NewStore(db)
 
 	if a.sshClient, err = ssh.NewClient(l); err != nil {
 		return a, errors.WithStack(err)

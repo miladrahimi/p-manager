@@ -239,6 +239,10 @@
                 headerPopup: "Status of the process where P-Manager pushes configurations to P-Nodes.",
             },
             {
+                title: "Pull Status", field: "pull_status", widthGrow: 1, resizable: true, formatter: statusFormatter,
+                headerPopup: "Status of the process where P-Nodes pull configurations from P-Manager.",
+            },
+            {
                 title: "SSH Status", field: "ssh_status", widthGrow: 1, resizable: true, formatter: statusFormatter,
                 headerPopup: "Status of the SSH connection check from the P-Manager to the node.",
             },

@@ -10,18 +10,21 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
-	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 // XraySettingsShow returns the xray settings.
-func XraySettingsShow(db *database.Database[data.Data]) echo.HandlerFunc {
+func XraySettingsShow(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, db.Data().XraySettings)
+		var settings data.XraySettings
+		db.Read(func(d *data.Data) {
+			settings = *d.XraySettings
+		})
+		return c.JSON(http.StatusOK, &settings)
 	}
 }
 
 // XraySettingsUpdate updates the xray settings.
-func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Database[data.Data]) echo.HandlerFunc {
+func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r data.XraySettings
 		if err := c.Bind(&r); err != nil {
@@ -47,7 +50,10 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 			})
 		}
 
-		d := db.Data().XraySettings
+		var d data.XraySettings
+		db.Read(func(s *data.Data) {
+			d = *s.XraySettings
+		})
 		if r.DirectRrPort > 0 && r.DirectRrPort != d.DirectRrPort && !util.PortFree(r.DirectRrPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Port %d is already in use.", r.DirectRrPort),
@@ -65,8 +71,9 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *database.Datab
 			})
 		}
 
-		db.Data().XraySettings = &r
-		if err := db.Save(); err != nil {
+		if err := db.Write(func(s *data.Data) {
+			s.XraySettings = &r
+		}); err != nil {
 			return errors.WithStack(err)
 		}
 

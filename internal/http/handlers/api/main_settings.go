@@ -8,18 +8,21 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-node/pkg/database"
 )
 
 // MainSettingsShow returns the main settings.
-func MainSettingsShow(db *database.Database[data.Data]) echo.HandlerFunc {
+func MainSettingsShow(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, db.Data().MainSettings)
+		var settings data.Settings
+		db.Read(func(d *data.Data) {
+			settings = *d.MainSettings
+		})
+		return c.JSON(http.StatusOK, &settings)
 	}
 }
 
 // MainSettingsUpdate updates the main settings.
-func MainSettingsUpdate(db *database.Database[data.Data]) echo.HandlerFunc {
+func MainSettingsUpdate(db *data.Store) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		var r data.Settings
 		if err := ctx.Bind(&r); err != nil {
@@ -33,8 +36,9 @@ func MainSettingsUpdate(db *database.Database[data.Data]) echo.HandlerFunc {
 			})
 		}
 
-		db.Data().MainSettings = &r
-		if err := db.Save(); err != nil {
+		if err := db.Write(func(d *data.Data) {
+			d.MainSettings = &r
+		}); err != nil {
 			return errors.WithStack(err)
 		}
 

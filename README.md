@@ -42,7 +42,7 @@ Access the admin panel at the default port `8080`.
 
 #### Tabs
 
-* `Users`: Manage users and view their public profiles
+* `Accounts`: Manage accounts and view their public profiles
 * `Nodes`: Manage P-Nodes (remote nodes)
 * `System`: Modify settings and view metrics
 * `Exit`: Sign out of the admin panel

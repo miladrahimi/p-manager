@@ -75,7 +75,7 @@ func (s *Server) Run() {
 	s.engine.GET("/account/:accountId", handlers.Account(s.db))
 	s.engine.GET("/subscription/:proxyId", api.SubscriptionShow(s.composer, s.db))
 
-	// User APIs (account holder; no admin auth, reached via the account link)
+	// User APIs (no admin auth, reached via the account link)
 	userApi := s.engine.Group("api/user")
 	userApi.GET("/account/:accountId", api.AccountShow(s.composer, s.db))
 	userApi.POST("/account/:accountId/links/renew", api.AccountLinksRenew(s.coordinator, s.db))

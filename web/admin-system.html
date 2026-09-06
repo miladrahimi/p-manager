@@ -288,15 +288,15 @@
     const methods = [
         {
             key: "direct", name: "Direct RR", flow: "[Client] -RR→ [P-Manager] → [Internet]",
-            fields: [{field: "direct_rr_port", label: "Port", port: true}],
+            fields: [{field: "direct_rr_port", label: "Manager port", port: true}],
         },
         {
             key: "remote", name: "Remote RR", flow: "[Client] -RR→ [P-Node] → [Internet]",
-            fields: [{field: "remote_rr_port", label: "Port", port: true}],
+            fields: [{field: "remote_rr_port", label: "Node port", port: true}],
         },
         {
             key: "reverse", name: "Reverse RR", flow: "[Client] -RR→ [P-Manager] ↪RR= [P-Node] → [Internet]",
-            fields: [{field: "reverse_rr_manager_port", label: "Port", port: true}],
+            fields: [{field: "reverse_rr_manager_port", label: "Manager port", port: true}],
         },
         {
             key: "relay", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
@@ -308,7 +308,7 @@
         {
             key: "ssh", name: "Relay RR→SSH", flow: "[Client] -RR→ [P-Manager] -SSH→ [P-Node] → [Internet]",
             fields: [
-                {field: "relay_rr_2_ssh_port", label: "Port", port: true},
+                {field: "relay_rr_2_ssh_port", label: "Manager port", port: true},
                 {field: "relay_rr_2_ssh_connections", label: "Connections", min: 1, max: 32},
             ],
         },

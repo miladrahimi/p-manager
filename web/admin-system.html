@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | System</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=6">
+    <link rel="stylesheet" href="assets/css/app.css?v=7">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
-    <script src="assets/js/app.js?v=6"></script>
+    <script src="assets/js/app.js?v=7"></script>
     <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -31,7 +31,7 @@
     <!-- Quick actions + display preferences (calendar is saved on this device only) -->
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
         <button class="btn btn-outline-amber" :disabled="busy"
-                @click="action('Restart the Xray core?', 'POST', '/api/xray/restart')">
+                @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
             Restart Xray Core
         </button>
         <div class="flex items-center gap-2">
@@ -89,15 +89,15 @@
                 <p class="mb-2 text-xs font-medium tracking-wide text-zinc-400 uppercase">Reset usage</p>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <button class="btn btn-outline-green" :disabled="busy"
-                            @click="action('Reset the total usage?', 'PATCH', '/api/stats', {total_usage: 0}, true)">
+                            @click="action('Reset the total usage?', 'PATCH', '/api/admin/stats', {total_usage: 0}, true)">
                         Total Usage
                     </button>
                     <button class="btn btn-outline-green" :disabled="busy"
-                            @click="action('Reset usage for all nodes?', 'PATCH', '/api/nodes', {usage: 0})">
+                            @click="action('Reset usage for all nodes?', 'PATCH', '/api/admin/nodes', {usage: 0})">
                         Node Usages
                     </button>
                     <button class="btn btn-outline-green" :disabled="busy"
-                            @click="action('Reset usage for all accounts and activate them?', 'PATCH', '/api/accounts', {usage: 0, enabled: true})">
+                            @click="action('Reset usage for all accounts and activate them?', 'PATCH', '/api/admin/accounts', {usage: 0, enabled: true})">
                         Account Usages
                     </button>
                 </div>
@@ -108,11 +108,11 @@
                 <p class="mb-2 text-xs font-medium tracking-wide text-red-500 uppercase">Danger zone</p>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <button class="btn btn-outline-danger" :disabled="busy"
-                            @click="action('Delete all disabled accounts?', 'DELETE', '/api/accounts?enabled=false')">
+                            @click="action('Delete all disabled accounts?', 'DELETE', '/api/admin/accounts?enabled=false')">
                         Delete Disabled Accounts
                     </button>
                     <button class="btn btn-danger" :disabled="busy"
-                            @click="action('Delete ALL accounts?', 'DELETE', '/api/accounts')">
+                            @click="action('Delete ALL accounts?', 'DELETE', '/api/admin/accounts')">
                         Delete All Accounts
                     </button>
                 </div>
@@ -130,101 +130,62 @@
                 <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
             </svg>
         </button>
-        <form x-show="open" class="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2" @submit.prevent="saveXraySettings()">
-            <div>
-                <label class="label" title="RR port for the P-Manager or zero to disable.">Direct RR Port</label>
-                <input type="number" class="input" x-model.number="xray.direct_rr_port" min="0" max="65535" required>
-            </div>
-            <div>
-                <label class="label" title="RR port for P-Nodes or zero to disable.">Remote RR Port</label>
-                <input type="number" class="input" x-model.number="xray.remote_rr_port" min="0" max="65535" required>
-            </div>
-            <div>
-                <label class="label" title="RR port for the P-Manager or zero to disable.">
-                    Relay RR&rarr;RR Manager Port
-                </label>
-                <input type="number" class="input" x-model.number="xray.relay_rr_2_rr_manager_port"
-                       min="0" max="65535" required>
-            </div>
-            <div>
-                <label class="label" title="RR port for P-Nodes or zero to disable.">Relay RR&rarr;RR Node Port</label>
-                <input type="number" class="input" x-model.number="xray.relay_rr_2_rr_node_port"
-                       min="0" max="65535" required>
-            </div>
-            <div>
-                <label class="label"
-                       title="RR port on the P-Manager for the reverse proxy; P-Nodes dial in. Zero to disable.">
-                    Reverse RR Port
-                </label>
-                <input type="number" class="input" x-model.number="xray.reverse_rr_manager_port"
-                       min="0" max="65535" required>
-            </div>
-            <div>
-                <label class="label" title="RR port for the P-Manager or zero to disable.">Relay RR&rarr;SSH Port</label>
-                <input type="number" class="input" x-model.number="xray.relay_rr_2_ssh_port"
-                       min="0" max="65535" required>
-            </div>
-            <div>
-                <label class="label" title="Number of SSH SOCKS connections to create per node.">
-                    Relay RR&rarr;SSH Connections
-                </label>
-                <input type="number" class="input" x-model.number="xray.relay_rr_2_ssh_connections"
-                       min="1" max="32" required>
-            </div>
-            <div>
-                <label class="label" title="SNI name used in reality for connections to P-Nodes.">Node SNI</label>
-                <input type="text" class="input" x-model.trim="xray.node_sni" minlength="1" maxlength="255" required>
-            </div>
-            <div>
-                <label class="label" title="SNI name used in reality for connections to the P-Manager.">
-                    Manager SNI
-                </label>
-                <input type="text" class="input" x-model.trim="xray.manager_sni" minlength="1" maxlength="255" required>
-            </div>
-            <div>
-                <label class="label" title="Reality private key used by RR proxies.">Reality Private Key</label>
-                <input type="text" class="input font-mono" x-model.trim="xray.reality_private_key" maxlength="255">
-            </div>
-            <div>
-                <label class="label" title="Reality public key used by RR proxies.">Reality Public Key</label>
-                <input type="text" class="input font-mono" x-model.trim="xray.reality_public_key" maxlength="255">
-            </div>
-
-            <div class="sm:col-span-2" x-data="{ open: false }">
-                <button type="button" @click="open = !open"
-                        class="flex w-full cursor-pointer items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100">
-                    <span>Proxy methods reference</span>
-                    <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
-                         viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-                <div x-show="open" x-cloak x-transition
-                     class="mt-2 rounded-lg bg-zinc-50 p-3 text-xs leading-6">
-                    <div class="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-                        <div>
-                            <div><span class="text-zinc-500">Direct:</span> <code>[Account] &rarr; P-Manager &rarr; [Internet]</code></div>
-                            <div><span class="text-zinc-500">Remote:</span> <code>[Account] &rarr; P-Node &rarr; [Internet]</code></div>
-                            <div><span class="text-zinc-500">Relay:</span> <code>[Account] &rarr; P-Manager &rarr; P-Node &rarr; [Internet]</code></div>
-                            <div><span class="text-zinc-500">Reverse:</span> <code>[Account] &rarr; P-Manager &#8618; P-Node &rarr; [Internet]</code></div>
-                        </div>
-                        <div>
-                            <div>
-                                <span class="text-zinc-500">RR:</span>
-                                <code>Xray &middot; vless / raw / reality / xtls-rprx-vision</code>
-                            </div>
-                            <div>
-                                <span class="text-zinc-500">SSH:</span>
-                                <code>OpenSSH &middot; socks</code>
-                            </div>
+        <form x-show="open" class="px-5 pb-5" @submit.prevent="saveXraySettings()">
+            <!-- Proxy methods: switch + flow on the left, ports on the right (zero port = disabled on the backend) -->
+            <p class="mb-2 text-xs font-medium tracking-wide text-zinc-400 uppercase">Proxy methods</p>
+            <div class="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
+                <template x-for="m in methods" :key="m.key">
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
+                        <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                            <input type="checkbox" class="switch" :checked="enabled[m.key]"
+                                   @change="toggleMethod(m, $event.target.checked)">
+                            <span class="min-w-0">
+                                <span class="block text-sm font-medium" :class="!enabled[m.key] && 'text-zinc-400'"
+                                      x-text="m.name"></span>
+                                <code class="block truncate text-[11px] text-zinc-400" x-text="m.flow"></code>
+                            </span>
+                        </label>
+                        <div class="flex gap-2">
+                            <template x-for="f in m.fields" :key="f.field">
+                                <div class="w-28">
+                                    <label class="label mb-0.5 text-[11px]" x-text="f.label"></label>
+                                    <input type="number" class="input" x-model.number="xray[f.field]"
+                                           :min="f.min ?? 1" :max="f.max ?? 65535" :placeholder="f.label"
+                                           :disabled="!enabled[m.key]" :required="enabled[m.key]">
+                                </div>
+                            </template>
                         </div>
                     </div>
+                </template>
+            </div>
+            <p class="mt-2 text-[11px] text-zinc-400">
+                RR: Xray &middot; vless / raw / reality / xtls-rprx-vision &nbsp;&middot;&nbsp; SSH: OpenSSH &middot; socks
+            </p>
+
+            <!-- Reality -->
+            <p class="mt-5 mb-2 text-xs font-medium tracking-wide text-zinc-400 uppercase">Reality</p>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                    <label class="label" title="SNI name used in reality for connections to P-Nodes.">Node SNI</label>
+                    <input type="text" class="input" x-model.trim="xray.node_sni" minlength="1" maxlength="255" required>
+                </div>
+                <div>
+                    <label class="label" title="SNI name used in reality for connections to the P-Manager.">
+                        Manager SNI
+                    </label>
+                    <input type="text" class="input" x-model.trim="xray.manager_sni" minlength="1" maxlength="255" required>
+                </div>
+                <div>
+                    <label class="label" title="Reality private key used by RR proxies.">Private Key</label>
+                    <input type="text" class="input font-mono" x-model.trim="xray.reality_private_key" maxlength="255">
+                </div>
+                <div>
+                    <label class="label" title="Reality public key used by RR proxies.">Public Key</label>
+                    <input type="text" class="input font-mono" x-model.trim="xray.reality_public_key" maxlength="255">
                 </div>
             </div>
 
-            <div class="sm:col-span-2">
-                <button type="submit" class="btn btn-dark w-full" :disabled="busy">Save Xray Settings</button>
-            </div>
+            <button type="submit" class="btn btn-dark mt-4 w-full" :disabled="busy">Save Xray Settings</button>
         </form>
     </section>
 
@@ -301,10 +262,10 @@
 
     <!-- Platform -->
     <p class="mt-6 text-center text-xs text-zinc-400" x-show="platform.app_name" x-cloak
-       x-text="`${platform.app_name} ${platform.app_version} · ${platform.core}`"></p>
+       x-text="`${platform.app_name} ${platform.app_version} · ${platform.core_name}`"></p>
 
     <!-- Toasts -->
-    <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
+    <div class="fixed top-4 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col-reverse items-center gap-2">
         <template x-for="t in $store.toast.items" :key="t.id">
             <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
                  :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
@@ -313,8 +274,41 @@
 </main>
 
 <script>
+    // Proxy methods shown in the Xray settings form. A method is enabled when
+    // all of its port fields are non-zero; the backend keeps zero as "disabled".
+    const methods = [
+        {
+            key: "direct", name: "Direct RR", flow: "[Account] → P-Manager → [Internet]",
+            fields: [{field: "direct_rr_port", label: "Port", port: true}],
+        },
+        {
+            key: "remote", name: "Remote RR", flow: "[Account] → P-Node → [Internet]",
+            fields: [{field: "remote_rr_port", label: "Port", port: true}],
+        },
+        {
+            key: "relay", name: "Relay RR→RR", flow: "[Account] → P-Manager → P-Node → [Internet]",
+            fields: [
+                {field: "relay_rr_2_rr_manager_port", label: "Manager port", port: true},
+                {field: "relay_rr_2_rr_node_port", label: "Node port", port: true},
+            ],
+        },
+        {
+            key: "ssh", name: "Relay RR→SSH", flow: "[Account] → P-Manager → SSH → P-Node → [Internet]",
+            fields: [
+                {field: "relay_rr_2_ssh_port", label: "Port", port: true},
+                {field: "relay_rr_2_ssh_connections", label: "Connections", min: 1, max: 32},
+            ],
+        },
+        {
+            key: "reverse", name: "Reverse RR", flow: "[Account] → P-Manager ↪ P-Node → [Internet]",
+            fields: [{field: "reverse_rr_manager_port", label: "Port", port: true}],
+        },
+    ]
+
     function systemPage() {
         return {
+            methods: methods,
+            enabled: {},
             stats: {},
             platform: {},
             main: {},
@@ -324,10 +318,10 @@
 
             async load() {
                 const results = await Promise.allSettled([
-                    api("GET", "/api/stats"),
-                    api("GET", "/api/platform"),
-                    api("GET", "/api/main-settings"),
-                    api("GET", "/api/xray-settings"),
+                    api("GET", "/api/admin/stats"),
+                    api("GET", "/api/admin/platform"),
+                    api("GET", "/api/admin/main-settings"),
+                    api("GET", "/api/admin/xray-settings"),
                 ])
                 const [stats, platform, main, xray] = results.map(r => r.status === "fulfilled" ? r.value : null)
                 this.stats = stats || {}
@@ -336,6 +330,9 @@
                 this.xray = xray || {}
                 if (this.xray.relay_rr_2_ssh_connections < 1) {
                     this.xray.relay_rr_2_ssh_connections = 8
+                }
+                for (const m of methods) {
+                    this.enabled[m.key] = m.fields.filter(f => f.port).every(f => this.xray[f.field] > 0)
                 }
                 const failed = results.find(r => r.status === "rejected")
                 if (failed) {
@@ -361,16 +358,29 @@
                 }
             },
 
+            toggleMethod(m, on) {
+                this.enabled[m.key] = on
+                if (on) {
+                    // Clear zeros so the (now required) inputs show their placeholder.
+                    m.fields.filter(f => f.port && !(this.xray[f.field] > 0)).forEach(f => this.xray[f.field] = null)
+                }
+            },
+
+            port(field) {
+                const m = methods.find(m => m.fields.some(f => f.field === field))
+                return this.enabled[m.key] ? (this.xray[field] || 0) : 0
+            },
+
             async saveXraySettings() {
                 this.busy = true
                 try {
-                    await api("POST", "/api/xray-settings", {
-                        direct_rr_port: this.xray.direct_rr_port || 0,
-                        remote_rr_port: this.xray.remote_rr_port || 0,
-                        relay_rr_2_rr_manager_port: this.xray.relay_rr_2_rr_manager_port || 0,
-                        relay_rr_2_rr_node_port: this.xray.relay_rr_2_rr_node_port || 0,
-                        reverse_rr_manager_port: this.xray.reverse_rr_manager_port || 0,
-                        relay_rr_2_ssh_port: this.xray.relay_rr_2_ssh_port || 0,
+                    await api("POST", "/api/admin/xray-settings", {
+                        direct_rr_port: this.port("direct_rr_port"),
+                        remote_rr_port: this.port("remote_rr_port"),
+                        relay_rr_2_rr_manager_port: this.port("relay_rr_2_rr_manager_port"),
+                        relay_rr_2_rr_node_port: this.port("relay_rr_2_rr_node_port"),
+                        reverse_rr_manager_port: this.port("reverse_rr_manager_port"),
+                        relay_rr_2_ssh_port: this.port("relay_rr_2_ssh_port"),
                         relay_rr_2_ssh_connections: this.xray.relay_rr_2_ssh_connections || 8,
                         node_sni: this.xray.node_sni,
                         manager_sni: this.xray.manager_sni,
@@ -388,7 +398,7 @@
             async saveMainSettings() {
                 this.busy = true
                 try {
-                    await api("POST", "/api/main-settings", {
+                    await api("POST", "/api/admin/main-settings", {
                         admin_password: this.main.admin_password,
                         host: this.main.host,
                         traffic_ratio: this.main.traffic_ratio,
@@ -406,7 +416,7 @@
             async importAccounts() {
                 this.busy = true
                 try {
-                    const response = await api("POST", "/api/accounts/import", {
+                    const response = await api("POST", "/api/admin/accounts/import", {
                         url: this.importForm.url,
                         password: this.importForm.password,
                     })

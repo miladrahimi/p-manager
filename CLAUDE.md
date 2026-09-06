@@ -45,13 +45,16 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - Loaded in `internal/config/config.go` via `config.New(root)`.
 - Defaults come from `configs/main.defaults.json`; if `configs/main.json` exists it overrides defaults and is re-written (pretty-printed) on load.
 - Validated with `go-playground/validator`.
-- Build/version constants live in `config.go`: `AppName`, `AppVersion`, `CoreVersion`, `MaxAccountsCount`, `DefaultNodeSni`, `DefaultManagerSni`.
+- Build/version constants live in `config.go`: `AppName`, `AppVersion`, `CoreName`, `MaxAccountsCount`, `DefaultNodeSni`, `DefaultManagerSni`.
 
 ## HTTP APIs
 - Server and routes are wired in `internal/http/server`.
 - API handlers live in `internal/http/handlers/api`; requests and responses are JSON.
-- Authentication is token-based: the token is the admin password stored in the database (`admin_password`, `internal/data/main_settings.go`).
-- The `Authorization: Bearer <token>` header is checked for authenticated routes.
+- Routes are grouped by audience under `/api` (`internal/http/server/server.go`):
+  - `/api/admin/*` — admin panel; guarded by `Server.authorizeAdmin` (the admin password `admin_password`, `internal/data/main_settings.go`), except `POST /api/admin/sign-in` which issues the token.
+  - `/api/user/*` — account-holder APIs (account view, links renew); no auth, reached via the account link.
+  - `/api/node/*` — node-facing APIs (`GET /api/node/:id/config`); guarded by `Server.authorizeNode` against that node's own `PullToken` (`Node.PullToken`, generated at creation). A node token works only for its own node and never for admin APIs, so the pull command carries no admin credentials.
+- Authentication is `Authorization: Bearer <token>`.
 
 ## Major Dependencies
 - `github.com/xtls/xray-core`: Interaction with the running Xray process
@@ -141,3 +144,4 @@ Config (`internal/composer/config_composer.go`): manager adds a `reverse-rr` inb
 ## AI Development Guidance
 - Keep it simple, stupid.
 - Prefer small, inline improvements; keep the architecture intact.
+- The Xray binary is embedded (single pinned version), so target exactly that version. When Xray changes its output or behavior, update to the new format and drop old-version handling — do not keep backward-compatibility branches.

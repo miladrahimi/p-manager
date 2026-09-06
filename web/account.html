@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Account</title>
-    <link rel="stylesheet" href="/assets/css/app.css?v=3">
+    <link rel="stylesheet" href="/assets/css/app.css?v=7">
     <link rel="icon" href="/assets/images/xray.svg">
     <link rel="apple-touch-icon" href="/assets/images/xray.svg">
-    <script src="/assets/js/app.js?v=3"></script>
+    <script src="/assets/js/app.js?v=7"></script>
     <script>i18n.apply(i18n.get()) // before first paint, avoids a direction flip</script>
     <script defer src="/assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
@@ -125,7 +125,7 @@
     </div>
 
     <!-- Toasts -->
-    <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
+    <div class="fixed top-4 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col-reverse items-center gap-2">
         <template x-for="t in $store.toast.items" :key="t.id">
             <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
                  :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
@@ -271,7 +271,7 @@
                     return
                 }
                 try {
-                    const r = await api("GET", `/api/account/${accountId}`)
+                    const r = await api("GET", `/api/user/account/${accountId}`)
                     this.account = r["account"]
                     this.proxies = Object.entries(r["proxies"] || {})
                         .filter(([, value]) => value)
@@ -315,7 +315,7 @@
                 }
                 this.renewing = true
                 try {
-                    await api("POST", `/api/account/${this.accountId()}/links/renew`)
+                    await api("POST", `/api/user/account/${this.accountId()}/links/renew`)
                     this.$store.toast.info(this.t("renewed"))
                     setTimeout(() => window.location.reload(), 1500)
                 } catch (e) {

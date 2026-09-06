@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | Accounts</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=6">
+    <link rel="stylesheet" href="assets/css/app.css?v=7">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
-    <script src="assets/js/app.js?v=6"></script>
+    <script src="assets/js/app.js?v=7"></script>
     <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -135,7 +135,7 @@
     </div>
 
     <!-- Toasts -->
-    <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
+    <div class="fixed top-4 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col-reverse items-center gap-2">
         <template x-for="t in $store.toast.items" :key="t.id">
             <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
                  :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
@@ -164,7 +164,7 @@
 
             async load() {
                 try {
-                    this.accounts = await api("GET", "/api/accounts")
+                    this.accounts = await api("GET", "/api/admin/accounts")
                 } catch (e) {
                     this.$store.toast.error(e.message)
                 } finally {
@@ -229,9 +229,9 @@
                 }
                 try {
                     if (this.form.id) {
-                        await api("PUT", `/api/accounts/${this.form.id}`, body)
+                        await api("PUT", `/api/admin/accounts/${this.form.id}`, body)
                     } else {
-                        await api("POST", "/api/accounts", body)
+                        await api("POST", "/api/admin/accounts", body)
                     }
                     this.formOpen = false
                     this.$store.toast.info("Account saved successfully.")
@@ -245,7 +245,7 @@
 
             async toggle(account, enabled) {
                 try {
-                    await api("PATCH", `/api/accounts/${account.id}`, {enabled: enabled})
+                    await api("PATCH", `/api/admin/accounts/${account.id}`, {enabled: enabled})
                 } catch (e) {
                     this.$store.toast.error(e.message)
                 }
@@ -257,7 +257,7 @@
                     return
                 }
                 try {
-                    await api("PATCH", `/api/accounts/${account.id}`, {usage: 0, enabled: true})
+                    await api("PATCH", `/api/admin/accounts/${account.id}`, {usage: 0, enabled: true})
                     this.$store.toast.info("Account has been reset successfully.")
                 } catch (e) {
                     this.$store.toast.error(e.message)
@@ -270,7 +270,7 @@
                     return
                 }
                 try {
-                    await api("DELETE", `/api/accounts/${account.id}`)
+                    await api("DELETE", `/api/admin/accounts/${account.id}`)
                     this.$store.toast.info("Account deleted successfully.")
                 } catch (e) {
                     this.$store.toast.error(e.message)

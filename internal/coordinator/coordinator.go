@@ -150,6 +150,12 @@ func (c *Coordinator) initialize() error {
 				u.ProxyId = util.Uuid()
 			}
 		}
+		// Backfill a per-node pull token for nodes created before it existed.
+		for _, n := range d.Nodes {
+			if n.PullToken == "" {
+				n.PullToken = util.Uuid()
+			}
+		}
 	}))
 }
 

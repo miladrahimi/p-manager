@@ -1,5 +1,7 @@
 package data
 
+import "github.com/miladrahimi/p-manager/pkg/util"
+
 // NodeStatus represents the status of a server (node).
 type NodeStatus string
 
@@ -13,8 +15,9 @@ const (
 
 // Node represents a server (node) in the system.
 type Node struct {
-	Id          string     `json:"id" validate:"required,uuid"`
+	Id          string     `json:"id" validate:"required,max=64"`
 	Host        string     `json:"host" validate:"required,max=128"`
+	PullToken   string     `json:"pull_token"`
 	HttpToken   string     `json:"http_token"`
 	HttpPort    int        `json:"http_port" validate:"omitempty,min=1,max=65535"`
 	SshUser     string     `json:"ssh_user" validate:"required"`
@@ -35,6 +38,7 @@ func NewNode(id string, host string, httpToken string, httpPort int, sshUser str
 	return &Node{
 		Id:          id,
 		Host:        host,
+		PullToken:   util.Uuid(),
 		HttpToken:   httpToken,
 		HttpPort:    httpPort,
 		SshUser:     sshUser,

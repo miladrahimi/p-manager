@@ -44,6 +44,16 @@ type NodesStoreRequest struct {
 	PushEnabled *bool  `json:"push_enabled"`
 }
 
+// nodeIdExists reports whether a node with the given id already exists.
+func nodeIdExists(d *data.Data, id string) bool {
+	for _, n := range d.Nodes {
+		if n.Id == id {
+			return true
+		}
+	}
+	return false
+}
+
 // pushHttpMissing reports whether push is enabled but its HTTP credentials are
 // absent. HTTP token/port are optional when push is disabled.
 func pushHttpMissing(pushEnabled bool, token string, port int) bool {
@@ -77,10 +87,11 @@ func NodesIndex(db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var response []NodeResponse
 		db.Read(func(d *data.Data) {
-			token := d.MainSettings.AdminPassword
 			response = make([]NodeResponse, 0, len(d.Nodes))
 			for _, node := range d.Nodes {
-				cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%s\" TOKEN=\"%s\"", node.Id, token)
+				// The node authenticates with its own pull token, not the admin
+				// password, and hits the dedicated /node API prefix.
+				cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/api/node/%s\" TOKEN=\"%s\"", node.Id, node.PullToken)
 				n := *node
 				if !n.SshEnabled {
 					n.SshStatus = data.NodeStatusDisabled
@@ -140,7 +151,11 @@ func NodesStore(coordinator *coordinator.Coordinator, db *data.Store) echo.Handl
 				}
 			}
 			if target == nil {
-				target = data.NewNode(util.Uuid(), r.Host, r.HttpToken, r.HttpPort, r.SshUser, r.SshPort)
+				id := util.ShortId()
+				for nodeIdExists(d, id) {
+					id = util.ShortId()
+				}
+				target = data.NewNode(id, r.Host, r.HttpToken, r.HttpPort, r.SshUser, r.SshPort)
 				target.SshStatus = data.NodeStatusProcessing
 				d.Nodes = append(d.Nodes, target)
 			}

@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -73,53 +75,57 @@ func (s *Server) Run() {
 	s.engine.GET("/account/:accountId", handlers.Account(s.db))
 	s.engine.GET("/subscription/:proxyId", api.SubscriptionShow(s.composer, s.db))
 
-	// APIs: Public
-	g1 := s.engine.Group("api")
-	g1.POST("/sign-in", api.SignIn(s.db))
-	g1.GET("/account/:accountId", api.AccountShow(s.composer, s.db))
-	g1.POST("/account/:accountId/links/renew", api.AccountLinksRenew(s.coordinator, s.db))
+	// User APIs (account holder; no admin auth, reached via the account link)
+	userApi := s.engine.Group("api/user")
+	userApi.GET("/account/:accountId", api.AccountShow(s.composer, s.db))
+	userApi.POST("/account/:accountId/links/renew", api.AccountLinksRenew(s.coordinator, s.db))
 
-	// APIs: Admin
-	g2 := s.engine.Group("api")
-	g2.Use(cm.Authorize(func() string {
-		var token string
-		s.db.Read(func(d *data.Data) {
-			token = d.MainSettings.AdminPassword
-		})
-		return token
-	}))
+	// Admin APIs
+	adminApi := s.engine.Group("api/admin")
+	adminApi.POST("/sign-in", api.SignIn(s.db))
+	adminApi.Use(s.authorizeAdmin)
 
-	g2.GET("/accounts", api.AccountsIndex(s.db))
-	g2.POST("/accounts", api.AccountsStore(s.coordinator, s.db))
-	g2.PATCH("/accounts", api.AccountsUpdatePartialBatch(s.coordinator, s.db))
-	g2.PUT("/accounts/:id", api.AccountsUpdate(s.coordinator, s.db))
-	g2.PATCH("/accounts/:id", api.AccountsUpdatePartial(s.coordinator, s.db))
-	g2.DELETE("/accounts/:id", api.AccountsDelete(s.coordinator, s.db))
-	g2.DELETE("/accounts", api.AccountsDeleteBatch(s.coordinator, s.db))
-	g2.POST("/accounts/import", api.AccountsImport(s.coordinator, s.db, s.hc))
+	// Admin APIs: Accounts
+	adminApi.GET("/accounts", api.AccountsIndex(s.db))
+	adminApi.POST("/accounts", api.AccountsStore(s.coordinator, s.db))
+	adminApi.PATCH("/accounts", api.AccountsUpdatePartialBatch(s.coordinator, s.db))
+	adminApi.PUT("/accounts/:id", api.AccountsUpdate(s.coordinator, s.db))
+	adminApi.PATCH("/accounts/:id", api.AccountsUpdatePartial(s.coordinator, s.db))
+	adminApi.DELETE("/accounts/:id", api.AccountsDelete(s.coordinator, s.db))
+	adminApi.DELETE("/accounts", api.AccountsDeleteBatch(s.coordinator, s.db))
+	adminApi.POST("/accounts/import", api.AccountsImport(s.coordinator, s.db, s.hc))
 
-	g2.GET("/nodes", api.NodesIndex(s.db))
-	g2.POST("/nodes", api.NodesStore(s.coordinator, s.db))
-	g2.PATCH("/nodes", api.NodesUpdatePartialBatch(s.coordinator, s.db))
-	g2.PUT("/nodes/:id", api.NodesUpdate(s.coordinator, s.db))
-	g2.PATCH("/nodes/:id", api.NodesUpdateToggles(s.coordinator, s.db))
-	g2.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db))
-	g2.GET("/nodes/:id/config", api.NodesConfigShow(s.coordinator, s.composer, s.db))
+	// Admin APIs: Nodes
+	adminApi.GET("/nodes", api.NodesIndex(s.db))
+	adminApi.POST("/nodes", api.NodesStore(s.coordinator, s.db))
+	adminApi.PATCH("/nodes", api.NodesUpdatePartialBatch(s.coordinator, s.db))
+	adminApi.PUT("/nodes/:id", api.NodesUpdate(s.coordinator, s.db))
+	adminApi.PATCH("/nodes/:id", api.NodesUpdateToggles(s.coordinator, s.db))
+	adminApi.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db))
 
-	g2.GET("/stats", api.StatsIndex(s.db))
-	g2.PATCH("/stats", api.StatsUpdatePartial(s.db))
+	// Admin APIs: Stats
+	adminApi.GET("/stats", api.StatsIndex(s.db))
+	adminApi.PATCH("/stats", api.StatsUpdatePartial(s.db))
 
-	g2.GET("/platform", api.PlatformShow())
+	// Admin APIs: Platform
+	adminApi.GET("/platform", api.PlatformShow())
 
-	g2.GET("/insights", api.InsightsIndex(s.db))
+	// Admin APIs: Insights
+	adminApi.GET("/insights", api.InsightsIndex(s.db))
 
-	g2.GET("/main-settings", api.MainSettingsShow(s.db))
-	g2.POST("/main-settings", api.MainSettingsUpdate(s.db))
+	// Admin APIs: Main Settings
+	adminApi.GET("/main-settings", api.MainSettingsShow(s.db))
+	adminApi.POST("/main-settings", api.MainSettingsUpdate(s.db))
 
-	g2.POST("/xray/restart", api.XrayRestart(s.coordinator))
+	// Admin APIs: Xray
+	adminApi.POST("/xray/restart", api.XrayRestart(s.coordinator))
+	adminApi.GET("/xray-settings", api.XraySettingsShow(s.db))
+	adminApi.POST("/xray-settings", api.XraySettingsUpdate(s.coordinator, s.db))
 
-	g2.GET("/xray-settings", api.XraySettingsShow(s.db))
-	g2.POST("/xray-settings", api.XraySettingsUpdate(s.coordinator, s.db))
+	// Node APIs (each node authenticates with its own pull token)
+	nodeApi := s.engine.Group("api/node")
+	nodeApi.Use(s.authorizeNode)
+	nodeApi.GET("/:id/config", api.NodesConfigShow(s.coordinator, s.composer, s.db))
 
 	// Start the HTTP Server
 	go func() {
@@ -132,6 +138,44 @@ func (s *Server) Run() {
 			)
 		}
 	}()
+}
+
+// authorizeAdmin authorizes a request against the admin password.
+func (s *Server) authorizeAdmin(next echo.HandlerFunc) echo.HandlerFunc {
+	return cm.Authorize(func() string {
+		var token string
+		s.db.Read(func(d *data.Data) {
+			token = d.MainSettings.AdminPassword
+		})
+		return token
+	})(next)
+}
+
+// authorizeNode authorizes a request against the related node token.
+func (s *Server) authorizeNode(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		auth := c.Request().Header.Get("Authorization")
+		if !strings.HasPrefix(auth, "Bearer ") {
+			return echo.ErrUnauthorized
+		}
+		token := strings.TrimPrefix(auth, "Bearer ")
+		id := c.Param("id")
+
+		authorized := false
+		s.db.Read(func(d *data.Data) {
+			for _, n := range d.Nodes {
+				if n.Id == id && n.PullToken != "" &&
+					subtle.ConstantTimeCompare([]byte(n.PullToken), []byte(token)) == 1 {
+					authorized = true
+					return
+				}
+			}
+		})
+		if !authorized {
+			return echo.ErrUnauthorized
+		}
+		return next(c)
+	}
 }
 
 // Close closes the HTTP Server.

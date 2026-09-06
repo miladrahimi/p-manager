@@ -1,6 +1,7 @@
 package util
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	"math"
@@ -26,6 +27,20 @@ func FileExist(path string) bool {
 func Uuid() string {
 	u := uuid.New()
 	return u.String()
+}
+
+// ShortId returns a short, URL-safe random id (8 lowercase alphanumerics).
+// Enough for the handful of nodes a P-Manager holds.
+func ShortId() string {
+	const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		return Uuid()
+	}
+	for i := range b {
+		b[i] = alphabet[int(b[i])%len(alphabet)]
+	}
+	return string(b)
 }
 
 // StableUuid derives a deterministic RFC-4122 UUID from the seed, so configs

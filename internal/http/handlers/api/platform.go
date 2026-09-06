@@ -13,11 +13,11 @@ func PlatformShow() echo.HandlerFunc {
 		return c.JSON(http.StatusOK, struct {
 			AppName    string `json:"app_name"`
 			AppVersion string `json:"app_version"`
-			Core       string `json:"core"`
+			CoreName   string `json:"core_name"`
 		}{
 			AppName:    config.AppName,
 			AppVersion: config.AppVersion,
-			Core:       config.CoreVersion,
+			CoreName:   config.CoreName,
 		})
 	}
 }

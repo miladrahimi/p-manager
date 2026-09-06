@@ -8,32 +8,40 @@ const (
 	NodeStatusAvailable              = "available"
 	NodeStatusDirty                  = "dirty"
 	NodeStatusUnavailable            = "unavailable"
+	NodeStatusDisabled               = "disabled"
 )
 
 // Node represents a server (node) in the system.
 type Node struct {
-	Id         string     `json:"id" validate:"required,uuid"`
-	Host       string     `json:"host" validate:"required,max=128"`
-	HttpToken  string     `json:"http_token" validate:"required"`
-	HttpPort   int        `json:"http_port" validate:"required,min=1,max=65535"`
-	SshUser    string     `json:"ssh_user" validate:"required"`
-	SshPort    int        `json:"ssh_port" validate:"required,min=1,max=65535"`
-	SshStatus  NodeStatus `json:"ssh_status"`
-	Usage      float64    `json:"usage" validate:"min=0"`
-	UsageBytes int64      `json:"usage_bytes" validate:"min=0"`
-	PushStatus NodeStatus `json:"push_status"`
-	PushedAt   int64      `json:"pushed_at"`
-	PulledAt   int64      `json:"pulled_at"`
+	Id          string     `json:"id" validate:"required,uuid"`
+	Host        string     `json:"host" validate:"required,max=128"`
+	HttpToken   string     `json:"http_token"`
+	HttpPort    int        `json:"http_port" validate:"omitempty,min=1,max=65535"`
+	SshUser     string     `json:"ssh_user" validate:"required"`
+	SshPort     int        `json:"ssh_port" validate:"required,min=1,max=65535"`
+	SshEnabled  bool       `json:"ssh_enabled"`
+	SshStatus   NodeStatus `json:"ssh_status"`
+	Usage       float64    `json:"usage" validate:"min=0"`
+	UsageBytes  int64      `json:"usage_bytes" validate:"min=0"`
+	PushEnabled bool       `json:"push_enabled"`
+	PushStatus  NodeStatus `json:"push_status"`
+	PushedAt    int64      `json:"pushed_at"`
+	PulledAt    int64      `json:"pulled_at"`
 }
 
-// NewNode creates a new node instance.
+// NewNode creates a new node instance with the sync options enabled. Pulling is
+// not a manager-side option: a P-Node only pulls once its setup command is run
+// on the node, so PulledAt (and the derived pull status) reflect that
+// implicitly with no flag to toggle.
 func NewNode(id string, host string, httpToken string, httpPort int, sshUser string, sshPort int) *Node {
 	return &Node{
-		Id:        id,
-		Host:      host,
-		HttpToken: httpToken,
-		HttpPort:  httpPort,
-		SshUser:   sshUser,
-		SshPort:   sshPort,
+		Id:          id,
+		Host:        host,
+		HttpToken:   httpToken,
+		HttpPort:    httpPort,
+		SshUser:     sshUser,
+		SshPort:     sshPort,
+		SshEnabled:  true,
+		PushEnabled: true,
 	}
 }

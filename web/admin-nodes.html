@@ -4,392 +4,501 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>P-Manager</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator_semanticui.min.css">
-    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
-    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <title>P-Manager | Nodes</title>
+    <link rel="stylesheet" href="assets/css/app.css?v=2">
+    <link rel="icon" href="assets/images/xray.svg">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg">
+    <script src="assets/js/app.js?v=2"></script>
+    <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
-<body>
+<body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
 
-<div class="container py-4 text-center">
-    <div class="col">
-        <div class="text-center">
-            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
+<main class="mx-auto w-full max-w-5xl p-4 sm:p-6" x-data="nodesPage()" x-init="init()">
+
+    <header class="mb-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+        <div class="flex items-center gap-3">
+            <img src="assets/images/xray.svg" class="h-9 w-9" alt="P-Manager">
+            <h1 class="text-lg font-semibold">P-Manager</h1>
         </div>
+        <nav class="flex items-center gap-1">
+            <a class="nav-link" href="admin-accounts.html">Accounts</a>
+            <span class="nav-link-active">Nodes</span>
+            <a class="nav-link" href="admin-system.html">System</a>
+            <button class="nav-link" @click="exit()">Exit</button>
+        </nav>
+    </header>
 
-        <ul class="nav nav-tabs small">
-            <li class="nav-item">
-                <a class="nav-link px-2" href="admin-accounts.html">Accounts</a>
-            </li>
-            <li class="nav-item">
-                <span class="nav-link active px-2" aria-current="page">Nodes</span>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link px-2" href="admin-system.html">System</a>
-            </li>
-            <li class="nav-item">
-                <span class="nav-link px-2" id="exit">Exit</span>
-            </li>
-        </ul>
-
-        <div class="card text-start mt-3">
-            <div class="card-body bg-light">
-                <div class="row g-2">
-                    <div class="col-12 col-lg-6">
-                        <input type="text" class="form-control form-control-sm" id="body" title="P-Node Info"
-                               placeholder='P-Node Info (e.g. {"ip":"...","http_port":1234,"http_token":...})'>
-                    </div>
-                    <div class="col-12 col-lg-3 d-grid">
-                        <button class="btn btn-dark btn-sm" id="create">+ Add Node</button>
-                    </div>
-                    <div class="col-12 col-lg-3 d-grid">
-                        <a class="btn btn-outline-dark btn-sm" href="https://github.com/miladrahimi/p-node"
-                           target="_blank">
-                            P-Node GitHub
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="table" class="celled striped very compact mt-3"></div>
-    </div>
-</div>
-
-<div class="modal fade" id="node-info-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content text-start">
-            <div class="modal-header">
-                <h5 class="modal-title">Node Info</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <div class="text-muted small">Node ID:</div>
-                    <code class="small" id="node-info-id"></code>
-                </div>
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <div class="text-muted small">Last Pushed At:</div>
-                    <code class="ms-1" id="node-info-push"></code>
-                </div>
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <div class="text-muted small">Last Pulled At:</div>
-                    <code class="ms-1" id="node-info-pull"></code>
-                </div>
-                <div>
-                    <div class="text-muted small mb-1">Pulling Setup Command:</div>
-                    <div class="bg-light rounded d-flex align-items-stretch">
-                        <pre class="m-0 p-2 small flex-grow-1" id="node-info-command"></pre>
-                        <button type="button" class="copy btn btn-dark btn-sm rounded-0 rounded-end"
-                                data-copy-target="node-info-command" data-bs-trigger="manual"
-                                data-bs-toggle="tooltip" data-bs-placement="left" title="Copy">
-                            Copy
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-base font-semibold">
+            Nodes
+            <span class="ml-1 text-sm font-normal text-zinc-500" x-text="`(${nodes.length})`"></span>
+        </h2>
+        <div class="flex gap-2">
+            <a class="btn btn-outline" href="https://github.com/miladrahimi/p-node" target="_blank" rel="noopener">
+                <svg class="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                P-Node GitHub
+            </a>
+            <button class="btn btn-dark" @click="openAdd()">+ Add Node</button>
         </div>
     </div>
-</div>
 
-<script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
-<script src="assets/third_party/tabulator-6.3.1/dist/js/tabulator.min.js"></script>
-<script src="assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+    <p x-cloak x-show="loading" class="py-8 text-center text-sm text-zinc-500">Loading nodes...</p>
+    <p x-cloak x-show="!loading && nodes.length === 0" class="card p-8 text-center text-sm text-zinc-500">
+        No nodes yet. Add your first P-Node to get started.
+    </p>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <template x-for="node in nodes" :key="node.id">
+            <section class="card p-4">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <h3 class="truncate font-mono text-sm font-semibold" x-text="node.host"></h3>
+                    </div>
+                    <div class="flex flex-none gap-1">
+                        <button class="btn btn-outline btn-xs" @click="openInfo(node)">View</button>
+                        <button class="btn btn-outline btn-xs" @click="openEdit(node)">Edit</button>
+                        <button class="btn btn-outline-danger btn-xs" @click="destroy(node)">Delete</button>
+                    </div>
+                </div>
+
+                <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <template x-for="option in options" :key="option.field">
+                        <div class="flex items-center justify-between gap-2 rounded-lg border border-zinc-100 bg-zinc-50 px-2.5 py-2">
+                            <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+                                <p class="text-xs font-medium" x-text="option.label" :title="option.hint"></p>
+                                <span :class="statusChip(node[option.status]).class"
+                                      x-text="statusChip(node[option.status]).label"></span>
+                            </div>
+                            <input type="checkbox" class="switch" :title="option.hint"
+                                   :checked="node[option.field]"
+                                   @change="toggle(node, option.field, $event.target.checked)">
+                        </div>
+                    </template>
+                </div>
+
+                <div class="mt-3 flex items-center justify-between gap-2 text-xs text-zinc-500">
+                    <span class="flex items-center gap-2"
+                          title="Whether this P-Node is pulling its config from P-Manager. Pulling starts implicitly once the setup command is run on the node.">
+                        Pull
+                        <span :class="statusChip(node.pull_status, true).class"
+                              x-text="statusChip(node.pull_status, true).label"></span>
+                    </span>
+                    <span>
+                        Usage: <span class="font-medium text-zinc-700" x-text="`${parseFloat(node.usage).toFixed(2)} GB`"></span>
+                    </span>
+                </div>
+            </section>
+        </template>
+    </div>
+
+    <!-- Add node modal -->
+    <div x-cloak x-show="addOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="addOpen = false">
+        <div class="absolute inset-0 bg-black/50" @click="addOpen = false"></div>
+        <div class="card relative w-full max-w-lg p-5">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="font-semibold">Add Node</h3>
+                <button class="text-zinc-400 hover:text-zinc-700" @click="addOpen = false">&#10005;</button>
+            </div>
+
+            <div class="mb-4 flex gap-1 rounded-lg bg-zinc-100 p-1">
+                <button class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium"
+                        :class="addTab === 'json' ? 'bg-white shadow-sm' : 'text-zinc-500'"
+                        @click="addTab = 'json'">Paste JSON
+                </button>
+                <button class="flex-1 rounded-md px-3 py-1.5 text-sm font-medium"
+                        :class="addTab === 'form' ? 'bg-white shadow-sm' : 'text-zinc-500'"
+                        @click="addTab = 'form'">Manual
+                </button>
+            </div>
+
+            <div x-show="addTab === 'json'">
+                <label class="label" for="add-json">P-Node info JSON (from the P-Node setup output)</label>
+                <textarea id="add-json" class="input h-28 font-mono text-xs" x-model="addJson"
+                          placeholder='{"host":"...","http_port":8080,"http_token":"...","ssh_user":"root","ssh_port":22}'></textarea>
+            </div>
+
+            <div x-show="addTab === 'form'" class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                    <label class="label">Host (IP or domain)</label>
+                    <input type="text" class="input font-mono" x-model.trim="addForm.host" placeholder="1.2.3.4">
+                </div>
+
+                <div class="col-span-2 flex flex-wrap gap-4 rounded-lg bg-zinc-50 p-3">
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="switch" x-model="addForm.push_enabled">
+                        Push
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="switch" x-model="addForm.ssh_enabled">
+                        SSH
+                    </label>
+                </div>
+
+                <template x-if="addForm.push_enabled">
+                    <div class="col-span-2 grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="label">HTTP Port</label>
+                            <input type="number" class="input" x-model.number="addForm.http_port" min="1" max="65535">
+                        </div>
+                        <div>
+                            <label class="label">HTTP Token</label>
+                            <input type="text" class="input font-mono" x-model.trim="addForm.http_token">
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="addForm.ssh_enabled">
+                    <div class="col-span-2 grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="label">SSH User</label>
+                            <input type="text" class="input" x-model.trim="addForm.ssh_user" placeholder="root">
+                        </div>
+                        <div>
+                            <label class="label">SSH Port</label>
+                            <input type="number" class="input" x-model.number="addForm.ssh_port" min="1" max="65535">
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="mt-5 flex justify-end gap-2">
+                <button class="btn btn-outline" @click="addOpen = false">Cancel</button>
+                <button class="btn btn-dark" :disabled="busy" @click="add()"
+                        x-text="busy ? 'Adding...' : 'Add Node'"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit node modal -->
+    <div x-cloak x-show="editOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="editOpen = false">
+        <div class="absolute inset-0 bg-black/50" @click="editOpen = false"></div>
+        <div class="card relative w-full max-w-lg p-5">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="font-semibold">Edit Node</h3>
+                <button class="text-zinc-400 hover:text-zinc-700" @click="editOpen = false">&#10005;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                    <label class="label">Host (IP or domain)</label>
+                    <input type="text" class="input font-mono" x-model.trim="edit.host">
+                </div>
+
+                <div class="col-span-2 flex flex-wrap gap-4 rounded-lg bg-zinc-50 p-3">
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="switch" x-model="edit.push_enabled">
+                        Push
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="switch" x-model="edit.ssh_enabled">
+                        SSH
+                    </label>
+                </div>
+
+                <template x-if="edit.push_enabled">
+                    <div class="col-span-2 grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="label">HTTP Port</label>
+                            <input type="number" class="input" x-model.number="edit.http_port" min="1" max="65535">
+                        </div>
+                        <div>
+                            <label class="label">HTTP Token</label>
+                            <input type="text" class="input font-mono" x-model.trim="edit.http_token">
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="edit.ssh_enabled">
+                    <div class="col-span-2 grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="label">SSH User</label>
+                            <input type="text" class="input" x-model.trim="edit.ssh_user">
+                        </div>
+                        <div>
+                            <label class="label">SSH Port</label>
+                            <input type="number" class="input" x-model.number="edit.ssh_port" min="1" max="65535">
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="mt-5 flex justify-end gap-2">
+                <button class="btn btn-outline" @click="editOpen = false">Cancel</button>
+                <button class="btn btn-dark" :disabled="busy" @click="saveEdit()"
+                        x-text="busy ? 'Saving...' : 'Save'"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Node info modal -->
+    <div x-cloak x-show="infoOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="infoOpen = false">
+        <div class="absolute inset-0 bg-black/50" @click="infoOpen = false"></div>
+        <div class="card relative w-full max-w-lg p-5">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="font-semibold">Node Details</h3>
+                <button class="text-zinc-400 hover:text-zinc-700" @click="infoOpen = false">&#10005;</button>
+            </div>
+
+            <dl class="space-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                    <dt class="w-28 flex-none text-zinc-500">Node ID</dt>
+                    <dd class="truncate font-mono text-xs" x-text="info.id"></dd>
+                </div>
+                <div class="flex items-center gap-2">
+                    <dt class="w-28 flex-none text-zinc-500">Host</dt>
+                    <dd class="font-mono text-xs" x-text="info.host"></dd>
+                </div>
+                <div class="flex items-center gap-2">
+                    <dt class="w-28 flex-none text-zinc-500">Port</dt>
+                    <dd class="font-mono text-xs"
+                        x-text="info.http_port ? `${info.http_port}` : '—'"></dd>
+                </div>
+                <div class="flex items-center gap-2">
+                    <dt class="w-28 flex-none text-zinc-500">SSH</dt>
+                    <dd class="font-mono text-xs"
+                        x-text="info.ssh_enabled ? `${info.ssh_user}@${info.host}:${info.ssh_port}` : 'Disabled'"></dd>
+                </div>
+                <div class="flex items-center gap-2">
+                    <dt class="w-28 flex-none text-zinc-500">Last Pushed</dt>
+                    <dd x-text="ts2datetime(info.pushed_at, 'Never')"></dd>
+                </div>
+                <div class="flex items-center gap-2">
+                    <dt class="w-28 flex-none text-zinc-500">Last Pulled</dt>
+                    <dd x-text="ts2datetime(info.pulled_at, 'Never')"></dd>
+                </div>
+            </dl>
+
+            <div class="mt-4">
+                <p class="label">Pulling setup command (run on the P-Node)</p>
+                <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
+                    <pre class="flex-1 overflow-x-auto p-2.5 text-xs" x-text="info.command"></pre>
+                    <button class="btn flex-none rounded-none text-xs"
+                            :class="copied ? 'bg-emerald-600 text-white' : 'btn-dark'"
+                            @click="copy(info.command)" x-text="copied ? 'Copied!' : 'Copy'"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
+        <template x-for="t in $store.toast.items" :key="t.id">
+            <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
+                 :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
+        </template>
+    </div>
+</main>
+
 <script>
-    let statusFormatter = cell => {
-        console.log(cell.getValue())
-        switch (cell.getValue()) {
-            case "":
-                cell.getElement().style.color = "#595959"
-                return "Processing..."
-            case "available":
-                cell.getElement().style.color = "#198754"
-                return "Available"
-            case "dirty":
-                cell.getElement().style.color = "#a18823"
-                return "Dirty"
-            case "unavailable":
-                cell.getElement().style.color = "#872919"
-                return "Unavailable"
-            default:
-                cell.getElement().style.color = "#000000"
-                return cell.getValue()
+    function nodesPage() {
+        return {
+            nodes: [],
+            loading: true,
+            busy: false,
+            copied: false,
+            addOpen: false,
+            addTab: "json",
+            addJson: "",
+            addForm: {host: "", http_port: null, http_token: "", ssh_user: "root", ssh_port: 22, push_enabled: true, ssh_enabled: true},
+            editOpen: false,
+            edit: {},
+            infoOpen: false,
+            info: {},
+            options: [
+                {
+                    field: "push_enabled", status: "push_status", label: "Push",
+                    hint: "P-Manager pushes configurations to this P-Node.",
+                },
+                {
+                    field: "ssh_enabled", status: "ssh_status", label: "SSH",
+                    hint: "P-Manager tunnels traffic to this P-Node over SSH (Relay RR2SSH).",
+                },
+            ],
+
+            init() {
+                this.load()
+                setInterval(() => {
+                    if (!this.addOpen && !this.editOpen && !this.infoOpen && !this.busy) {
+                        this.load(true)
+                    }
+                }, 10000)
+            },
+
+            async load(silent = false) {
+                try {
+                    this.nodes = await api("GET", "/api/nodes")
+                } catch (e) {
+                    if (!silent) {
+                        this.$store.toast.error(e.message)
+                    }
+                } finally {
+                    this.loading = false
+                }
+            },
+
+            openAdd() {
+                this.addJson = ""
+                this.addForm = {host: "", http_port: null, http_token: "", ssh_user: "root", ssh_port: 22, push_enabled: true, ssh_enabled: true}
+                this.addTab = "json"
+                this.addOpen = true
+            },
+
+            parseAddJson() {
+                let payload
+                try {
+                    payload = JSON.parse(this.addJson)
+                } catch (e) {
+                    // Tolerate trailing commas in hand-copied JSON.
+                    payload = JSON.parse(this.addJson.replace(/,(\s*[}\]])/g, "$1"))
+                }
+                return {
+                    host: payload.host || payload.ip || "",
+                    http_port: parseInt(payload.http_port, 10),
+                    http_token: payload.http_token || "",
+                    ssh_user: payload.ssh_user || "",
+                    ssh_port: parseInt(payload.ssh_port, 10),
+                    // Honor the Xray-only / SSH-only variants from `make info`.
+                    // Absent flags stay undefined, which the backend defaults on.
+                    push_enabled: payload.push_enabled,
+                    ssh_enabled: payload.ssh_enabled,
+                }
+            },
+
+            async add() {
+                let request
+                if (this.addTab === "json") {
+                    if (!this.addJson.trim()) {
+                        this.$store.toast.error("Paste the P-Node JSON first.")
+                        return
+                    }
+                    try {
+                        request = this.parseAddJson()
+                    } catch (e) {
+                        this.$store.toast.error("Invalid JSON payload.")
+                        return
+                    }
+                } else {
+                    request = {...this.addForm}
+                }
+
+                if (!request.host) {
+                    this.$store.toast.error("Host is required.")
+                    return
+                }
+                // HTTP token/port are only required when push is enabled, and
+                // SSH user/port only when SSH is enabled. The JSON paste flow
+                // leaves these flags undefined, which defaults them on.
+                if (request.push_enabled !== false && (!request.http_token || !request.http_port)) {
+                    this.$store.toast.error("HTTP port and token are required when push is enabled.")
+                    return
+                }
+                if (request.ssh_enabled !== false && (!request.ssh_user || !request.ssh_port)) {
+                    this.$store.toast.error("SSH user and port are required when SSH is enabled.")
+                    return
+                }
+                // The backend always stores an SSH user/port; fill sane defaults
+                // when SSH is disabled so a node can still be created without them.
+                request.ssh_user = request.ssh_user || "root"
+                request.ssh_port = request.ssh_port || 22
+
+                this.busy = true
+                try {
+                    await api("POST", "/api/nodes", request)
+                    this.addOpen = false
+                    this.$store.toast.info("Node added successfully.")
+                    await this.load()
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                } finally {
+                    this.busy = false
+                }
+            },
+
+            openEdit(node) {
+                this.edit = {...node}
+                this.editOpen = true
+            },
+
+            async saveEdit() {
+                if (!this.edit.host) {
+                    this.$store.toast.error("Host is required.")
+                    return
+                }
+                if (this.edit.push_enabled && (!this.edit.http_token || !this.edit.http_port)) {
+                    this.$store.toast.error("HTTP port and token are required when push is enabled.")
+                    return
+                }
+                if (this.edit.ssh_enabled && (!this.edit.ssh_user || !this.edit.ssh_port)) {
+                    this.$store.toast.error("SSH user and port are required when SSH is enabled.")
+                    return
+                }
+                this.busy = true
+                try {
+                    await api("PUT", `/api/nodes/${this.edit.id}`, {
+                        host: this.edit.host,
+                        http_port: this.edit.http_port,
+                        http_token: this.edit.http_token,
+                        ssh_user: this.edit.ssh_user,
+                        ssh_port: this.edit.ssh_port,
+                        ssh_enabled: this.edit.ssh_enabled,
+                        push_enabled: this.edit.push_enabled,
+                    })
+                    this.editOpen = false
+                    this.$store.toast.info("Node saved successfully.")
+                    await this.load()
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                } finally {
+                    this.busy = false
+                }
+            },
+
+            async toggle(node, field, value) {
+                try {
+                    await api("PATCH", `/api/nodes/${node.id}`, {[field]: value})
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                }
+                await this.load(true)
+            },
+
+            async destroy(node) {
+                if (!confirm(`Press 'OK' to delete the node "${node.host}".`)) {
+                    return
+                }
+                try {
+                    await api("DELETE", `/api/nodes/${node.id}`)
+                    this.$store.toast.info("Node deleted successfully.")
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                }
+                await this.load()
+            },
+
+            openInfo(node) {
+                this.info = {
+                    ...node,
+                    command: node.pull_command
+                        .replace("BASE_URL", window.location.origin)
+                        .replace("/v1/", "/api/"),
+                }
+                this.copied = false
+                this.infoOpen = true
+            },
+
+            copy(text) {
+                copyText(text).then(() => {
+                    this.copied = true
+                    setTimeout(() => this.copied = false, 1200)
+                }).catch(() => this.$store.toast.error("Copy failed."))
+            },
         }
     }
-
-    let actionsFormatter = cell => [
-        `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`,
-        `<span class="badge bg-info" onclick="info('${cell.getRow().getIndex()}')" title="Info">i</span>`,
-    ].join('&nbsp')
-
-    let destroy = rowIndex => {
-        let confirmed = confirm("Press 'OK' to delete the node.")
-        if (!confirmed) {
-            return
-        }
-
-        let row = table.getRow(rowIndex)
-        if (!row.getData().id) {
-            table.deleteRow(rowIndex)
-            return
-        }
-
-        table.alert("Deleting the node...", "msg")
-
-        $.ajax({
-            type: "DELETE",
-            url: `/api/nodes/${rowIndex}`,
-            contentType: "application/json",
-            dataType: "json",
-            processData: true,
-            success: () => {
-                table.alert("Item deleted successfully.", "msg")
-                setTimeout(() => window.location.reload(), 1000)
-            },
-            error: makeErrorHandler(message => table.alert(message, "error")),
-            complete: () => setTimeout(() => table.clearAlert(), 1500),
-        })
-    }
-
-    let info = rowIndex => {
-        let row = table.getRow(rowIndex)
-        let data = row.getData()
-
-        let baseUrl = window.location.origin
-        let command = data.pull_command
-            .replace('BASE_URL', baseUrl)
-            .replace('/v1/', '/api/')
-
-        $("#node-info-id").text(data.id)
-        $("#node-info-command").text(command)
-        $("#node-info-push").text(ts2datetime(data.pushed_at, "Never"))
-        $("#node-info-pull").text(ts2datetime(data.pulled_at, "Never"))
-
-        let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("node-info-modal"))
-        modal.show()
-    }
-
-    let table = new Tabulator("#table", {
-        ajaxURL: "/api/nodes",
-        ajaxConfig: {
-            headers: {
-                "Authorization": `Bearer ${localStorage.getItem("token")}`,
-            },
-        },
-        layout: "fitDataStretch",
-        initialSort: [{column: "id", dir: "desc"}],
-        validationMode: "blocking",
-        columns: [
-            {
-                title: "Host",
-                field: "host",
-                editor: "input",
-                widthGrow: 2,
-                headerFilter: "input",
-                validator: ["required"],
-                editable: true,
-            },
-            {
-                title: "HTTP Port",
-                field: "http_port",
-                visible: true,
-                editor: "number",
-                widthGrow: 1,
-                validator: ["required", "min:1", "max:65536"],
-                editable: true
-            },
-            {
-                title: "HTTP Token",
-                field: "http_token",
-                editor: "input",
-                widthGrow: 2,
-                validator: ["required"],
-                editable: true,
-            },
-            {
-                title: "SSH User",
-                field: "ssh_user",
-                editor: "input",
-                widthGrow: 1,
-                validator: ["required"],
-                editable: true,
-            },
-            {
-                title: "SSH Port",
-                field: "ssh_port",
-                visible: true,
-                editor: "number",
-                widthGrow: 1,
-                validator: ["required", "min:1", "max:65536"],
-                editable: true
-            },
-            {
-                title: "Usage (GB)",
-                field: "usage",
-                visible: true,
-                widthGrow: 1,
-                editable: false,
-                formatter: cell => parseFloat(cell.getData()['usage']).toFixed(2)
-            },
-            {
-                title: "Push Status", field: "push_status", widthGrow: 1, resizable: true, formatter: statusFormatter,
-                headerPopup: "Status of the process where P-Manager pushes configurations to P-Nodes.",
-            },
-            {
-                title: "Pull Status", field: "pull_status", widthGrow: 1, resizable: true, formatter: statusFormatter,
-                headerPopup: "Status of the process where P-Nodes pull configurations from P-Manager.",
-            },
-            {
-                title: "SSH Status", field: "ssh_status", widthGrow: 1, resizable: true, formatter: statusFormatter,
-                headerPopup: "Status of the SSH connection check from the P-Manager to the node.",
-            },
-            {
-                title: "Actions", formatter: actionsFormatter, hozAlign: "right",
-            },
-        ],
-    })
-
-    table.on("dataLoadError", makeErrorHandler())
-
-    table.on("cellEdited", cell => {
-        if (!cell.getData()['host'] || !cell.getData()['http_token'] || !cell.getData()['http_port'] ||
-            !cell.getData()['ssh_user'] || !cell.getData()['ssh_port']) {
-            return
-        }
-
-        table.alert("Saving the node...", "msg")
-
-        let isNew = !cell.getData().id
-        let method = isNew ? "POST" : "PUT"
-        let url = isNew ? "/api/nodes" : `/api/nodes/${cell.getData().id}`
-
-        $.ajax({
-            type: method,
-            url: url,
-            contentType: "application/json",
-            data: JSON.stringify(cell.getData()),
-            dataType: "json",
-            processData: true,
-            success: () => {
-                table.alert("Item saved successfully.", "msg")
-                setTimeout(() => window.location.reload(), 1000)
-            },
-            error: makeErrorHandler(message => table.alert(message, "error")),
-            complete: () => setTimeout(() => table.clearAlert(), 1500),
-        })
-    })
-
-    $("#create").click(() => {
-        let raw = $("#body").val().trim()
-        if (!raw) {
-            table.alert("Paste the P-Node JSON first.", "error")
-            return
-        }
-
-        let payload
-        try {
-            payload = JSON.parse(raw)
-        } catch (e) {
-            try {
-                payload = JSON.parse(raw.replace(/,(\s*[}\]])/g, "$1"))
-            } catch (parseError) {
-                table.alert("Invalid JSON payload.", "error")
-                return
-            }
-        }
-
-        let host = payload.ip || payload.host || ""
-        let httpPort = parseInt(payload.http_port, 10)
-        let sshPort = parseInt(payload.ssh_port, 10)
-        let httpToken = payload.http_token || ""
-        let sshUser = payload.ssh_user || ""
-
-        if (!host || !httpToken || !httpPort || !sshUser || !sshPort) {
-            table.alert("JSON payload is missing required fields.", "error")
-            return
-        }
-
-        let request = {
-            host: host,
-            http_token: httpToken,
-            http_port: httpPort,
-            ssh_user: sshUser,
-            ssh_port: sshPort,
-        }
-
-        table.alert("Adding the node...", "msg")
-
-        $.ajax({
-            type: "POST",
-            url: "/api/nodes",
-            contentType: "application/json",
-            data: JSON.stringify(request),
-            dataType: "json",
-            processData: true,
-            headers: {
-                "Authorization": `Bearer ${localStorage.getItem("token")}`,
-            },
-            success: () => {
-                table.alert("Item saved successfully.", "msg")
-                setTimeout(() => window.location.reload(), 1000)
-            },
-            error: makeErrorHandler(message => table.alert(message, "error")),
-            complete: () => setTimeout(() => table.clearAlert(), 1500),
-        })
-    })
-
-    const showCopyFeedback = button => {
-        const tooltip = bootstrap.Tooltip.getOrCreateInstance(button)
-        tooltip.setContent({'.tooltip-inner': 'Copied!'})
-        tooltip.show()
-        setTimeout(() => tooltip.hide() && tooltip.setContent({'.tooltip-inner': 'Copy'}), 1000)
-
-        const me = $(button)
-        me.removeClass('btn-dark').addClass('btn-success')
-        setTimeout(() => me.removeClass('btn-success').addClass('btn-dark').blur(), 1000)
-    }
-
-    const copyText = text => {
-        if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(text)
-        }
-
-        return new Promise((resolve, reject) => {
-            const ta = document.createElement('textarea')
-            ta.value = text
-            ta.setAttribute('readonly', '')
-            ta.style.position = 'absolute'
-            ta.style.left = '-9999px'
-            ta.style.top = '0'
-            document.body.appendChild(ta)
-            ta.select()
-            ta.setSelectionRange(0, ta.value.length)
-            // noinspection JSDeprecatedSymbols
-            const ok = document.execCommand('copy')
-            document.body.removeChild(ta)
-            ok ? resolve() : reject()
-        })
-    }
-
-    $(document).on('click', '.copy', function () {
-        const me = $(this)
-        const targetId = me.data('copyTarget')
-        let text
-
-        if (targetId) {
-            text = $(`#${targetId}`).text()
-        } else {
-            const link = me.parent().find('a')
-            text = link.attr('href') || link.text()
-        }
-
-        copyText(text)
-            .then(() => showCopyFeedback(this))
-            .catch(() => table.alert("Copy failed.", "error"))
-    })
 </script>
 
 </body>

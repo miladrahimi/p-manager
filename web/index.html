@@ -5,74 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Sign In</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
-    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
-    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <link rel="stylesheet" href="assets/css/app.css?v=2">
+    <link rel="icon" href="assets/images/xray.svg">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg">
+    <script src="assets/js/app.js?v=2"></script>
+    <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
-<body>
+<body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
 
-<div class="container py-4 text-center">
-    <div class="col col-md-6 col-lg-4 offset-md-3 offset-lg-4">
-        <div class="card mt-4">
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <div class="text-center my-3">
-                        <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
-                    </div>
-                    <input type="text" class="form-control" id="username" placeholder="Username" title="Username">
-                    <input type="password" class="form-control" id="password" placeholder="Password" title="Password">
-                    <button class="btn btn-dark d-block" id="sign-in">Sign in</button>
-                </div>
-            </div>
-        </div>
+<main class="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center p-6" x-data="signInPage()">
+    <div class="mb-6 flex flex-col items-center gap-3">
+        <img src="assets/images/xray.svg" class="h-12 w-12" alt="P-Manager">
+        <h1 class="text-lg font-semibold">P-Manager</h1>
     </div>
-</div>
 
-<script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+    <form class="card flex flex-col gap-3 p-6" @submit.prevent="signIn()">
+        <div>
+            <label class="label" for="username">Username</label>
+            <input id="username" type="text" class="input" placeholder="admin"
+                   autocomplete="username" x-model="username" required>
+        </div>
+        <div>
+            <label class="label" for="password">Password</label>
+            <input id="password" type="password" class="input" placeholder="••••••••"
+                   autocomplete="current-password" x-model="password" required>
+        </div>
+        <p x-cloak x-show="error" class="text-sm text-red-600" x-text="error"></p>
+        <button type="submit" class="btn btn-dark mt-1 w-full" :disabled="busy"
+                x-text="busy ? 'Signing in...' : 'Sign in'"></button>
+    </form>
+</main>
+
 <script>
-    jQuery(() => {
-        $('#sign-in').click(function () {
-            let me = $(this)
-            me.attr('disabled', 'disabled').html('Processing...')
-
-            $.ajax({
-                type: 'POST',
-                url: '/api/sign-in',
-                data: JSON.stringify({
-                    "username": $("#username").val(),
-                    "password": $("#password").val(),
-                }),
-                dataType: 'json',
-                processData: true,
-                success: response => {
-                    localStorage.setItem("token", response['token'])
+    function signInPage() {
+        return {
+            username: "",
+            password: "",
+            busy: false,
+            error: "",
+            async signIn() {
+                this.busy = true
+                this.error = ""
+                try {
+                    const response = await api("POST", "/api/sign-in", {
+                        username: this.username,
+                        password: this.password,
+                    }, {redirectOnUnauthorized: false})
+                    localStorage.setItem("token", response["token"])
                     window.location = "admin-accounts.html"
-                },
-                error: response => {
-                    me.removeClass('btn-primary').addClass('btn-danger')
-                    if (response.status === 401) {
-                        me.html('Unauthorized!')
-                    } else {
-                        console.log('ERROR', 'Sign In', response.status, response.responseText)
-                        me.html('Error!')
-                    }
-                    setTimeout(() => {
-                        me.removeClass('btn-danger').addClass('btn-primary')
-                        me.html('Sign in').removeAttr('disabled')
-                    }, 1500)
+                } catch (e) {
+                    this.error = e.message
+                    this.busy = false
                 }
-            })
-        })
-
-        $('#username, #password').keypress(e => {
-            const keyCode = e.keyCode ? e.keyCode : e.which
-            if (keyCode === 13) {
-                $('#sign-in').click()
-            }
-        })
-    })
+            },
+        }
+    }
 </script>
+
 </body>
 </html>

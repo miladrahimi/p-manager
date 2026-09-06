@@ -102,6 +102,7 @@ func (s *Server) Run() {
 	g2.POST("/nodes", api.NodesStore(s.coordinator, s.db))
 	g2.PATCH("/nodes", api.NodesUpdatePartialBatch(s.coordinator, s.db))
 	g2.PUT("/nodes/:id", api.NodesUpdate(s.coordinator, s.db))
+	g2.PATCH("/nodes/:id", api.NodesUpdateToggles(s.coordinator, s.db))
 	g2.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db))
 	g2.GET("/nodes/:id/config", api.NodesConfigShow(s.coordinator, s.composer, s.db))
 

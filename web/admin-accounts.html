@@ -4,262 +4,281 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>P-Manager</title>
-    <link rel="stylesheet" href="assets/third_party/bootstrap-5.3.5/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator.min.css">
-    <link rel="stylesheet" href="assets/third_party/tabulator-6.3.1/dist/css/tabulator_semanticui.min.css">
-    <link rel="icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
-    <link rel="apple-touch-icon" href="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40">
+    <title>P-Manager | Accounts</title>
+    <link rel="stylesheet" href="assets/css/app.css?v=2">
+    <link rel="icon" href="assets/images/xray.svg">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg">
+    <script src="assets/js/app.js?v=2"></script>
+    <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
-<body>
+<body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
 
-<div class="container py-4 text-center">
-    <div class="col">
-        <div class="text-center">
-            <img src="assets/images/xray.svg?h=03c70e387db88eaafa49e3eeecd2fb40" alt="icon" class="img-fluid">
+<main class="mx-auto w-full max-w-5xl p-4 sm:p-6" x-data="accountsPage()" x-init="load()">
+
+    <header class="mb-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+        <div class="flex items-center gap-3">
+            <img src="assets/images/xray.svg" class="h-9 w-9" alt="P-Manager">
+            <h1 class="text-lg font-semibold">P-Manager</h1>
         </div>
+        <nav class="flex items-center gap-1">
+            <span class="nav-link-active">Accounts</span>
+            <a class="nav-link" href="admin-nodes.html">Nodes</a>
+            <a class="nav-link" href="admin-system.html">System</a>
+            <button class="nav-link" @click="exit()">Exit</button>
+        </nav>
+    </header>
 
-        <ul class="nav nav-tabs small">
-            <li class="nav-item">
-                <span class="nav-link px-2 active" aria-current="page">Accounts</span>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link px-2" href="admin-nodes.html">Nodes</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link px-2" href="admin-system.html">System</a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link px-2" id="exit">Exit</a>
-            </li>
-        </ul>
-
-        <div class="card text-start mt-3">
-            <div class="card-body bg-light">
-                <div class="row g-2">
-                    <div class="col-12 col-md-6">
-                        <input type="text" class="form-control form-control-sm" id="account-name"
-                               placeholder="Name" title="Account name.">
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <input type="number" class="form-control form-control-sm" id="account-quota"
-                               placeholder="Quota (GB)" title="The quota in gigabytes.">
-                    </div>
-                    <div class="col-12 col-md-2 d-grid">
-                        <button class="btn btn-dark btn-sm" id="create">+ Add Account</button>
-                    </div>
-                </div>
-            </div>
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-base font-semibold">
+            Accounts
+            <span class="ml-1 text-sm font-normal text-zinc-500"
+                  x-text="`(${filtered().length}/${accounts.length})`"></span>
+        </h2>
+        <div class="flex flex-wrap gap-2">
+            <input type="search" class="input w-48" placeholder="Search by name..." x-model.trim="q">
+            <button class="btn btn-dark" @click="openCreate()">+ Add Account</button>
         </div>
-
-        <div id="table" class="celled striped very compact mt-3"></div>
     </div>
-</div>
 
-<script src="assets/third_party/jquery-3.7.1.min.js"></script>
-<script src="assets/third_party/bootstrap-5.3.5/js/bootstrap.bundle.min.js"></script>
-<script src="assets/third_party/tabulator-6.3.1/dist/js/tabulator.min.js"></script>
-<script src="assets/js/utils.js?h=c101a9d14ade78e04eeb281043fdbc9f"></script>
+    <p x-cloak x-show="loading" class="py-8 text-center text-sm text-zinc-500">Loading accounts...</p>
+    <p x-cloak x-show="!loading && filtered().length === 0" class="card p-8 text-center text-sm text-zinc-500">
+        No accounts found.
+    </p>
+
+    <div class="card overflow-x-auto" x-show="!loading && filtered().length > 0">
+        <table class="w-full text-left text-sm">
+            <thead class="border-b border-zinc-200 text-xs text-zinc-500 uppercase">
+            <tr>
+                <template x-for="col in columns" :key="col.key">
+                    <th class="cursor-pointer px-4 py-3 font-medium select-none hover:text-zinc-800"
+                        @click="sortBy(col.key)">
+                        <span x-text="col.label"></span>
+                        <span x-show="sortKey === col.key" x-text="sortDir === 1 ? '▲' : '▼'"></span>
+                    </th>
+                </template>
+                <th class="px-4 py-3 text-right font-medium">Actions</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100">
+            <template x-for="account in filtered()" :key="account.id">
+                <tr class="hover:bg-zinc-50" :class="account.enabled ? '' : 'opacity-60'">
+                    <td class="px-4 py-2.5 font-medium" x-text="account.name"></td>
+                    <td class="px-4 py-2.5">
+                        <input type="checkbox" class="switch" :checked="account.enabled"
+                               @change="toggle(account, $event.target.checked)" title="Enable or disable the account.">
+                    </td>
+                    <td class="px-4 py-2.5 whitespace-nowrap"
+                        x-text="account.quota > 0 ? `${account.quota} GB` : 'Unlimited'"></td>
+                    <td class="min-w-40 px-4 py-2.5">
+                        <div class="flex items-center gap-2">
+                            <div class="h-1.5 w-full max-w-32 overflow-hidden rounded-full bg-zinc-100">
+                                <div class="h-full rounded-full" :class="usageColor(account)"
+                                     :style="`width:${usagePercent(account)}%`"></div>
+                            </div>
+                            <span class="text-xs whitespace-nowrap text-zinc-500"
+                                  x-text="`${parseFloat(account.usage).toFixed(2)} GB`"></span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-2.5 text-xs whitespace-nowrap text-zinc-500"
+                        x-text="ts2date(account.created_at)"></td>
+                    <td class="px-4 py-2.5">
+                        <div class="flex justify-end gap-1">
+                            <button class="btn btn-outline btn-xs" title="Open the public account page."
+                                    @click="window.open(`/account/${account.id}`, '_blank')">Open
+                            </button>
+                            <button class="btn btn-outline btn-xs" @click="openEdit(account)">Edit</button>
+                            <button class="btn btn-outline btn-xs" title="Reset usage and enable the account."
+                                    @click="reset(account)">Reset
+                            </button>
+                            <button class="btn btn-outline-danger btn-xs" @click="destroy(account)">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            </template>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create/Edit account modal -->
+    <div x-cloak x-show="formOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="formOpen = false">
+        <div class="absolute inset-0 bg-black/50" @click="formOpen = false"></div>
+        <div class="card relative w-full max-w-md p-5">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="font-semibold" x-text="form.id ? 'Edit Account' : 'Add Account'"></h3>
+                <button class="text-zinc-400 hover:text-zinc-700" @click="formOpen = false">&#10005;</button>
+            </div>
+
+            <form class="flex flex-col gap-3" @submit.prevent="save()">
+                <div>
+                    <label class="label" for="account-name">Name</label>
+                    <input id="account-name" type="text" class="input" x-model.trim="form.name"
+                           minlength="1" maxlength="32" required>
+                </div>
+                <div>
+                    <label class="label" for="account-quota">Quota (GB, 0 for unlimited)</label>
+                    <input id="account-quota" type="number" class="input" x-model.number="form.quota"
+                           min="0" step="any" required>
+                </div>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" class="switch" x-model="form.enabled">
+                    Enabled
+                </label>
+
+                <div class="mt-2 flex justify-end gap-2">
+                    <button type="button" class="btn btn-outline" @click="formOpen = false">Cancel</button>
+                    <button type="submit" class="btn btn-dark" :disabled="busy"
+                            x-text="busy ? 'Saving...' : 'Save'"></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
+        <template x-for="t in $store.toast.items" :key="t.id">
+            <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
+                 :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
+        </template>
+    </div>
+</main>
+
 <script>
-    let find = (rowIndex, field) => table.getRow(rowIndex).getData()[field]
+    function accountsPage() {
+        return {
+            accounts: [],
+            loading: true,
+            busy: false,
+            q: "",
+            sortKey: "name",
+            sortDir: 1,
+            formOpen: false,
+            form: {id: "", name: "", quota: 0, usage: 0, enabled: true},
+            columns: [
+                {key: "name", label: "Name"},
+                {key: "enabled", label: "Enabled"},
+                {key: "quota", label: "Quota"},
+                {key: "usage", label: "Usage"},
+                {key: "created_at", label: "Created"},
+            ],
 
-    let destroy = rowIndex => {
-        let confirmed = confirm("Press 'OK' to delete the account.")
-        if (!confirmed) {
-            return
-        }
-
-        table.alert("Deleting the account...", "msg")
-        table.getRow(rowIndex).getElement().classList.add("negative")
-
-        $.ajax({
-            type: "DELETE",
-            url: `/api/accounts/${find(rowIndex, 'id')}`,
-            contentType: "application/json",
-            dataType: "json",
-            processData: true,
-            success: () => {
-                table.alert("Account deleted successfully.", "msg")
-                setTimeout(() => window.location.reload(), 1000)
+            async load() {
+                try {
+                    this.accounts = await api("GET", "/api/accounts")
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                } finally {
+                    this.loading = false
+                }
             },
-            error: makeErrorHandler(message => table.alert(message, "error")),
-            complete: () => setTimeout(() => table.clearAlert(), 1500),
-        })
+
+            filtered() {
+                const q = this.q.toLowerCase()
+                return this.accounts
+                    .filter(a => !q || a.name.toLowerCase().includes(q))
+                    .sort((a, b) => {
+                        const x = a[this.sortKey], y = b[this.sortKey]
+                        const c = typeof x === "string" ? x.localeCompare(y) : (x === y ? 0 : x > y ? 1 : -1)
+                        return c * this.sortDir
+                    })
+            },
+
+            sortBy(key) {
+                this.sortDir = this.sortKey === key ? -this.sortDir : 1
+                this.sortKey = key
+            },
+
+            usagePercent(account) {
+                if (account.quota <= 0) {
+                    return account.usage > 0 ? 100 : 0
+                }
+                return Math.min(100, Math.floor(account.usage / account.quota * 100))
+            },
+
+            usageColor(account) {
+                if (account.quota <= 0) {
+                    return "bg-zinc-400"
+                }
+                const percent = this.usagePercent(account)
+                return percent > 90 ? "bg-red-500" : percent > 60 ? "bg-amber-500" : "bg-emerald-500"
+            },
+
+            openCreate() {
+                this.form = {id: "", name: "", quota: 0, usage: 0, enabled: true}
+                this.formOpen = true
+            },
+
+            openEdit(account) {
+                this.form = {
+                    id: account.id,
+                    name: account.name,
+                    quota: account.quota,
+                    usage: account.usage,
+                    enabled: account.enabled,
+                }
+                this.formOpen = true
+            },
+
+            async save() {
+                this.busy = true
+                const body = {
+                    name: this.form.name,
+                    quota: this.form.quota || 0,
+                    usage: this.form.usage || 0,
+                    enabled: this.form.enabled,
+                }
+                try {
+                    if (this.form.id) {
+                        await api("PUT", `/api/accounts/${this.form.id}`, body)
+                    } else {
+                        await api("POST", "/api/accounts", body)
+                    }
+                    this.formOpen = false
+                    this.$store.toast.info("Account saved successfully.")
+                    await this.load()
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                } finally {
+                    this.busy = false
+                }
+            },
+
+            async toggle(account, enabled) {
+                try {
+                    await api("PATCH", `/api/accounts/${account.id}`, {enabled: enabled})
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                }
+                await this.load()
+            },
+
+            async reset(account) {
+                if (!confirm(`Press 'OK' to reset the usage of "${account.name}".`)) {
+                    return
+                }
+                try {
+                    await api("PATCH", `/api/accounts/${account.id}`, {usage: 0, enabled: true})
+                    this.$store.toast.info("Account has been reset successfully.")
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                }
+                await this.load()
+            },
+
+            async destroy(account) {
+                if (!confirm(`Press 'OK' to delete the account "${account.name}".`)) {
+                    return
+                }
+                try {
+                    await api("DELETE", `/api/accounts/${account.id}`)
+                    this.$store.toast.info("Account deleted successfully.")
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                }
+                await this.load()
+            },
+        }
     }
-
-    let reset = rowIndex => {
-        let confirmed = confirm("Press 'OK' to reset the account's usage.")
-        if (!confirmed) {
-            return
-        }
-
-        table.alert("Resetting the account...", "msg")
-
-        $.ajax({
-            type: "PATCH",
-            url: `/api/accounts/${find(rowIndex, 'id')}`,
-            data: JSON.stringify({
-                usage: 0,
-                enabled: true,
-            }),
-            contentType: "application/json",
-            dataType: "json",
-            processData: true,
-            success: () => {
-                table.alert("Account has been reset successfully.", "msg")
-                setTimeout(() => window.location.reload(), 1000)
-            },
-            error: makeErrorHandler(message => table.alert(message, "error")),
-            complete: () => setTimeout(() => table.clearAlert(), 1500),
-        })
-    }
-
-    let account = rowIndex => {
-        const accountId = find(rowIndex, 'id')
-        if (!accountId) {
-            table.alert("Account ID is missing for this account.", "error")
-            return
-        }
-        window.open(`/account/${accountId}`, '_blank')
-    }
-
-    let actionsFormatter = cell => [
-        `<span class="badge bg-danger" onclick="destroy('${cell.getRow().getIndex()}')" title="Delete">X</span>`,
-        `<span class="badge bg-success" onclick="reset('${cell.getRow().getIndex()}')" title="Reset">0</span>`,
-        `<span class="badge bg-dark" onclick="account('${cell.getRow().getIndex()}')" title="Account">A</span>`,
-    ].join('&nbsp')
-
-    let table = new Tabulator("#table", {
-        ajaxURL: "/api/accounts",
-        ajaxConfig: {
-            headers: {
-                "Authorization": `Bearer ${localStorage.getItem("token")}`,
-            },
-        },
-        layout: "fitDataStretch",
-        initialSort: [{column: "name", dir: "asc"}],
-        validationMode: "blocking",
-        columns: [
-            {
-                title: "Name", field: "name", resizable: true, headerFilter: "input", editor: "input",
-                validator: ["required", "unique", "minLength:1", "maxLength:32"],
-            },
-            {
-                title: "Enabled", field: "enabled", resizable: true, editor: true, formatter: "tickCross"
-            },
-            {
-                title: "Quota (GB)", field: "quota", resizable: true, editor: "number",
-                validator: ["required", "min:0", "max:1000000000"],
-            },
-            {
-                title: "Usage (GB)",
-                field: "usage",
-                resizable: true,
-                sorter: "number",
-                formatter: "progress",
-                formatterParams: cell => ({
-                    min: 0,
-                    max: cell.getData().quota || cell.getData().usage,
-                    color: cell.getData().quota ? ["#3fb449", "#b4a43f", "#b4513f"] : ["#3fb449"],
-                    legend: true,
-                    legendColor: "#000000",
-                    legendAlign: "center",
-                })
-            },
-            {
-                title: "Created @",
-                field: "created_at",
-                resizable: true,
-                formatter: cell => ts2date(cell.getData().created_at),
-            },
-            {
-                title: "Actions", field: "actions", formatter: actionsFormatter, hozAlign: "right",
-            },
-        ],
-        rowFormatter: row => {
-            if (row.getData().id === 0) {
-                row.getElement().classList.add("positive")
-            }
-        },
-    })
-
-    table.on("dataLoadError", makeErrorHandler())
-
-    const showTempAlert = (message, type) => {
-        table.alert(message, type)
-        setTimeout(() => table.clearAlert(), 1500)
-    }
-
-    table.on("cellEdited", cell => {
-        if (!cell.getData()['name']) {
-            showTempAlert("Account name is required.", "error")
-            return
-        }
-
-        table.alert("Saving the account...", "msg")
-
-        let isNew = cell.getData().id === ""
-        let method = isNew ? "POST" : "PUT"
-        let url = isNew ? "/api/accounts" : `/api/accounts/${cell.getData().id}`
-
-        $.ajax({
-            type: method,
-            url: url,
-            contentType: "application/json",
-            data: JSON.stringify(cell.getData()),
-            dataType: "json",
-            processData: true,
-            success: () => {
-                table.alert("Item saved successfully.", "msg")
-                setTimeout(() => window.location.reload(), 1000)
-            },
-            error: makeErrorHandler(message => table.alert(message, "error")),
-            complete: () => setTimeout(() => table.clearAlert(), 1500),
-        })
-    })
-
-    $("#create").click(() => {
-        let name = $("#account-name").val().trim()
-        let quotaRaw = $("#account-quota").val().trim()
-
-        if (!name) {
-            showTempAlert("Account name is required.", "error")
-            return
-        }
-
-        let quota = 0
-        if (quotaRaw !== "") {
-            quota = parseFloat(quotaRaw)
-        }
-        if (Number.isNaN(quota) || quota < 0) {
-            table.alert("Quota must be a non-negative number.", "error")
-            return
-        }
-
-        table.alert("Creating the account...", "msg")
-
-        $.ajax({
-            type: "POST",
-            url: "/api/accounts",
-            contentType: "application/json",
-            data: JSON.stringify({
-                name: name,
-                quota: quota,
-                usage: 0,
-                enabled: true,
-            }),
-            dataType: "json",
-            processData: true,
-            success: () => {
-                $("#account-name").val("")
-                $("#account-quota").val("")
-                table.alert("Item saved successfully.", "msg")
-                setTimeout(() => window.location.reload(), 1000)
-            },
-            error: makeErrorHandler(message => table.alert(message, "error")),
-            complete: () => setTimeout(() => table.clearAlert(), 1500),
-        })
-    })
 </script>
 
 </body>

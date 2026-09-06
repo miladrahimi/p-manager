@@ -11,8 +11,8 @@ import (
 )
 
 const AppName = "P-Manager"
-const AppVersion = "v26.2.17"
-const CoreVersion = "Xray v26.1.23"
+const AppVersion = "v26.9.6"
+const CoreVersion = "Xray v26.3.27"
 const MaxAccountsCount = 1024
 const DefaultNodeSni = "dl.google.com"
 const DefaultManagerSni = "snapp.ir"

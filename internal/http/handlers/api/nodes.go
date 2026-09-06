@@ -38,12 +38,20 @@ func pullStatus(pulledAt int64) data.NodeStatus {
 }
 
 type NodesStoreRequest struct {
-	Host      string `json:"host" validate:"required,max=128"`
-	Ip        string `json:"ip" validate:"max=128"`
-	HttpToken string `json:"http_token" validate:"required"`
-	HttpPort  int    `json:"http_port" validate:"required,min=1,max=65535"`
-	SshUser   string `json:"ssh_user" validate:"required"`
-	SshPort   int    `json:"ssh_port" validate:"required,min=1,max=65535"`
+	Host        string `json:"host" validate:"required,max=128"`
+	HttpToken   string `json:"http_token"`
+	HttpPort    int    `json:"http_port" validate:"omitempty,min=1,max=65535"`
+	SshUser     string `json:"ssh_user" validate:"required"`
+	SshPort     int    `json:"ssh_port" validate:"required,min=1,max=65535"`
+	SshEnabled  *bool  `json:"ssh_enabled"`
+	PushEnabled *bool  `json:"push_enabled"`
+}
+
+// pushHttpMissing reports whether push is enabled but the HTTP credentials the
+// manager needs to push config to the node are absent. HTTP token/port are only
+// used for pushing, so they are optional when push is disabled.
+func pushHttpMissing(pushEnabled bool, token string, port int) bool {
+	return pushEnabled && (token == "" || port < 1)
 }
 
 type NodesUpdateRequest struct {
@@ -52,6 +60,20 @@ type NodesUpdateRequest struct {
 
 type NodesUpdatePartialRequest struct {
 	Usage *float64 `json:"usage"`
+}
+
+type NodesTogglesRequest struct {
+	SshEnabled  *bool `json:"ssh_enabled"`
+	PushEnabled *bool `json:"push_enabled"`
+}
+
+// boolOr returns the pointed-to value or the given default when nil. Requests
+// omitting a sync flag (e.g. the P-Node JSON paste flow) default to enabled.
+func boolOr(v *bool, def bool) bool {
+	if v == nil {
+		return def
+	}
+	return *v
 }
 
 // NodesIndex returns the list of nodes.
@@ -63,9 +85,16 @@ func NodesIndex(db *data.Store) echo.HandlerFunc {
 			response = make([]NodeResponse, 0, len(d.Nodes))
 			for _, node := range d.Nodes {
 				cmd := fmt.Sprintf("make set-manager URL=\"BASE_URL/v1/nodes/%s\" TOKEN=\"%s\"", node.Id, token)
+				n := *node
+				if !n.SshEnabled {
+					n.SshStatus = data.NodeStatusDisabled
+				}
+				if !n.PushEnabled {
+					n.PushStatus = data.NodeStatusDisabled
+				}
 				response = append(response, NodeResponse{
-					Node:        *node,
-					PullStatus:  pullStatus(node.PulledAt),
+					Node:        n,
+					PullStatus:  pullStatus(n.PulledAt),
 					PullCommand: cmd,
 				})
 			}
@@ -84,12 +113,14 @@ func NodesStore(coordinator *coordinator.Coordinator, db *data.Store) echo.Handl
 				"message": "Cannot parse the request body.",
 			})
 		}
-		if r.Host == "" && r.Ip != "" {
-			r.Host = r.Ip
-		}
 		if err := validator.New().Struct(r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
+			})
+		}
+		if pushHttpMissing(boolOr(r.PushEnabled, true), r.HttpToken, r.HttpPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "HTTP token and port are required when push is enabled.",
 			})
 		}
 
@@ -118,6 +149,9 @@ func NodesStore(coordinator *coordinator.Coordinator, db *data.Store) echo.Handl
 				d.Nodes = append(d.Nodes, target)
 			}
 
+			target.SshEnabled = boolOr(r.SshEnabled, target.SshEnabled)
+			target.PushEnabled = boolOr(r.PushEnabled, target.PushEnabled)
+
 			nodeId = target.Id
 			node = *target
 			return true, nil
@@ -145,12 +179,14 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *data.Store) echo.Hand
 				"message": "Cannot parse the request body.",
 			})
 		}
-		if r.Host == "" && r.Ip != "" {
-			r.Host = r.Ip
-		}
 		if err := validator.New().Struct(r); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
+			})
+		}
+		if pushHttpMissing(boolOr(r.PushEnabled, true), r.HttpToken, r.HttpPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "HTTP token and port are required when push is enabled.",
 			})
 		}
 
@@ -174,6 +210,8 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *data.Store) echo.Hand
 			target.SshUser = r.SshUser
 			target.SshPort = r.SshPort
 			target.SshStatus = data.NodeStatusProcessing
+			target.SshEnabled = boolOr(r.SshEnabled, target.SshEnabled)
+			target.PushEnabled = boolOr(r.PushEnabled, target.PushEnabled)
 
 			found = true
 			nodeId = target.Id
@@ -224,6 +262,57 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *data.Stor
 		go coordinator.UpdateConfigs()
 
 		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+// NodesUpdateToggles updates the sync flags (ssh/push/pull) of a single node.
+func NodesUpdateToggles(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var r NodesTogglesRequest
+		if err := c.Bind(&r); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Cannot parse the request body.",
+			})
+		}
+
+		var node data.Node
+		var nodeId string
+		sshTurnedOn := false
+		found := false
+		err := db.Mutate(func(d *data.Data) (bool, error) {
+			for _, n := range d.Nodes {
+				if n.Id != c.Param("id") {
+					continue
+				}
+				if r.SshEnabled != nil && *r.SshEnabled != n.SshEnabled {
+					n.SshEnabled = *r.SshEnabled
+					n.SshStatus = data.NodeStatusProcessing
+					sshTurnedOn = *r.SshEnabled
+				}
+				if r.PushEnabled != nil && *r.PushEnabled != n.PushEnabled {
+					n.PushEnabled = *r.PushEnabled
+					n.PushStatus = data.NodeStatusProcessing
+				}
+				found = true
+				nodeId = n.Id
+				node = *n
+				return true, nil
+			}
+			return false, nil
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if !found {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Not found."})
+		}
+
+		if sshTurnedOn {
+			go coordinator.CheckSshStatus(nodeId)
+		}
+		go coordinator.UpdateConfigs()
+
+		return c.JSON(http.StatusOK, node)
 	}
 }
 

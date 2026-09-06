@@ -1,0 +1,122 @@
+/* Tailwind source for the admin UI. Build with `make web` (output: app.css). */
+@import "tailwindcss" source(none);
+
+@source "../../*.html";
+@source "../js/app.js";
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer components {
+    .card {
+        @apply rounded-xl border border-zinc-200 bg-white shadow-sm;
+    }
+
+    .btn {
+        @apply inline-flex cursor-pointer items-center justify-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-50;
+    }
+
+    .btn-dark {
+        @apply bg-zinc-900 text-white hover:bg-zinc-700;
+    }
+
+    .btn-outline {
+        @apply border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100;
+    }
+
+    .btn-danger {
+        @apply bg-red-600 text-white hover:bg-red-500;
+    }
+
+    .btn-green {
+        @apply bg-emerald-600 text-white hover:bg-emerald-500;
+    }
+
+    .btn-outline-green {
+        @apply border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50;
+    }
+
+    .btn-outline-danger {
+        @apply border border-red-300 bg-white text-red-700 hover:bg-red-50;
+    }
+
+    .btn-xs {
+        @apply px-2 py-1 text-xs;
+    }
+
+    .input {
+        @apply w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-300 focus:outline-none;
+    }
+
+    .label {
+        @apply mb-1 block text-xs font-medium text-zinc-500;
+    }
+
+    .chip {
+        @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium;
+    }
+
+    .chip-zinc {
+        @apply bg-zinc-100 text-zinc-600;
+    }
+
+    .chip-green {
+        @apply bg-emerald-100 text-emerald-700;
+    }
+
+    .chip-amber {
+        @apply bg-amber-100 text-amber-700;
+    }
+
+    .chip-red {
+        @apply bg-red-100 text-red-700;
+    }
+
+    .nav-link {
+        @apply rounded-md px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900;
+    }
+
+    .nav-link-active {
+        @apply rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white;
+    }
+}
+
+/* Toggle switch (checkbox-based). */
+.switch {
+    appearance: none;
+    position: relative;
+    width: 2.15rem;
+    height: 1.2rem;
+    flex: none;
+    border-radius: 9999px;
+    background: var(--color-zinc-300);
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.switch::after {
+    content: "";
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 9999px;
+    background: white;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    transition: transform 0.15s ease-in-out;
+}
+
+.switch:checked {
+    background: var(--color-emerald-500);
+}
+
+.switch:checked::after {
+    transform: translateX(0.95rem);
+}
+
+.switch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

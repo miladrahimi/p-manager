@@ -60,6 +60,9 @@ func (s *sshSyncer) syncSshProxies() error {
 		desiredConnections = d.XraySettings.RelayRr2SshConnections
 		nodes = make([]nodeSshInfo, 0, len(d.Nodes))
 		for _, node := range d.Nodes {
+			if !node.SshEnabled {
+				continue
+			}
 			nodes = append(nodes, nodeSshInfo{
 				id:      node.Id,
 				host:    node.Host,
@@ -168,6 +171,9 @@ func (s *sshSyncer) checkSshStatuses() error {
 	s.db.Read(func(d *data.Data) {
 		targets = make([]target, 0, len(d.Nodes))
 		for _, node := range d.Nodes {
+			if !node.SshEnabled {
+				continue
+			}
 			targets = append(targets, target{
 				node: node,
 				cfg:  ssh.NewConnectionConfig(node.Host, node.SshUser, node.SshPort),
@@ -190,6 +196,9 @@ func (s *sshSyncer) checkSshStatus(node *data.Node) error {
 	}
 	if node == nil {
 		return errors.New("ssh: node is nil")
+	}
+	if !node.SshEnabled {
+		return nil
 	}
 
 	var cfg *ssh.ConnectionConfig

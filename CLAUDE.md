@@ -13,7 +13,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 
 ## Tech stack
 - Main: Go 1.25.x, Cobra CLI, Echo v4 HTTP server
-- UI: HTML + jQuery + Tabulator + Bootstrap 5
+- UI: static HTML + Alpine.js (behavior) + Tailwind CSS v4 (styling), no build toolchain beyond the Tailwind CLI
 - Reuses several packages from the P-Node repo (`github.com/miladrahimi/p-node`): `pkg/database`, `pkg/logger`, `pkg/xray`, `pkg/http/client`.
 
 ## Packages
@@ -32,7 +32,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - `scripts`: Scripts for project and server setup
 - `storage`: Application data storage directory (database, logs, generated xray config)
 - `third_party`: Third-party binaries and libraries (Xray binaries)
-- `web`: Static admin web UI files
+- `web`: Static admin web UI files. Alpine.js is vendored under `assets/third_party`; `assets/js/app.js` holds the shared fetch-based API client and helpers. Styling is Tailwind: edit `assets/css/app.src.css`, then run `make web` to regenerate the committed `assets/css/app.css`.
 
 ## Database
 - File-backed JSON store.
@@ -65,6 +65,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Build & Run
 - `make local-serve` — run locally (`go run main.go serve`)
 - `make build` — cross-compile the Linux amd64 `p-manager` binary
+- `make web` — rebuild the admin UI stylesheet (`web/assets/css/app.css`) via the Tailwind standalone CLI (downloaded to `bin/` on first use); commit the regenerated CSS
 - `make local-setup` / `make setup` — local / server setup scripts
 - `make clean` / `make fresh` — remove logs / wipe storage state (`app`, `database`, `logs`)
 - `make update` — **destructive**: `git fetch` + `git reset --hard` + `git clean -fd` + `git pull` + setup
@@ -76,6 +77,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - The built `p-manager` binary is tracked and should be committed when updated.
 - `go.mod` uses `replace github.com/miladrahimi/p-node => ../p-node` to develop against a local P-Node checkout.
 - Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` instead of `clientID`, etc.).
+- `Node` sync flags `SshEnabled`/`PushEnabled` default on via `NewNode`. There is no DB migration layer (backward compatibility with pre-flag databases is intentionally not supported), so the driver's `json.Unmarshal` leaves keys the file omits at their zero value — an old database would read those flags back as `false`; recreate/re-add nodes rather than relying on an upgrade path. Pulling is intentionally NOT a flag: a P-Node pulls only after its setup command is run on the node, so the pull status is derived from `PulledAt` (`pullStatus`) and shown read-only in the UI — there is nothing manager-side to enable/disable.
 
 ## Xray Proxy
 Xray is a proxy platform which can run proxy servers with different protocols like Shadowsocks, VMess, VLess,

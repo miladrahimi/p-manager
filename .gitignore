@@ -5,3 +5,5 @@ third_party/xray-macos-arm64
 .env
 configs/main.json
 configs/main.local.json
+
+bin/

@@ -66,7 +66,11 @@ func (c *configSyncer) pushConfigToNodes() {
 	c.l.Info("coordinator: pushing config to all nodes...")
 	var nodes []*data.Node
 	c.db.Read(func(d *data.Data) {
-		nodes = append(nodes, d.Nodes...)
+		for _, n := range d.Nodes {
+			if n.PushEnabled {
+				nodes = append(nodes, n)
+			}
+		}
 	})
 	for _, n := range nodes {
 		go c.pushConfigToNode(n)
@@ -79,6 +83,9 @@ func (c *configSyncer) pushConfigToStaleNodes() {
 	var nodes []*data.Node
 	c.db.Read(func(d *data.Data) {
 		for _, n := range d.Nodes {
+			if !n.PushEnabled {
+				continue
+			}
 			if n.PushStatus == data.NodeStatusUnavailable || n.PushStatus == data.NodeStatusProcessing {
 				nodes = append(nodes, n)
 			}

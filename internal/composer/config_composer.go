@@ -66,7 +66,7 @@ func (c *Composer) composeManagerConfig(
 				fmt.Sprintf("relay-rr2rr-%s", n.Id),
 				n.Host,
 				xs.RelayRr2RrNodePort,
-				util.Uuid(),
+				rr2rrClientId(n.Id, xs.RealityPrivateKey),
 				xs.RealityPublicKey,
 				xs.NodeSni,
 			))
@@ -153,37 +153,29 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 		UpdatedBy: d.MainSettings.Host,
 	}
 
-	if xs.RelayRr2RrNodePort > 0 {
-		relayOutbound := c.xray.Config().FindOutbound(fmt.Sprintf("relay-rr2rr-%s", node.Id))
-		if relayOutbound != nil && relayOutbound.Settings != nil {
-			if len(relayOutbound.Settings.Vnext) > 0 {
-				server := relayOutbound.Settings.Vnext[0]
-				clients := make([]*component.Client, len(server.Users))
-				for i, u := range server.Users {
-					if u == nil {
-						continue
-					}
-					copyUser := *u
-					copyUser.Encryption = vless.EncryptionEmpty
-					clients[i] = &copyUser
-				}
-				xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
-					"relay-rr2rr",
-					xs.RelayRr2RrNodePort,
-					xs.RealityPrivateKey,
-					xs.NodeSni,
-					clients,
-					fallback,
-				))
-				xc.Routing.Rules = append(
-					xc.Routing.Rules,
-					&component.Rule{
-						InboundTag:  []string{"relay-rr2rr"},
-						OutboundTag: "out",
-					},
-				)
-			}
-		}
+	// The RR relay client id is derived deterministically from the node id and
+	// reality key, so it matches the manager's relay outbound without reading
+	// the manager's live config (which could be a different generation and cause
+	// an auth mismatch → HTTP fallback). Mirror the manager's gate: relay only
+	// when there are clients and both relay ports are set.
+	if len(c.rrClients(d)) > 0 && xs.RelayRr2RrManagerPort > 0 && xs.RelayRr2RrNodePort > 0 {
+		clientId := rr2rrClientId(node.Id, xs.RealityPrivateKey)
+		clients := []*component.Client{vless.MakeUser(clientId, vless.FlowVision, vless.EncryptionEmpty)}
+		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+			"relay-rr2rr",
+			xs.RelayRr2RrNodePort,
+			xs.RealityPrivateKey,
+			xs.NodeSni,
+			clients,
+			fallback,
+		))
+		xc.Routing.Rules = append(
+			xc.Routing.Rules,
+			&component.Rule{
+				InboundTag:  []string{"relay-rr2rr"},
+				OutboundTag: "out",
+			},
+		)
 	}
 
 	if xs.RemoteRrPort > 0 {
@@ -205,6 +197,13 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 	}
 
 	return xc
+}
+
+// rr2rrClientId derives the stable VLESS client id for the manager<->node RR
+// relay of the given node. The manager's relay outbound and the node's relay
+// inbound each derive it independently and thus always agree.
+func rr2rrClientId(nodeId, realityPrivateKey string) string {
+	return util.StableUuid("relay-rr2rr|" + nodeId + "|" + realityPrivateKey)
 }
 
 // rrClients returns the RR-ready client list. The caller must hold the store

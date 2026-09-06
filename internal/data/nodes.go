@@ -7,10 +7,10 @@ type NodeStatus string
 
 const (
 	NodeStatusProcessing  NodeStatus = ""
-	NodeStatusAvailable              = "available"
-	NodeStatusDirty                  = "dirty"
-	NodeStatusUnavailable            = "unavailable"
-	NodeStatusDisabled               = "disabled"
+	NodeStatusAvailable   NodeStatus = "available"
+	NodeStatusDirty       NodeStatus = "dirty"
+	NodeStatusUnavailable NodeStatus = "unavailable"
+	NodeStatusDisabled    NodeStatus = "disabled"
 )
 
 // Node represents a server (node) in the system.

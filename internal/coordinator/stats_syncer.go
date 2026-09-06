@@ -101,7 +101,8 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 				users[tag] += value
 			}
 		case "inbound":
-			if tag == "remote-rr" || tag == "relay-rr2rr" {
+			// Only remote-rr; relay-rr2rr is already counted by the manager's loadLocalStats (no double-count).
+			if tag == "remote-rr" {
 				nodeUsageBytes += value
 			}
 		}
@@ -121,11 +122,13 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 			}
 		}
 
-		node.UsageBytes = util.SafeSumI64(node.UsageBytes, nodeUsageBytes)
-		node.Usage = util.Bytes2GB(node.UsageBytes)
+		if n := db.FindNodeById(node.Id); n != nil {
+			n.UsageBytes = util.SafeSumI64(n.UsageBytes, nodeUsageBytes)
+			n.Usage = util.Bytes2GB(n.UsageBytes)
 
-		db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, nodeUsageBytes)
-		db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
+			db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, nodeUsageBytes)
+			db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
+		}
 	})
 	if err != nil {
 		s.l.Error("cannot save remote node stats", zap.String("url", url), zap.Error(errors.WithStack(err)))
@@ -167,10 +170,10 @@ func (s *statsSyncer) loadLocalStats() error {
 				users[tag] += value
 			}
 		case "outbound":
-			if strings.HasPrefix(tag, "relay-rr2rr-") {
-				nodes[strings.TrimPrefix(tag, "relay-rr2rr-")] += value
-			} else if strings.HasPrefix(tag, "relay-rr2ssh-") {
-				nodes[strings.TrimPrefix(tag, "relay-rr2ssh-")] += value
+			if rest, ok := strings.CutPrefix(tag, "relay-rr2rr-"); ok {
+				nodes[rest] += value
+			} else if rest, ok := strings.CutPrefix(tag, "relay-rr2ssh-"); ok {
+				nodes[rest] += value
 			}
 		case "inbound":
 			switch tag {

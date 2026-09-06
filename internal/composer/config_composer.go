@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/composer/socks"
 	"github.com/miladrahimi/p-manager/internal/composer/vless"
 	"github.com/miladrahimi/p-manager/internal/data"
@@ -14,18 +13,15 @@ import (
 	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
 
-// ManagerConfig composes the P-Manager (local) xray config.
-func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConfig) (*xrayConfig.Config, error) {
-	apiPort, err := util.FreePort()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
+// ManagerConfig composes the P-Manager (local) xray config. The api inbound
+// port is left at its default; Xray.Reconfigure replaces it with the port of
+// the running instance.
+func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConfig) *xrayConfig.Config {
 	var xc *xrayConfig.Config
 	c.db.Read(func(d *data.Data) {
-		xc = c.composeManagerConfig(d, sshConfigsByNodeIds, apiPort)
+		xc = c.composeManagerConfig(d, sshConfigsByNodeIds)
 	})
-	return xc, nil
+	return xc
 }
 
 // composeManagerConfig builds the manager config. The caller must hold the
@@ -33,13 +29,10 @@ func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConf
 func (c *Composer) composeManagerConfig(
 	d *data.Data,
 	sshConfigsByNodeIds map[string][]*ssh.ProxyConfig,
-	apiPort int,
 ) *xrayConfig.Config {
 	rrClients := c.rrClients(d)
 	xs := d.XraySettings
 	xc := xrayConfig.New(c.config.Xray.LogLevel)
-
-	xc.FindInbound("api").Port = apiPort
 
 	hasClients := len(rrClients) > 0
 	hasNodes := len(d.Nodes) > 0
@@ -58,9 +51,8 @@ func (c *Composer) composeManagerConfig(
 			InboundTag:  []string{"relay-rr2rr"},
 			BalancerTag: "relay-rr2rr",
 		})
-		xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
-			Tag: "relay-rr2rr", Selector: []string{},
-		})
+		balancer := &component.Balancer{Tag: "relay-rr2rr", Selector: []string{}}
+		xc.Routing.Balancers = append(xc.Routing.Balancers, balancer)
 		for _, n := range d.Nodes {
 			xc.Outbounds = append(xc.Outbounds, vless.MakeRrOutbound(
 				fmt.Sprintf("relay-rr2rr-%s", n.Id),
@@ -71,10 +63,7 @@ func (c *Composer) composeManagerConfig(
 				xs.NodeSni,
 				vless.FlowVision,
 			))
-			xc.FindBalancer("relay-rr2rr").Selector = append(
-				xc.FindBalancer("relay-rr2rr").Selector,
-				fmt.Sprintf("relay-rr2rr-%s", n.Id),
-			)
+			balancer.Selector = append(balancer.Selector, fmt.Sprintf("relay-rr2rr-%s", n.Id))
 		}
 	}
 
@@ -181,7 +170,12 @@ func (c *Composer) NodeConfig(node *data.Node, lastUpdate time.Time) *xrayConfig
 func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate time.Time) *xrayConfig.Config {
 	xs := d.XraySettings
 	xc := xrayConfig.New(c.config.Xray.LogLevel)
-	fallback := &component.Fallback{Dest: node.HttpPort}
+
+	// No HTTP port (push disabled) means no fallback; dest 0 is invalid.
+	var fallback *component.Fallback
+	if node.HttpPort > 0 {
+		fallback = &component.Fallback{Dest: node.HttpPort}
+	}
 
 	xc.Metadata = &component.Metadata{
 		UpdatedAt: lastUpdate.Format(time.RFC3339),

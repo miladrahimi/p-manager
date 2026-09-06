@@ -5,23 +5,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"math"
-	"net"
-	"os"
 
 	"github.com/xtls/xray-core/common/uuid"
 )
-
-// FileExist checks if the given file path exists or not.
-func FileExist(path string) bool {
-	stat, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	if stat.IsDir() {
-		return false
-	}
-	return true
-}
 
 // Uuid generates Uuid using XraySettings.
 func Uuid() string {
@@ -94,38 +80,6 @@ func GB2Bytes(f float64) int64 {
 	}
 
 	return int64(result)
-}
-
-// FreePort finds a free port.
-func FreePort() (int, error) {
-	address, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
-	}
-
-	listener, err := net.ListenTCP("tcp", address)
-	if err != nil {
-		return 0, err
-	}
-	if err = listener.Close(); err != nil {
-		return 0, err
-	}
-
-	return listener.Addr().(*net.TCPAddr).Port, err
-}
-
-// PortFree checks if the given port is free or not.
-func PortFree(port int) bool {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		return false
-	}
-
-	if err = listener.Close(); err != nil {
-		return false
-	}
-
-	return true
 }
 
 // PortsDistinct makes sure all ports are unique or zero (disabled).

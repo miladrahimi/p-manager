@@ -61,3 +61,13 @@ func (s *Data) FindAccountByProxyId(proxyId string) *Account {
 	}
 	return nil
 }
+
+// FindNodeById finds a node by its ID.
+func (s *Data) FindNodeById(id string) *Node {
+	for _, n := range s.Nodes {
+		if n.Id == id {
+			return n
+		}
+	}
+	return nil
+}

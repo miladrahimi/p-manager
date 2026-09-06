@@ -156,7 +156,7 @@ document.addEventListener("alpine:init", () => {
     })
 })
 
-// Minimal front-end i18n shared by the public pages (account, help).
+// Minimal front-end i18n for the public account page.
 // The chosen language is kept in localStorage; Persian is the default.
 const i18n = {
     languages: [{code: "fa", name: "پارسی"}, {code: "en", name: "English"}, {code: "zh", name: "中文"}],

@@ -14,6 +14,15 @@
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
 
+<!--
+  Screenshots: put one PNG per step at
+      /assets/images/help/<app>/<step>.png      e.g. /assets/images/help/v2box/3.png
+  where <app> is v2box, onexray, v2rayng or v2rayn and <step> is the 1-based step number.
+  An app's optional `firstShot` is the first step that has a screenshot; earlier
+  steps show none. A later step whose image is missing shows a dashed placeholder
+  with the expected path.
+-->
+
 <main class="mx-auto w-full max-w-md p-4 sm:p-6" x-data="accountPage()" x-init="load()">
     <div class="my-6 flex justify-center">
         <img src="/assets/images/xray.svg" class="h-12 w-12" alt="icon">
@@ -74,22 +83,22 @@
                                 @click="copy('subscription', subscriptionUrl)"
                                 x-text="copiedKey === 'subscription' ? t('copied') : t('copy')"></button>
                     </div>
-                    <p class="mt-1.5 text-xs text-zinc-400">
-                        <span x-text="t('subscriptionHint')"></span>
-                        <a class="text-zinc-600 underline hover:text-zinc-900" :href="`/help.html?account=${accountId()}`"
-                           x-text="t('setupGuide')"></a>
-                    </p>
+                    <p class="mt-1.5 text-xs text-zinc-400" x-text="t('subscriptionHint')"></p>
                 </div>
             </template>
 
             <!-- Individual links -->
             <template x-if="proxies.length > 0">
-                <div class="mt-5">
-                    <button class="flex w-full items-center justify-between text-start" @click="showLinks = !showLinks">
+                <div class="mt-5 rounded-lg border border-zinc-200">
+                    <button type="button" class="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-start"
+                            @click="showLinks = !showLinks">
                         <span class="label mb-0" x-text="t('serverLinks', {count: num(proxies.length, 0)})"></span>
-                        <span class="text-xs text-zinc-500" x-text="showLinks ? t('hide') : t('show')"></span>
+                        <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="showLinks && 'rotate-180'"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                        </svg>
                     </button>
-                    <div x-show="showLinks" class="mt-2 space-y-2">
+                    <div x-show="showLinks" x-cloak class="space-y-2 border-t border-zinc-100 px-4 pt-3 pb-4">
                         <template x-for="proxy in proxies" :key="proxy.key">
                             <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
                                 <a class="min-w-0 flex-1 p-2.5 text-start" dir="ltr" :href="proxy.value" :title="proxy.value">
@@ -105,6 +114,59 @@
                     </div>
                 </div>
             </template>
+
+            <!-- Setup guide (collapsed by default) -->
+            <div class="mt-5 rounded-lg border border-zinc-200">
+                <button type="button" class="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-start"
+                        @click="showGuide = !showGuide">
+                    <span class="label mb-0" x-text="t('setupGuide')"></span>
+                    <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="showGuide && 'rotate-180'"
+                         viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <div x-show="showGuide" x-cloak class="border-t border-zinc-100 px-4 pt-3 pb-4">
+                    <p class="text-sm text-zinc-500" x-text="t('guideIntro')"></p>
+                    <!-- App tabs -->
+                    <div class="mt-3 flex gap-1 rounded-lg bg-zinc-100 p-1">
+                        <template x-for="a in apps" :key="a.key">
+                            <button class="flex-1 cursor-pointer rounded-md py-1.5 text-sm font-medium transition-colors"
+                                    :class="app === a.key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'"
+                                    @click="app = a.key" x-text="a.name"></button>
+                        </template>
+                    </div>
+                    <!-- Platforms and downloads -->
+                    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                        <span class="text-zinc-500" x-text="t('availableOn')"></span>
+                        <template x-for="s in current().stores" :key="s.name">
+                            <a class="chip chip-zinc hover:bg-zinc-200" :href="s.url" target="_blank" rel="noopener" x-text="s.name"></a>
+                        </template>
+                    </div>
+                    <!-- Steps -->
+                    <ol class="mt-6 space-y-6">
+                        <template x-for="(step, i) in steps()" :key="app + i">
+                            <li class="flex gap-3">
+                                <span class="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-zinc-900 text-xs font-medium text-white"
+                                      x-text="num(i + 1, 0)"></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm leading-6" x-text="step"></p>
+                                    <div class="mt-2">
+                                        <img class="mx-auto max-h-[420px] rounded-lg border border-zinc-200"
+                                             :src="shot(i)" :alt="t('screenshot', {n: num(i + 1, 0)})"
+                                             x-show="!missing[shot(i)]" @error="missing[shot(i)] = true">
+                                        <div x-show="missing[shot(i)]" x-cloak
+                                             class="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-xs text-zinc-400">
+                                            <p x-text="t('screenshot', {n: num(i + 1, 0)})"></p>
+                                            <p class="mt-1 font-mono text-[11px]" dir="ltr" x-text="shot(i)"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </template>
+                    </ol>
+                    <p class="mt-6 text-xs text-zinc-400" x-text="t('tip')"></p>
+                </div>
+            </div>
         </div>
 
         <!-- Footer -->
@@ -138,7 +200,7 @@
         fa: {
             title: "کاربر",
             loading: "بارگذاری...",
-            tryAgain: "تلاش دوباره",
+            tryAgain: "کوشش دوباره",
             active: "روشن",
             disabled: "خاموش",
             disabledNotice: "این کاربر خاموش است. پیوندهای زیر تا روشن شدن دوباره کار نمی‌کنند.",
@@ -149,11 +211,9 @@
             quotaExceeded: "به پایان رسیده",
             percentUsed: "{percent}٪ به‌کار رفته",
             setupGuide: "راهنمای راه‌اندازی",
-            subscriptionLink: "پیوند همه سرورها",
-            subscriptionHint: "این پیوند را در برنامه‌ی خود بیفزایید تا همه سرورها خودکار دریافت شوند.",
+            subscriptionLink: "پیوند به‌روزشونده‌ی همه‌ی سرورها",
+            subscriptionHint: "این پیوند را به برنامه‌ی خود بیفزایید تا همه‌ی سرورها خودکار دریافت شوند.",
             serverLinks: "پیوند تک‌تک سرورها ({count})",
-            show: "نمایش",
-            hide: "پنهان",
             copy: "رونوشت",
             copied: "رونوشت شد",
             since: "همراه ما از {date}",
@@ -161,8 +221,12 @@
             renewing: "نوسازی...",
             renewConfirm: "پیوندها نوسازی شوند؟ پیوندهای کنونی از کار می‌افتند و باید برنامه‌های خود را به‌روز کنید.",
             renewed: "پیوندها نوسازی شدند. بارگذاری دوباره...",
-            copyFailed: "رونوشت انجام نشد، نوشته را برگزینید و خودتان رونوشت بگیرید.",
+            copyFailed: "رونوشت انجام نشد؛ نوشته را برگزینید و خودتان رونوشت بگیرید.",
             accountIdMissing: "شناسه‌ی کاربر یافت نشد.",
+            guideIntro: "برنامه‌ی خود را برگزینید و گام‌ها را دنبال کنید. برای همه‌ی برنامه‌ها تنها به پیوند به‌روزشونده نیاز دارید.",
+            availableOn: "دریافت از:",
+            screenshot: "نماگرفت گام {n}",
+            tip: "اگر نتوانستید بپیوندید، سرورها را به‌روز کنید و سرور دیگری را برگزینید.",
         },
         en: {
             title: "Account",
@@ -181,8 +245,6 @@
             subscriptionLink: "Subscription link",
             subscriptionHint: "Add this link to your client app to receive all servers automatically.",
             serverLinks: "Server links ({count})",
-            show: "Show",
-            hide: "Hide",
             copy: "Copy",
             copied: "Copied",
             since: "Since {date}",
@@ -192,6 +254,10 @@
             renewed: "Links renewed. Reloading...",
             copyFailed: "Copy failed, select the text and copy it manually.",
             accountIdMissing: "Account ID is missing.",
+            guideIntro: "Pick your app and follow the steps. All you need is your subscription link.",
+            availableOn: "Get it on:",
+            screenshot: "Screenshot for step {n}",
+            tip: "If you cannot connect, update the subscription and try another server.",
         },
         zh: {
             title: "账户",
@@ -210,8 +276,6 @@
             subscriptionLink: "订阅链接",
             subscriptionHint: "将此链接添加到客户端应用，即可自动获取所有服务器。",
             serverLinks: "服务器链接（{count}）",
-            show: "显示",
-            hide: "隐藏",
             copy: "复制",
             copied: "已复制",
             since: "注册于 {date}",
@@ -221,8 +285,148 @@
             renewed: "链接已更换，正在刷新...",
             copyFailed: "复制失败，请手动选择并复制文本。",
             accountIdMissing: "缺少账户 ID。",
+            guideIntro: "选择您的应用并按步骤操作。您只需要订阅链接。",
+            availableOn: "下载：",
+            screenshot: "第 {n} 步截图",
+            tip: "如果无法连接，请更新订阅并尝试其他服务器。",
         },
     }
+
+    // Each app: display name, store links (os: "apple" | "android" adds an icon)
+    // and per-language steps. Step N's
+    // screenshot is read from /assets/images/help/<key>/<N>.png.
+    const apps = [
+        {
+            key: "v2box",
+            name: "V2Box",
+            firstShot: 2,
+            stores: [
+                {name: "Google Play", os: "android", url: "https://play.google.com/store/apps/details?id=dev.hexasoftware.v2box"},
+                {name: "App Store", os: "apple", url: "https://apps.apple.com/app/v2box-v2ray-client/id6446814690"},
+            ],
+            steps: {
+                fa: [
+                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
+                    "V2Box را باز کنید، به بخش «Config» بروید و روی «+» در بالا بزنید.",
+                    "«Import from clipboard» را برگزینید تا همه‌ی سرورها در یک گروه به برنامه افزوده شوند.",
+                    "اگر برنامه خواندن رونوشت‌ها (clipboard) را خواست، بپذیرید.",
+                    "گروهی از سرورها به برنامه افزوده می‌شود. یکی از سرورها را برگزینید و کشویی پیوستن را به راست بکشید تا بپیوندید.",
+                    "پس از پیوستن، دکمه سبز می‌شود تا درستی پیوند را نشان دهد. با زدن دوباره‌ی آن، پیوند گسسته می‌شود.",
+                    "هر چند روز یک بار روی دکمه‌ی به‌روزرسانی بزنید تا فهرست سرورها به‌روز شود.",
+                ],
+                en: [
+                    "Copy your subscription link above.",
+                    "Open V2Box, go to the “Config” tab and tap “+” at the top.",
+                    "Choose “Import from clipboard”; the link you copied is added as a subscription.",
+                    "Tap the subscription to fetch the servers. Pull down to refresh it later.",
+                    "Select a server and tap the connect button at the bottom. Allow the VPN permission on first connect.",
+                    "Step 6 (text to be written).",
+                    "Step 7 (text to be written).",
+                ],
+                zh: [
+                    "复制上方的订阅链接。",
+                    "打开 V2Box，进入“Config”标签，点击顶部的“+”。",
+                    "选择“Import from clipboard”，复制的链接会作为订阅添加。",
+                    "点击订阅以获取服务器。之后下拉即可刷新。",
+                    "选择一个服务器，点击底部的连接按钮。首次连接时请允许 VPN 权限。",
+                    "第 6 步（待补充）。",
+                    "第 7 步（待补充）。",
+                ],
+            },
+        },
+        {
+            key: "onexray",
+            name: "OneXray",
+            stores: [
+                {name: "Google Play", os: "android", url: "https://play.google.com/store/apps/details?id=net.yuandev.onexray"},
+                {name: "App Store", os: "apple", url: "https://apps.apple.com/app/onexray/id6448898396"},
+            ],
+            steps: {
+                fa: [
+                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
+                    "OneXray را باز کنید و روی «+» در بالا بزنید.",
+                    "«Subscription» را برگزینید، پیوند را بچسبانید و نگه دارید.",
+                    "پیوند را به‌روز کنید تا سرورها نشان داده شوند.",
+                    "یک سرور را برگزینید و دکمه‌ی پیوستن را بزنید. در نخستین بار، درخواست VPN را بپذیرید.",
+                ],
+                en: [
+                    "Copy your subscription link above.",
+                    "Open OneXray and tap “+” at the top.",
+                    "Choose “Subscription”, paste the link and save.",
+                    "Update the subscription to load the servers.",
+                    "Select a server and tap the connect button. Allow the VPN permission on first connect.",
+                ],
+                zh: [
+                    "复制上方的订阅链接。",
+                    "打开 OneXray，点击顶部的“+”。",
+                    "选择“Subscription”，粘贴链接并保存。",
+                    "更新订阅以加载服务器。",
+                    "选择一个服务器，点击连接按钮。首次连接时请允许 VPN 权限。",
+                ],
+            },
+        },
+        {
+            key: "v2rayng",
+            name: "v2rayNG",
+            stores: [
+                {name: "Google Play", os: "android", url: "https://play.google.com/store/apps/details?id=com.v2ray.ang"},
+                {name: "GitHub (Android)", os: "android", url: "https://github.com/2dust/v2rayNG/releases"},
+            ],
+            steps: {
+                fa: [
+                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
+                    "v2rayNG را باز کنید، «☰» را بزنید و «Subscription group setting» را برگزینید.",
+                    "روی «+» بزنید، نامی بنویسید، پیوند را در خانه‌ی URL بچسبانید و با «✓» نگه دارید.",
+                    "به نمای نخست برگردید، «⋮» را بزنید و «Update subscription» را برگزینید.",
+                    "یک سرور را برگزینید و دکمه‌ی «V» در پایین را بزنید. در نخستین بار، درخواست VPN را بپذیرید.",
+                ],
+                en: [
+                    "Copy your subscription link above.",
+                    "Open v2rayNG, tap the “☰” menu and choose “Subscription group setting”.",
+                    "Tap “+”, enter a name, paste the link into the URL field and save with “✓”.",
+                    "Back on the main screen, tap the “⋮” menu and choose “Update subscription”.",
+                    "Select a server and tap the “V” button at the bottom. Allow the VPN permission on first connect.",
+                ],
+                zh: [
+                    "复制上方的订阅链接。",
+                    "打开 v2rayNG，点击“☰”菜单，选择“Subscription group setting”。",
+                    "点击“+”，输入名称，将链接粘贴到 URL 栏，然后点击“✓”保存。",
+                    "返回主界面，点击“⋮”菜单，选择“Update subscription”。",
+                    "选择一个服务器，点击底部的“V”按钮。首次连接时请允许 VPN 权限。",
+                ],
+            },
+        },
+        {
+            key: "v2rayn",
+            name: "v2rayN",
+            stores: [
+                {name: "GitHub (Windows, macOS, Linux)", url: "https://github.com/2dust/v2rayN/releases"},
+            ],
+            steps: {
+                fa: [
+                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
+                    "v2rayN را باز کنید، به فهرست «Subscriptions» بروید و «Subscription group settings» را برگزینید.",
+                    "روی «Add» بزنید، نامی بنویسید، پیوند را در خانه‌ی URL بچسبانید و نگه دارید.",
+                    "از فهرست «Subscriptions» گزینه‌ی «Update subscription (without proxy)» را برگزینید تا سرورها دریافت شوند.",
+                    "یک سرور را برگزینید و در پایین پنجره، «System proxy» را روی «Set system proxy» بگذارید (یا Tun را روشن کنید).",
+                ],
+                en: [
+                    "Copy your subscription link above.",
+                    "Open v2rayN, open the “Subscriptions” menu and choose “Subscription group settings”.",
+                    "Click “Add”, enter a name, paste the link into the URL field and save.",
+                    "From the “Subscriptions” menu choose “Update subscription (without proxy)” to fetch the servers.",
+                    "Select a server and, at the bottom of the window, set “System proxy” to “Set system proxy” (or enable Tun mode).",
+                ],
+                zh: [
+                    "复制上方的订阅链接。",
+                    "打开 v2rayN，进入“订阅”菜单，选择“订阅分组设置”。",
+                    "点击“添加”，输入名称，将链接粘贴到 URL 栏并保存。",
+                    "在“订阅”菜单中选择“更新订阅（不通过代理）”以获取服务器。",
+                    "选择一个服务器，在窗口底部将“系统代理”设为“自动配置系统代理”（或开启 Tun 模式）。",
+                ],
+            },
+        },
+    ]
 
     function accountPage() {
         return {
@@ -232,6 +436,10 @@
             proxies: [],
             subscriptionUrl: "",
             showLinks: false,
+            showGuide: false,
+            apps: apps,
+            app: apps[0].key,
+            missing: {},
             copiedKey: "",
             loading: true,
             renewing: false,
@@ -288,6 +496,21 @@
                 } finally {
                     this.loading = false
                 }
+            },
+
+            current() {
+                return apps.find(a => a.key === this.app)
+            },
+
+            steps() {
+                const steps = this.current().steps
+                return steps[this.lang] || steps.en
+            },
+
+            shot(index) {
+                const step = index + 1
+                if (step < (this.current().firstShot || 1)) return null
+                return `/assets/images/help/${this.app}/${step}.png`
             },
 
             percent() {

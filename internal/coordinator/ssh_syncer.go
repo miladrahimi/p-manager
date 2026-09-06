@@ -7,8 +7,8 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
-	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/logger"
+	"github.com/miladrahimi/p-node/pkg/util"
 	"go.uber.org/zap"
 )
 
@@ -137,7 +137,7 @@ func (s *sshSyncer) syncSshProxies() error {
 			}
 
 			newProxyConfig := ssh.NewProxyConfig(connectionConfig, freePort)
-			if err = s.pool.Start(s.makeSshProxyTag(node.id, i), newProxyConfig); err != nil {
+			if err = s.pool.Start(s.makeSshProxyTag(node.id, len(newConfigs)), newProxyConfig); err != nil {
 				errList = errors.Join(errList, err)
 				continue
 			}

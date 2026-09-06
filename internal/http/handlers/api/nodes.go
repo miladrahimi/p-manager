@@ -8,6 +8,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
@@ -135,7 +136,7 @@ func NodesStore(coordinator *coordinator.Coordinator, db *data.Store) echo.Handl
 		var nodeId string
 		var failure *httpResult
 		err := db.Mutate(func(d *data.Data) (bool, error) {
-			if len(d.Nodes) > 5 {
+			if len(d.Nodes) >= config.MaxNodesCount {
 				failure = &httpResult{http.StatusForbidden, "Cannot add more nodes!"}
 				return false, nil
 			}

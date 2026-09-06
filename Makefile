@@ -17,6 +17,10 @@ local-fresh:
 	@rm -f storage/database/*.json
 	@rm -f storage/logs/*.log
 
+.PHONY: e2e
+e2e:
+	@go test -tags e2e -count=1 -timeout 10m -v ./e2e/
+
 .PHONY: build
 build:
 	@GOOS=linux GOARCH=amd64 go build -o p-manager

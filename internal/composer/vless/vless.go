@@ -42,7 +42,6 @@ func MakeRrInbound(
 		Settings: &component.InboundSettings{
 			Clients:    clients,
 			Decryption: EncryptionNone,
-			Fallbacks:  []*component.Fallback{fallback},
 		},
 		StreamSettings: &component.StreamSettings{
 			Network:  NetworkRaw,
@@ -60,6 +59,11 @@ func MakeRrInbound(
 			RouteOnly:    true,
 			DestOverride: []string{"http", "tls", "quic"},
 		},
+	}
+
+	// Attach a fallback only when set; xray rejects an empty/zero-dest one.
+	if fallback != nil {
+		inbound.Settings.Fallbacks = []*component.Fallback{fallback}
 	}
 
 	return inbound

@@ -7,13 +7,14 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
-	"github.com/miladrahimi/p-manager/pkg/util"
+	"github.com/miladrahimi/p-node/pkg/util"
 )
 
 const AppName = "P-Manager"
 const AppVersion = "v26.9.6"
 const CoreName = "Xray-core v26.3.27"
 const MaxAccountsCount = 1024
+const MaxNodesCount = 10
 const DefaultNodeSni = "dl.google.com"
 const DefaultManagerSni = "snapp.ir"
 

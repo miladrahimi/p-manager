@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"time"
 
@@ -34,7 +35,7 @@ func SignIn(db *data.Store) echo.HandlerFunc {
 			password = d.MainSettings.AdminPassword
 		})
 
-		if r.Username == "admin" && r.Password == password {
+		if r.Username == "admin" && subtle.ConstantTimeCompare([]byte(r.Password), []byte(password)) == 1 {
 			return c.JSON(http.StatusOK, map[string]string{
 				"token": password,
 			})

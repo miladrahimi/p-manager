@@ -10,6 +10,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
+	nodeUtil "github.com/miladrahimi/p-node/pkg/util"
 )
 
 // XraySettingsShow returns the xray settings.
@@ -55,27 +56,18 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 		db.Read(func(s *data.Data) {
 			d = *s.XraySettings
 		})
-		if r.DirectRrPort > 0 && r.DirectRrPort != d.DirectRrPort && !util.PortFree(r.DirectRrPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.DirectRrPort),
-			})
-		}
-		if r.RelayRr2RrManagerPort > 0 && r.RelayRr2RrManagerPort != d.RelayRr2RrManagerPort &&
-			!util.PortFree(r.RelayRr2RrManagerPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.RelayRr2RrManagerPort),
-			})
-		}
-		if r.RelayRr2SshPort > 0 && r.RelayRr2SshPort != d.RelayRr2SshPort && !util.PortFree(r.RelayRr2SshPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.RelayRr2SshPort),
-			})
-		}
-		if r.ReverseRrManagerPort > 0 && r.ReverseRrManagerPort != d.ReverseRrManagerPort &&
-			!util.PortFree(r.ReverseRrManagerPort) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": fmt.Sprintf("Port %d is already in use.", r.ReverseRrManagerPort),
-			})
+		// A manager port that changes must be free on this host.
+		for _, p := range [][2]int{
+			{r.DirectRrPort, d.DirectRrPort},
+			{r.RelayRr2RrManagerPort, d.RelayRr2RrManagerPort},
+			{r.RelayRr2SshPort, d.RelayRr2SshPort},
+			{r.ReverseRrManagerPort, d.ReverseRrManagerPort},
+		} {
+			if p[0] > 0 && p[0] != p[1] && !nodeUtil.PortFree(p[0]) {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"message": fmt.Sprintf("Port %d is already in use.", p[0]),
+				})
+			}
 		}
 
 		if err := db.Write(func(s *data.Data) {

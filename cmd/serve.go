@@ -13,12 +13,6 @@ func init() {
 		Use: "serve",
 		Run: serve,
 	})
-
-	// deprecated: use serve instead
-	rootCmd.AddCommand(&cobra.Command{
-		Use: "start",
-		Run: serve,
-	})
 }
 
 // serve runs the application and xray.

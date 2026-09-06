@@ -3,6 +3,7 @@ package coordinator
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -22,6 +23,7 @@ type configSyncer struct {
 	xray     *xray.Xray
 	composer *composer.Composer
 	state    *State
+	pushing  sync.Map
 }
 
 // newConfigSyncer creates a new config syncer.
@@ -47,12 +49,8 @@ func newConfigSyncer(
 func (c *configSyncer) updateLocalConfig() error {
 	c.l.Info("coordinator: updating local configs...")
 
-	localConfig, err := c.composer.ManagerConfig(c.state.SshConfigsByNode())
-	if err != nil {
-		return err
-	}
-
-	if err = c.xray.Reconfigure(localConfig); err != nil {
+	localConfig := c.composer.ManagerConfig(c.state.SshConfigsByNode())
+	if err := c.xray.Reconfigure(localConfig); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -98,6 +96,11 @@ func (c *configSyncer) pushConfigToStaleNodes() {
 
 // pushConfigToNode pushes the config to a single node.
 func (c *configSyncer) pushConfigToNode(n *data.Node) {
+	if _, isPushing := c.pushing.LoadOrStore(n.Id, struct{}{}); isPushing {
+		return
+	}
+	defer c.pushing.Delete(n.Id)
+
 	// Snapshot the request inputs under the read lock; the network push runs
 	// without holding the store lock.
 	var url, token, proxy string

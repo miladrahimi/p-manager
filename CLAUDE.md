@@ -5,7 +5,7 @@ P-Manager is a Go service that manages users (accounts) and remote P-Nodes, gene
 It stores state in JSON files under `storage/` and syncs configs and stats between the local Xray instance and P-Nodes.
 
 ## Runtime Flow
-- `main.go` → `cmd/root.go` (Cobra) → `cmd/serve.go` (`serve` command; `start` is a deprecated alias).
+- `main.go` → `cmd/root.go` (Cobra) → `cmd/serve.go` (`serve` command).
 - `internal/app.New()`: Builds config, logger, database, http client, xray, ssh client/pool, composer, coordinator, and http server.
 - `App.Start()`: Initializes the database, runs the coordinator, and starts the http server.
 - `App.Wait()` blocks on the app context; `App.Close()` shuts everything down (http server, xray, ssh pool, saves database, closes logger).
@@ -14,7 +14,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Tech stack
 - Main: Go 1.25.x, Cobra CLI, Echo v4 HTTP server
 - UI: static HTML + Alpine.js (behavior) + Tailwind CSS v4 (styling), no build toolchain beyond the Tailwind CLI
-- Reuses several packages from the P-Node repo (`github.com/miladrahimi/p-node`): `pkg/database`, `pkg/logger`, `pkg/xray`, `pkg/http/client`.
+- Reuses several packages from the P-Node repo (`github.com/miladrahimi/p-node`): `pkg/database`, `pkg/logger`, `pkg/xray`, `pkg/http/client`, `pkg/worker`, and `pkg/util` for filesystem/port helpers (`pkg/util` here holds only manager-specific helpers).
 
 ## Packages
 - `cmd`: Cobra commands (`serve`)
@@ -26,7 +26,6 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - `internal/data`: Database schema, models, and default values
 - `internal/http/server`: Echo server setup and routing
 - `internal/http/handlers`: HTTP handlers (`handlers/api` for JSON APIs, plus the static `account` page handler)
-- `internal/worker`: Generic periodic worker (ticker-based background loop)
 - `pkg/ssh`: SSH client, connection/proxy config, process management, and connection pool
 - `pkg/util`: Generic utils
 - `scripts`: Scripts for project and server setup
@@ -68,6 +67,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Build & Run
 - `make local-serve` — run locally (`go run main.go serve`)
 - `make build` — cross-compile the Linux amd64 `p-manager` binary
+- `make e2e` — end-to-end test (`e2e/`, build tag `e2e`): builds P-Manager and P-Node, runs both as processes in temp dirs, and fetches a local HTTP target through every proxy method via an Xray client; needs the local Xray binary (`make local-setup`) and `../p-node` (override with `P_NODE_DIR`); set `E2E_SSH=1` to include Relay RR2SSH (needs passwordless ssh to 127.0.0.1)
 - `make web` — rebuild the admin UI stylesheet (`web/assets/css/app.css`) via the Tailwind standalone CLI (downloaded to `bin/` on first use); commit the regenerated CSS
 - `make local-setup` / `make setup` — local / server setup scripts
 - `make clean` / `make fresh` — remove logs / wipe storage state (`app`, `database`, `logs`)

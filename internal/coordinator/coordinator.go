@@ -9,11 +9,11 @@ import (
 	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/data"
-	"github.com/miladrahimi/p-manager/internal/worker"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	"github.com/miladrahimi/p-node/pkg/logger"
+	"github.com/miladrahimi/p-node/pkg/worker"
 	"github.com/miladrahimi/p-node/pkg/xray"
 	"go.uber.org/zap"
 )
@@ -75,44 +75,36 @@ func (c *Coordinator) Run(ctx context.Context) error {
 
 	c.UpdateConfigs()
 
-	go worker.New("syncSshProxies", time.Second*10, c.l, func() {
+	worker.New("syncSshProxies", c.l, time.Second*10, func() error {
 		c.updateMu.Lock()
 		defer c.updateMu.Unlock()
-		if err := c.sshSyncer.syncSshProxies(); err != nil {
-			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
-		}
+		return errors.WithStack(c.sshSyncer.syncSshProxies())
 	}).Start(ctx)
 
-	go worker.New("pushConfigToStaleNodes", time.Second*10, c.l, func() {
+	worker.New("pushConfigToStaleNodes", c.l, time.Second*10, func() error {
 		c.configSyncer.pushConfigToStaleNodes()
+		return nil
 	}).Start(ctx)
 
-	go worker.New("loadLocalStats", time.Minute, c.l, func() {
-		if err := c.statsSyncer.loadLocalStats(); err != nil {
-			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
-		}
+	worker.New("loadLocalStats", c.l, time.Minute, func() error {
+		return errors.WithStack(c.statsSyncer.loadLocalStats())
 	}).Start(ctx)
 
-	go worker.New("pullStatsFromNodes", time.Minute, c.l, func() {
+	worker.New("pullStatsFromNodes", c.l, time.Minute, func() error {
 		c.statsSyncer.pullStatsFromNodes()
+		return nil
 	}).Start(ctx)
 
-	go worker.New("updateNodeSshStatus", time.Second*10, c.l, func() {
-		if err := c.sshSyncer.checkSshStatuses(); err != nil {
-			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
-		}
+	worker.New("updateNodeSshStatus", c.l, time.Second*10, func() error {
+		return errors.WithStack(c.sshSyncer.checkSshStatuses())
 	}).Start(ctx)
 
-	go worker.New("Backup", time.Hour, c.l, func() {
-		if err := c.db.Backup(); err != nil {
-			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
-		}
+	worker.New("Backup", c.l, time.Hour, func() error {
+		return errors.WithStack(c.db.Backup())
 	}).Start(ctx)
 
-	go worker.New("resetUsageForAccounts", time.Hour, c.l, func() {
-		if err := c.statsSyncer.resetUsageForAccounts(); err != nil {
-			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
-		}
+	worker.New("resetUsageForAccounts", c.l, time.Hour, func() error {
+		return errors.WithStack(c.statsSyncer.resetUsageForAccounts())
 	}).Start(ctx)
 
 	return nil

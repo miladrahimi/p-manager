@@ -29,12 +29,12 @@
     </header>
 
     <!-- Quick actions + display preferences (calendar is saved on this device only) -->
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
-        <button class="btn btn-outline-amber" :disabled="busy"
+    <div class="mb-4 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <button class="btn btn-outline-amber w-full sm:w-auto" :disabled="busy"
                 @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
             Restart Xray Core
         </button>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center justify-between gap-2 sm:justify-start">
             <span class="text-xs text-zinc-400" title="Affects dates across the admin panel. Saved on this device only.">Calendar</span>
             <div class="flex gap-1 rounded-lg bg-zinc-100 p-1">
             <button type="button" class="rounded-md px-3 py-1 text-sm font-medium transition-colors"
@@ -135,8 +135,8 @@
             <p class="mb-2 text-xs font-medium tracking-wide text-zinc-400 uppercase">Proxy methods</p>
             <div class="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
                 <template x-for="m in methods" :key="m.key">
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
-                        <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                    <div class="flex flex-col gap-2.5 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
+                        <label class="flex min-w-0 cursor-pointer items-center gap-3 sm:flex-1">
                             <input type="checkbox" class="switch" :checked="enabled[m.key]"
                                    @change="toggleMethod(m, $event.target.checked)">
                             <span class="min-w-0">
@@ -145,9 +145,9 @@
                                 <code class="block truncate text-[11px] text-zinc-400" x-text="m.flow"></code>
                             </span>
                         </label>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 sm:justify-end">
                             <template x-for="f in m.fields" :key="f.field">
-                                <div class="w-28">
+                                <div class="flex-1 sm:w-28 sm:flex-none">
                                     <label class="label mb-0.5 text-[11px]" x-text="f.label"></label>
                                     <input type="number" class="input" x-model.number="xray[f.field]"
                                            :min="f.min ?? 1" :max="f.max ?? 65535" :placeholder="f.label"

@@ -13,9 +13,8 @@ import (
 	"github.com/miladrahimi/p-manager/pkg/util"
 )
 
-// pullStaleAfter is how long a node may go without pulling its config before
-// its pull status is considered unavailable. P-Nodes pull every 30s, so this
-// allows for a couple of missed cycles.
+// pullStaleAfter bounds how long since the last pull counts as available
+// (P-Nodes pull every 30s).
 const pullStaleAfter = 90 * time.Second
 
 type NodeResponse struct {
@@ -24,9 +23,7 @@ type NodeResponse struct {
 	PullCommand string          `json:"pull_command"`
 }
 
-// pullStatus derives a node's pull status from the last time it pulled its
-// config. It mirrors how push/ssh statuses read in the UI without tracking any
-// new state — pulled_at is already recorded when a node pulls.
+// pullStatus derives a node's pull status from its last pull time.
 func pullStatus(pulledAt int64) data.NodeStatus {
 	if pulledAt == 0 {
 		return data.NodeStatusProcessing
@@ -47,9 +44,8 @@ type NodesStoreRequest struct {
 	PushEnabled *bool  `json:"push_enabled"`
 }
 
-// pushHttpMissing reports whether push is enabled but the HTTP credentials the
-// manager needs to push config to the node are absent. HTTP token/port are only
-// used for pushing, so they are optional when push is disabled.
+// pushHttpMissing reports whether push is enabled but its HTTP credentials are
+// absent. HTTP token/port are optional when push is disabled.
 func pushHttpMissing(pushEnabled bool, token string, port int) bool {
 	return pushEnabled && (token == "" || port < 1)
 }

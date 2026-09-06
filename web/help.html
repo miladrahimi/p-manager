@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Help</title>
+    <link rel="stylesheet" href="/assets/css/app.css?v=3">
+    <link rel="icon" href="/assets/images/xray.svg">
+    <link rel="apple-touch-icon" href="/assets/images/xray.svg">
+    <script src="/assets/js/app.js?v=3"></script>
+    <script>i18n.apply(i18n.get()) // before first paint, avoids a direction flip</script>
+    <script defer src="/assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
+</head>
+<body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
+
+<!--
+  Screenshots: put one PNG per step at
+      /assets/images/help/<app>/<step>.png      e.g. /assets/images/help/v2box/3.png
+  where <app> is v2box, onexray, v2rayng or v2rayn and <step> is the 1-based step number.
+  A step whose image is missing shows a dashed placeholder with the expected path.
+-->
+
+<main class="mx-auto w-full max-w-md p-4 sm:p-6" x-data="helpPage()" x-init="init()">
+    <div class="my-6 flex justify-center">
+        <img src="/assets/images/xray.svg" class="h-12 w-12" alt="icon">
+    </div>
+
+    <div class="card">
+        <div class="p-6">
+            <h1 class="text-lg font-semibold" x-text="t('title')"></h1>
+            <p class="mt-1 text-sm text-zinc-500" x-text="t('intro')"></p>
+
+            <!-- Subscription link (only when opened from an account page) -->
+            <template x-if="subscriptionUrl">
+                <div class="mt-4">
+                    <p class="label" x-text="t('yourLink')"></p>
+                    <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
+                        <a class="min-w-0 flex-1 truncate p-2.5 text-start font-mono text-xs text-zinc-700" dir="ltr"
+                           :href="subscriptionUrl" target="_blank" rel="noopener"
+                           :title="subscriptionUrl" x-text="subscriptionUrl"></a>
+                        <button class="btn w-20 flex-none rounded-none text-xs"
+                                :class="copied ? 'bg-emerald-600 text-white' : 'btn-dark'"
+                                @click="copy()" x-text="copied ? t('copied') : t('copy')"></button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- App tabs -->
+            <div class="mt-5 flex gap-1 rounded-lg bg-zinc-100 p-1">
+                <template x-for="a in apps" :key="a.key">
+                    <button class="flex-1 cursor-pointer rounded-md py-1.5 text-sm font-medium transition-colors"
+                            :class="app === a.key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'"
+                            @click="selectApp(a.key)" x-text="a.name"></button>
+                </template>
+            </div>
+
+            <!-- Platforms and downloads -->
+            <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-zinc-500" x-text="t('availableOn')"></span>
+                <template x-for="s in current().stores" :key="s.name">
+                    <a class="chip chip-zinc hover:bg-zinc-200" :href="s.url" target="_blank" rel="noopener" x-text="s.name"></a>
+                </template>
+            </div>
+
+            <!-- Steps -->
+            <ol class="mt-6 space-y-6">
+                <template x-for="(step, i) in steps()" :key="app + i">
+                    <li class="flex gap-3">
+                        <span class="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-zinc-900 text-xs font-medium text-white"
+                              x-text="num(i + 1)"></span>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm leading-6" x-text="step"></p>
+                            <div class="mt-2">
+                                <img class="mx-auto max-h-[420px] rounded-lg border border-zinc-200"
+                                     :src="shot(i)" :alt="t('screenshot', {n: num(i + 1)})"
+                                     x-show="!missing[shot(i)]" @error="missing[shot(i)] = true">
+                                <div x-show="missing[shot(i)]" x-cloak
+                                     class="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-xs text-zinc-400">
+                                    <p x-text="t('screenshot', {n: num(i + 1)})"></p>
+                                    <p class="mt-1 font-mono text-[11px]" dir="ltr" x-text="shot(i)"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </template>
+            </ol>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-3 border-t border-zinc-200 px-6 py-4 text-xs">
+            <p class="text-zinc-400" x-text="t('tip')"></p>
+            <a x-show="accountId" class="btn btn-outline btn-xs flex-none" :href="`/account/${accountId}`"
+               x-text="t('backToAccount')"></a>
+        </div>
+    </div>
+
+    <!-- Language -->
+    <div class="mt-5 flex justify-center gap-4 text-xs">
+        <template x-for="l in languages" :key="l.code">
+            <button class="cursor-pointer" :lang="l.code"
+                    :class="lang === l.code ? 'font-medium text-zinc-900' : 'text-zinc-400 hover:text-zinc-700'"
+                    @click="setLang(l.code)" x-text="l.name"></button>
+        </template>
+    </div>
+
+    <!-- Toasts -->
+    <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
+        <template x-for="t in $store.toast.items" :key="t.id">
+            <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
+                 :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
+        </template>
+    </div>
+</main>
+
+<script>
+    const translations = {
+        fa: {
+            title: "راهنمای راه‌اندازی",
+            intro: "برنامه‌ی خود را برگزینید و گام‌ها را دنبال کنید. برای همه‌ی برنامه‌ها تنها به پیوند سرورها نیاز دارید.",
+            yourLink: "پیوند سرورهای شما",
+            copy: "رونوشت",
+            copied: "رونوشت شد",
+            copyFailed: "رونوشت انجام نشد، نوشته را برگزینید و خودتان رونوشت بگیرید.",
+            availableOn: "دریافت از:",
+            screenshot: "نماگرفت گام {n}",
+            tip: "اگر پیوند برقرار نشد، سرورها را به‌روز کنید و سرور دیگری را برگزینید.",
+            backToAccount: "بازگشت به برگه‌ی کاربر",
+        },
+        en: {
+            title: "Setup guide",
+            intro: "Pick your app and follow the steps. All you need is your subscription link.",
+            yourLink: "Your subscription link",
+            copy: "Copy",
+            copied: "Copied",
+            copyFailed: "Copy failed, select the text and copy it manually.",
+            availableOn: "Get it on:",
+            screenshot: "Screenshot for step {n}",
+            tip: "If you cannot connect, update the subscription and try another server.",
+            backToAccount: "Back to account",
+        },
+        zh: {
+            title: "设置指南",
+            intro: "选择您的应用并按步骤操作。您只需要订阅链接。",
+            yourLink: "您的订阅链接",
+            copy: "复制",
+            copied: "已复制",
+            copyFailed: "复制失败，请手动选择并复制文本。",
+            availableOn: "下载：",
+            screenshot: "第 {n} 步截图",
+            tip: "如果无法连接，请更新订阅并尝试其他服务器。",
+            backToAccount: "返回账户",
+        },
+    }
+
+    // Each app: display name, store links and per-language steps. Step N's
+    // screenshot is read from /assets/images/help/<key>/<N>.png.
+    const apps = [
+        {
+            key: "v2box",
+            name: "V2Box",
+            stores: [
+                {name: "Google Play", url: "https://play.google.com/store/apps/details?id=dev.hexasoftware.v2box"},
+                {name: "App Store", url: "https://apps.apple.com/app/v2box-v2ray-client/id6446814690"},
+            ],
+            steps: {
+                fa: [
+                    "V2Box را از Google Play یا App Store بگیرید.",
+                    "پیوند سرورها را از برگه‌ی کاربر رونوشت بگیرید.",
+                    "V2Box را باز کنید، به بخش «Config» بروید و روی «+» در بالا بزنید.",
+                    "«Add subscription» را برگزینید، نامی بنویسید، پیوند را در کادر URL بچسبانید و نگه دارید.",
+                    "روی پیوند افزوده‌شده بزنید تا سرورها دریافت شوند. با کشیدن نما به پایین می‌توانید آن را به‌روز کنید.",
+                    "یک سرور را برگزینید و دکمه‌ی پیوستن در پایین را بزنید. در نخستین بار، دسترسی VPN را بپذیرید.",
+                ],
+                en: [
+                    "Install V2Box from Google Play or the App Store.",
+                    "Copy your subscription link from the account page.",
+                    "Open V2Box, go to the “Config” tab and tap “+” at the top.",
+                    "Choose “Add subscription”, enter a name, paste the link into the URL field and save.",
+                    "Tap the subscription to fetch the servers. Pull down to refresh it later.",
+                    "Select a server and tap the connect button at the bottom. Allow the VPN permission on first connect.",
+                ],
+                zh: [
+                    "从 Google Play 或 App Store 安装 V2Box。",
+                    "从账户页面复制您的订阅链接。",
+                    "打开 V2Box，进入“Config”标签，点击顶部的“+”。",
+                    "选择“Add subscription”，输入名称，将链接粘贴到 URL 栏并保存。",
+                    "点击订阅以获取服务器。之后下拉即可刷新。",
+                    "选择一个服务器，点击底部的连接按钮。首次连接时请允许 VPN 权限。",
+                ],
+            },
+        },
+        {
+            key: "onexray",
+            name: "OneXray",
+            stores: [
+                {name: "Google Play", url: "https://play.google.com/store/apps/details?id=net.yuandev.onexray"},
+                {name: "App Store", url: "https://apps.apple.com/app/onexray/id6448898396"},
+            ],
+            steps: {
+                fa: [
+                    "OneXray را از Google Play یا App Store بگیرید.",
+                    "پیوند سرورها را از برگه‌ی کاربر رونوشت بگیرید.",
+                    "OneXray را باز کنید و روی «+» در بالا بزنید.",
+                    "«Subscription» را برگزینید، پیوند را بچسبانید و نگه دارید.",
+                    "پیوند را به‌روز کنید تا سرورها نشان داده شوند.",
+                    "یک سرور را برگزینید و دکمه‌ی پیوستن را بزنید. در نخستین بار، دسترسی VPN را بپذیرید.",
+                ],
+                en: [
+                    "Install OneXray from Google Play or the App Store.",
+                    "Copy your subscription link from the account page.",
+                    "Open OneXray and tap “+” at the top.",
+                    "Choose “Subscription”, paste the link and save.",
+                    "Update the subscription to load the servers.",
+                    "Select a server and tap the connect button. Allow the VPN permission on first connect.",
+                ],
+                zh: [
+                    "从 Google Play 或 App Store 安装 OneXray。",
+                    "从账户页面复制您的订阅链接。",
+                    "打开 OneXray，点击顶部的“+”。",
+                    "选择“Subscription”，粘贴链接并保存。",
+                    "更新订阅以加载服务器。",
+                    "选择一个服务器，点击连接按钮。首次连接时请允许 VPN 权限。",
+                ],
+            },
+        },
+        {
+            key: "v2rayng",
+            name: "v2rayNG",
+            stores: [
+                {name: "Google Play", url: "https://play.google.com/store/apps/details?id=com.v2ray.ang"},
+                {name: "GitHub (Android)", url: "https://github.com/2dust/v2rayNG/releases"},
+            ],
+            steps: {
+                fa: [
+                    "v2rayNG را از Google Play یا GitHub بگیرید.",
+                    "پیوند سرورها را از برگه‌ی کاربر رونوشت بگیرید.",
+                    "v2rayNG را باز کنید، «☰» را بزنید و «Subscription group setting» را برگزینید.",
+                    "روی «+» بزنید، نامی بنویسید، پیوند را در کادر URL بچسبانید و با «✓» نگه دارید.",
+                    "به نمای نخست برگردید، «⋮» را بزنید و «Update subscription» را برگزینید.",
+                    "یک سرور را برگزینید و دکمه‌ی «V» در پایین را بزنید. در نخستین بار، دسترسی VPN را بپذیرید.",
+                ],
+                en: [
+                    "Install v2rayNG from Google Play or GitHub.",
+                    "Copy your subscription link from the account page.",
+                    "Open v2rayNG, tap the “☰” menu and choose “Subscription group setting”.",
+                    "Tap “+”, enter a name, paste the link into the URL field and save with “✓”.",
+                    "Back on the main screen, tap the “⋮” menu and choose “Update subscription”.",
+                    "Select a server and tap the “V” button at the bottom. Allow the VPN permission on first connect.",
+                ],
+                zh: [
+                    "从 Google Play 或 GitHub 安装 v2rayNG。",
+                    "从账户页面复制您的订阅链接。",
+                    "打开 v2rayNG，点击“☰”菜单，选择“Subscription group setting”。",
+                    "点击“+”，输入名称，将链接粘贴到 URL 栏，然后点击“✓”保存。",
+                    "返回主界面，点击“⋮”菜单，选择“Update subscription”。",
+                    "选择一个服务器，点击底部的“V”按钮。首次连接时请允许 VPN 权限。",
+                ],
+            },
+        },
+        {
+            key: "v2rayn",
+            name: "v2rayN",
+            stores: [
+                {name: "GitHub (Windows, macOS, Linux)", url: "https://github.com/2dust/v2rayN/releases"},
+            ],
+            steps: {
+                fa: [
+                    "v2rayN را از GitHub برای سیستم‌عامل خود بگیرید، از حالت فشرده بیرون بیاورید و اجرا کنید.",
+                    "پیوند سرورها را از برگه‌ی کاربر رونوشت بگیرید.",
+                    "v2rayN را باز کنید، به فهرست «Subscriptions» بروید و «Subscription group settings» را برگزینید.",
+                    "روی «Add» بزنید، نامی بنویسید، پیوند را در کادر URL بچسبانید و نگه دارید.",
+                    "از فهرست «Subscriptions» گزینه‌ی «Update subscription (without proxy)» را برگزینید تا سرورها دریافت شوند.",
+                    "یک سرور را برگزینید و در پایین پنجره، «System proxy» را روی «Set system proxy» بگذارید (یا حالت Tun را روشن کنید).",
+                ],
+                en: [
+                    "Download v2rayN for your operating system from GitHub, extract it and run it.",
+                    "Copy your subscription link from the account page.",
+                    "Open v2rayN, open the “Subscriptions” menu and choose “Subscription group settings”.",
+                    "Click “Add”, enter a name, paste the link into the URL field and save.",
+                    "From the “Subscriptions” menu choose “Update subscription (without proxy)” to fetch the servers.",
+                    "Select a server and, at the bottom of the window, set “System proxy” to “Set system proxy” (or enable Tun mode).",
+                ],
+                zh: [
+                    "从 GitHub 下载适合您系统的 v2rayN，解压并运行。",
+                    "从账户页面复制您的订阅链接。",
+                    "打开 v2rayN，进入“订阅”菜单，选择“订阅分组设置”。",
+                    "点击“添加”，输入名称，将链接粘贴到 URL 栏并保存。",
+                    "在“订阅”菜单中选择“更新订阅（不通过代理）”以获取服务器。",
+                    "选择一个服务器，在窗口底部将“系统代理”设为“自动配置系统代理”（或开启 Tun 模式）。",
+                ],
+            },
+        },
+    ]
+
+    function helpPage() {
+        return {
+            lang: i18n.get(),
+            languages: i18n.languages,
+            apps: apps,
+            app: apps[0].key,
+            accountId: new URLSearchParams(window.location.search).get("account") || "",
+            subscriptionUrl: "",
+            copied: false,
+            missing: {},
+
+            async init() {
+                document.title = this.t("title")
+                const hash = window.location.hash.slice(1)
+                if (apps.some(a => a.key === hash)) {
+                    this.app = hash
+                }
+                if (!this.accountId) {
+                    return
+                }
+                try {
+                    const r = await api("GET", `/api/account/${this.accountId}`)
+                    if (r["account"]["proxy_id"]) {
+                        const host = r["host"] || window.location.host
+                        this.subscriptionUrl =
+                            `${window.location.origin}/subscription/${r["account"]["proxy_id"]}#${host}`
+                    }
+                } catch (e) {
+                    // The guide is still useful without the link.
+                }
+            },
+
+            t(key, params = {}) {
+                return i18n.translate(translations, this.lang, key, params)
+            },
+
+            setLang(lang) {
+                this.lang = lang
+                i18n.apply(lang)
+                document.title = this.t("title")
+            },
+
+            num(value) {
+                return i18n.number(this.lang, value, 0)
+            },
+
+            current() {
+                return apps.find(a => a.key === this.app)
+            },
+
+            steps() {
+                const steps = this.current().steps
+                return steps[this.lang] || steps.en
+            },
+
+            shot(index) {
+                return `/assets/images/help/${this.app}/${index + 1}.png`
+            },
+
+            selectApp(key) {
+                this.app = key
+                history.replaceState(null, "", `#${key}`)
+            },
+
+            copy() {
+                copyText(this.subscriptionUrl).then(() => {
+                    this.copied = true
+                    setTimeout(() => this.copied = false, 1500)
+                }).catch(() => this.$store.toast.error(this.t("copyFailed")))
+            },
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -43,6 +43,7 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 			r.RemoteRrPort,
 			r.RelayRr2RrManagerPort,
 			r.RelayRr2RrNodePort,
+			r.ReverseRrManagerPort,
 			r.RelayRr2SshPort,
 		}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
@@ -68,6 +69,12 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 		if r.RelayRr2SshPort > 0 && r.RelayRr2SshPort != d.RelayRr2SshPort && !util.PortFree(r.RelayRr2SshPort) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": fmt.Sprintf("Port %d is already in use.", r.RelayRr2SshPort),
+			})
+		}
+		if r.ReverseRrManagerPort > 0 && r.ReverseRrManagerPort != d.ReverseRrManagerPort &&
+			!util.PortFree(r.ReverseRrManagerPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Port %d is already in use.", r.ReverseRrManagerPort),
 			})
 		}
 

@@ -29,10 +29,8 @@ type Node struct {
 	PulledAt    int64      `json:"pulled_at"`
 }
 
-// NewNode creates a new node instance with the sync options enabled. Pulling is
-// not a manager-side option: a P-Node only pulls once its setup command is run
-// on the node, so PulledAt (and the derived pull status) reflect that
-// implicitly with no flag to toggle.
+// NewNode creates a new node with the sync options enabled. Pulling has no flag:
+// it is driven by the P-Node running its setup command.
 func NewNode(id string, host string, httpToken string, httpPort int, sshUser string, sshPort int) *Node {
 	return &Node{
 		Id:          id,

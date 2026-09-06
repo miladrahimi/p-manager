@@ -41,6 +41,10 @@
         @apply border border-red-300 bg-white text-red-700 hover:bg-red-50;
     }
 
+    .btn-outline-amber {
+        @apply border border-amber-300 bg-white text-amber-700 hover:bg-amber-50;
+    }
+
     .btn-xs {
         @apply px-2 py-1 text-xs;
     }

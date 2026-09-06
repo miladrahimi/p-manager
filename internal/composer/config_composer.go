@@ -69,6 +69,7 @@ func (c *Composer) composeManagerConfig(
 				rr2rrClientId(n.Id, xs.RealityPrivateKey),
 				xs.RealityPublicKey,
 				xs.NodeSni,
+				vless.FlowVision,
 			))
 			xc.FindBalancer("relay-rr2rr").Selector = append(
 				xc.FindBalancer("relay-rr2rr").Selector,
@@ -114,6 +115,40 @@ func (c *Composer) composeManagerConfig(
 		}
 	}
 
+	// Reverse RR: P-Manager is the portal; accounts and every P-Node bridge
+	// connect to this inbound, and the portal load-balances accounts across the
+	// connected bridges.
+	if hasClients && hasNodes && xs.ReverseRrManagerPort > 0 {
+		clients := make([]*component.Client, 0, len(rrClients)+len(d.Nodes))
+		clients = append(clients, rrClients...)
+		for _, n := range d.Nodes {
+			// No flow: the bridge tunnel carries mux, incompatible with vision.
+			clients = append(clients, vless.MakeUser(
+				reverseRrBridgeId(n.Id, xs.RealityPrivateKey),
+				vless.FlowNone,
+				vless.EncryptionEmpty,
+			))
+		}
+
+		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+			"reverse-rr",
+			xs.ReverseRrManagerPort,
+			xs.RealityPrivateKey,
+			xs.ManagerSni,
+			clients,
+			fallback,
+		))
+		xc.Reverse.Portals = append(xc.Reverse.Portals, &component.ReverseItem{
+			Tag:    "reverse-rr-portal",
+			Domain: reverseRrDomain,
+		})
+		// The portal sorts bridge registrations from account traffic by target.
+		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
+			InboundTag:  []string{"reverse-rr"},
+			OutboundTag: "reverse-rr-portal",
+		})
+	}
+
 	if hasClients && xs.DirectRrPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"direct-rr",
@@ -153,11 +188,8 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 		UpdatedBy: d.MainSettings.Host,
 	}
 
-	// The RR relay client id is derived deterministically from the node id and
-	// reality key, so it matches the manager's relay outbound without reading
-	// the manager's live config (which could be a different generation and cause
-	// an auth mismatch → HTTP fallback). Mirror the manager's gate: relay only
-	// when there are clients and both relay ports are set.
+	// The relay client id is derived deterministically, so it matches the
+	// manager's relay outbound without reading the manager's live config.
 	if len(c.rrClients(d)) > 0 && xs.RelayRr2RrManagerPort > 0 && xs.RelayRr2RrNodePort > 0 {
 		clientId := rr2rrClientId(node.Id, xs.RealityPrivateKey)
 		clients := []*component.Client{vless.MakeUser(clientId, vless.FlowVision, vless.EncryptionEmpty)}
@@ -173,6 +205,40 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 			xc.Routing.Rules,
 			&component.Rule{
 				InboundTag:  []string{"relay-rr2rr"},
+				OutboundTag: "out",
+			},
+		)
+	}
+
+	// Reverse RR: P-Node is the bridge; it dials out to the manager portal, so
+	// it needs only the manager host (delivered with this config), not its own.
+	if len(c.rrClients(d)) > 0 && xs.ReverseRrManagerPort > 0 && d.MainSettings.Host != "" {
+		bridgeId := reverseRrBridgeId(node.Id, xs.RealityPrivateKey)
+		// No flow: the reverse tunnel carries mux, incompatible with vision.
+		xc.Outbounds = append(xc.Outbounds, vless.MakeRrOutbound(
+			"reverse-rr-tunnel",
+			d.MainSettings.Host,
+			xs.ReverseRrManagerPort,
+			bridgeId,
+			xs.RealityPublicKey,
+			xs.ManagerSni,
+			vless.FlowNone,
+		))
+		xc.Reverse.Bridges = append(xc.Reverse.Bridges, &component.ReverseItem{
+			Tag:    "reverse-rr-bridge",
+			Domain: reverseRrDomain,
+		})
+		xc.Routing.Rules = append(
+			xc.Routing.Rules,
+			// Tunnel connections (target == reverse domain) dial the portal.
+			&component.Rule{
+				InboundTag:  []string{"reverse-rr-bridge"},
+				Domain:      []string{"full:" + reverseRrDomain},
+				OutboundTag: "reverse-rr-tunnel",
+			},
+			// Account traffic returning through the tunnel goes to the internet.
+			&component.Rule{
+				InboundTag:  []string{"reverse-rr-bridge"},
 				OutboundTag: "out",
 			},
 		)
@@ -199,11 +265,20 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 	return xc
 }
 
-// rr2rrClientId derives the stable VLESS client id for the manager<->node RR
-// relay of the given node. The manager's relay outbound and the node's relay
-// inbound each derive it independently and thus always agree.
+// reverseRrDomain pairs the reverse portal with the bridges; all nodes share it
+// so the portal pools and load-balances their tunnels.
+const reverseRrDomain = "reverse-rr"
+
+// rr2rrClientId is the stable relay client id shared by the manager outbound and
+// the node inbound (each derives it independently).
 func rr2rrClientId(nodeId, realityPrivateKey string) string {
 	return util.StableUuid("relay-rr2rr|" + nodeId + "|" + realityPrivateKey)
+}
+
+// reverseRrBridgeId is the stable reverse-tunnel client id shared by the manager
+// inbound and the node outbound (each derives it independently).
+func reverseRrBridgeId(nodeId, realityPrivateKey string) string {
+	return util.StableUuid("reverse-rr|" + nodeId + "|" + realityPrivateKey)
 }
 
 // rrClients returns the RR-ready client list. The caller must hold the store

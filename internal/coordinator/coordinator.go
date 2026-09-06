@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -31,6 +32,9 @@ type Coordinator struct {
 	sshSyncer    *sshSyncer
 	configSyncer *configSyncer
 	statsSyncer  *statsSyncer
+
+	// updateMu serializes UpdateConfigs and the ssh proxy sync.
+	updateMu sync.Mutex
 }
 
 // New creates a new coordinator.
@@ -72,6 +76,8 @@ func (c *Coordinator) Run(ctx context.Context) error {
 	c.UpdateConfigs()
 
 	go worker.New("syncSshProxies", time.Second*10, c.l, func() {
+		c.updateMu.Lock()
+		defer c.updateMu.Unlock()
 		if err := c.sshSyncer.syncSshProxies(); err != nil {
 			c.l.Error("coordinator:", zap.Error(errors.WithStack(err)))
 		}
@@ -149,12 +155,17 @@ func (c *Coordinator) initialize() error {
 
 // UpdateConfigs updates the local and node configs.
 func (c *Coordinator) UpdateConfigs() {
+	c.updateMu.Lock()
+	defer c.updateMu.Unlock()
+
 	c.l.Info("coordinator: updating configs...")
 	if err := c.sshSyncer.syncSshProxies(); err != nil {
 		c.l.Error("coordinator: cannot sync ssh proxies", zap.Error(err))
 	}
+	// A reconfigure failure (e.g. a port conflict from bad settings) must not
+	// crash the whole manager; log and keep serving so it can be fixed.
 	if err := c.configSyncer.updateLocalConfig(); err != nil {
-		c.l.Fatal("coordinator:", zap.Error(errors.WithStack(err)))
+		c.l.Error("coordinator: cannot update local config", zap.Error(errors.WithStack(err)))
 	}
 	c.configSyncer.pushConfigToNodes()
 }

@@ -1,97 +1,259 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Account</title>
-    <link rel="stylesheet" href="/assets/css/app.css?v=2">
+    <link rel="stylesheet" href="/assets/css/app.css?v=3">
     <link rel="icon" href="/assets/images/xray.svg">
     <link rel="apple-touch-icon" href="/assets/images/xray.svg">
-    <script src="/assets/js/app.js?v=2"></script>
+    <script src="/assets/js/app.js?v=3"></script>
+    <script>i18n.apply(i18n.get()) // before first paint, avoids a direction flip</script>
     <script defer src="/assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
 
 <main class="mx-auto w-full max-w-md p-4 sm:p-6" x-data="accountPage()" x-init="load()">
-    <div class="my-6 flex flex-col items-center gap-3">
+    <div class="my-6 flex justify-center">
         <img src="/assets/images/xray.svg" class="h-12 w-12" alt="icon">
     </div>
 
-    <p x-cloak x-show="error" class="card p-6 text-center text-sm text-red-600" x-text="error"></p>
+    <!-- Loading -->
+    <div x-show="loading" class="card p-6 text-center text-sm text-zinc-400" x-text="t('loading')"></div>
 
-    <div class="card p-6" x-show="!error">
-        <div class="text-center">
-            <span class="font-semibold" x-text="account.name || 'Loading...'"></span>
-            <span x-cloak x-show="account.enabled === false" class="chip chip-red ml-1">Disabled</span>
-        </div>
+    <!-- Error -->
+    <div x-cloak x-show="!loading && error" class="card p-6 text-center">
+        <p class="text-sm text-red-600" x-text="error"></p>
+        <button class="btn btn-outline mt-4" @click="load()" x-text="t('tryAgain')"></button>
+    </div>
 
-        <div class="mt-4">
-            <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-                <div class="h-full rounded-full transition-all" :class="barColor()" :style="`width:${percent()}%`"></div>
+    <!-- Account -->
+    <div x-cloak x-show="!loading && !error" class="card">
+        <div class="p-6">
+            <div class="flex items-center justify-between gap-3">
+                <h1 class="truncate text-lg font-semibold" x-text="account.name"></h1>
+                <span class="chip flex-none" :class="account.enabled ? 'chip-green' : 'chip-red'"
+                      x-text="account.enabled ? t('active') : t('disabled')"></span>
             </div>
-            <p class="mt-2 text-center text-xs text-zinc-500">
-                <span x-text="account.usage ?? 0"></span> /
-                <span x-text="account.quota > 0 ? account.quota : 'Unlimited'"></span> GB
-            </p>
-        </div>
 
-        <div class="mt-4 space-y-2 text-left">
+            <p x-cloak x-show="!account.enabled" class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700"
+               x-text="t('disabledNotice')"></p>
+
+            <!-- Usage -->
+            <div class="mt-5">
+                <div class="flex items-baseline justify-between text-sm">
+                    <span class="text-zinc-500" x-text="t('traffic')"></span>
+                    <span class="font-medium tabular-nums"
+                          x-text="account.quota > 0
+                              ? t('usageOfQuota', {usage: num(account.usage), quota: num(account.quota)})
+                              : t('usageUnlimited', {usage: num(account.usage)})"></span>
+                </div>
+                <template x-if="account.quota > 0">
+                    <div class="mt-2">
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+                            <div class="h-full rounded-full transition-all" :class="barColor()" :style="`width:${percent()}%`"></div>
+                        </div>
+                        <p class="mt-1.5 text-end text-xs tabular-nums text-zinc-400"
+                           x-text="percent() >= 100 ? t('quotaExceeded') : t('percentUsed', {percent: num(percent(), 0)})"></p>
+                    </div>
+                </template>
+                <p x-show="!(account.quota > 0)" class="mt-1 text-xs text-zinc-400" x-text="t('unlimited')"></p>
+            </div>
+
+            <!-- Subscription -->
             <template x-if="subscriptionUrl">
-                <div>
-                    <p class="label">Subscription</p>
+                <div class="mt-5">
+                    <p class="label" x-text="t('subscriptionLink')"></p>
                     <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
-                        <a class="flex-1 overflow-x-auto p-2 font-mono text-xs whitespace-nowrap"
-                           :href="subscriptionUrl" target="_blank" rel="noopener" x-text="subscriptionUrl"></a>
-                        <button class="btn flex-none rounded-none text-xs"
+                        <a class="min-w-0 flex-1 truncate p-2.5 text-start font-mono text-xs text-zinc-700" dir="ltr"
+                           :href="subscriptionUrl" target="_blank" rel="noopener"
+                           :title="subscriptionUrl" x-text="subscriptionUrl"></a>
+                        <button class="btn w-20 flex-none rounded-none text-xs"
                                 :class="copiedKey === 'subscription' ? 'bg-emerald-600 text-white' : 'btn-dark'"
                                 @click="copy('subscription', subscriptionUrl)"
-                                x-text="copiedKey === 'subscription' ? 'Copied!' : 'Copy'"></button>
+                                x-text="copiedKey === 'subscription' ? t('copied') : t('copy')"></button>
+                    </div>
+                    <p class="mt-1.5 text-xs text-zinc-400">
+                        <span x-text="t('subscriptionHint')"></span>
+                        <a class="text-zinc-600 underline hover:text-zinc-900" :href="`/help.html?account=${accountId()}`"
+                           x-text="t('setupGuide')"></a>
+                    </p>
+                </div>
+            </template>
+
+            <!-- Individual links -->
+            <template x-if="proxies.length > 0">
+                <div class="mt-5">
+                    <button class="flex w-full items-center justify-between text-start" @click="showLinks = !showLinks">
+                        <span class="label mb-0" x-text="t('serverLinks', {count: num(proxies.length, 0)})"></span>
+                        <span class="text-xs text-zinc-500" x-text="showLinks ? t('hide') : t('show')"></span>
+                    </button>
+                    <div x-show="showLinks" class="mt-2 space-y-2">
+                        <template x-for="proxy in proxies" :key="proxy.key">
+                            <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
+                                <a class="min-w-0 flex-1 p-2.5 text-start" dir="ltr" :href="proxy.value" :title="proxy.value">
+                                    <span class="block truncate text-xs font-medium text-zinc-700" x-text="proxy.key"></span>
+                                    <span class="block truncate font-mono text-[11px] text-zinc-400" x-text="proxy.value"></span>
+                                </a>
+                                <button class="btn w-20 flex-none rounded-none text-xs"
+                                        :class="copiedKey === proxy.key ? 'bg-emerald-600 text-white' : 'btn-dark'"
+                                        @click="copy(proxy.key, proxy.value)"
+                                        x-text="copiedKey === proxy.key ? t('copied') : t('copy')"></button>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </template>
-
-            <template x-if="showMore">
-                <div class="space-y-2">
-                    <template x-for="proxy in proxies" :key="proxy.key">
-                        <div>
-                            <p class="label" x-text="proxy.key"></p>
-                            <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
-                                <a class="flex-1 overflow-x-auto p-2 font-mono text-xs whitespace-nowrap"
-                                   :href="proxy.value" x-text="proxy.value"></a>
-                                <button class="btn flex-none rounded-none text-xs"
-                                        :class="copiedKey === proxy.key ? 'bg-emerald-600 text-white' : 'btn-dark'"
-                                        @click="copy(proxy.key, proxy.value)"
-                                        x-text="copiedKey === proxy.key ? 'Copied!' : 'Copy'"></button>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-            </template>
-
-            <button x-cloak x-show="proxies.length > 0" class="btn btn-outline w-full"
-                    @click="showMore = !showMore" x-text="showMore ? 'Show less' : 'Show more'"></button>
         </div>
 
-        <p class="mt-4 text-center text-xs text-zinc-400">
-            Registered @ <span x-text="ts2date(account.created_at)"></span>
-        </p>
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-3 border-t border-zinc-200 px-6 py-4">
+            <p class="text-xs text-zinc-400" x-text="t('since', {date: date(account.created_at)})"></p>
+            <button class="btn btn-outline-danger btn-xs" :disabled="renewing" @click="renew()"
+                    x-text="renewing ? t('renewing') : t('renewLinks')"></button>
+        </div>
+    </div>
 
-        <button class="btn btn-outline-danger mt-4 w-full" :disabled="renewing" @click="renew()"
-                x-text="renewing ? 'RENEWING...' : 'RENEW LINKS'"></button>
+    <!-- Language -->
+    <div class="mt-5 flex justify-center gap-4 text-xs">
+        <template x-for="l in languages" :key="l.code">
+            <button class="cursor-pointer" :lang="l.code"
+                    :class="lang === l.code ? 'font-medium text-zinc-900' : 'text-zinc-400 hover:text-zinc-700'"
+                    @click="setLang(l.code)" x-text="l.name"></button>
+        </template>
+    </div>
+
+    <!-- Toasts -->
+    <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
+        <template x-for="t in $store.toast.items" :key="t.id">
+            <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
+                 :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
+        </template>
     </div>
 </main>
 
 <script>
+    const translations = {
+        fa: {
+            title: "کاربر",
+            loading: "بارگذاری...",
+            tryAgain: "تلاش دوباره",
+            active: "روشن",
+            disabled: "خاموش",
+            disabledNotice: "این کاربر خاموش است. پیوندهای زیر تا روشن شدن دوباره کار نمی‌کنند.",
+            traffic: "داده",
+            usageOfQuota: "{usage} از {quota} گیگابایت",
+            usageUnlimited: "{usage} گیگابایت به‌کار رفته",
+            unlimited: "بی‌کران",
+            quotaExceeded: "به پایان رسیده",
+            percentUsed: "{percent}٪ به‌کار رفته",
+            setupGuide: "راهنمای راه‌اندازی",
+            subscriptionLink: "پیوند همه سرورها",
+            subscriptionHint: "این پیوند را در برنامه‌ی خود بیفزایید تا همه سرورها خودکار دریافت شوند.",
+            serverLinks: "پیوند تک‌تک سرورها ({count})",
+            show: "نمایش",
+            hide: "پنهان",
+            copy: "رونوشت",
+            copied: "رونوشت شد",
+            since: "همراه ما از {date}",
+            renewLinks: "نوسازی پیوندها",
+            renewing: "نوسازی...",
+            renewConfirm: "پیوندها نوسازی شوند؟ پیوندهای کنونی از کار می‌افتند و باید برنامه‌های خود را به‌روز کنید.",
+            renewed: "پیوندها نوسازی شدند. بارگذاری دوباره...",
+            copyFailed: "رونوشت انجام نشد، نوشته را برگزینید و خودتان رونوشت بگیرید.",
+            accountIdMissing: "شناسه‌ی کاربر یافت نشد.",
+        },
+        en: {
+            title: "Account",
+            loading: "Loading...",
+            tryAgain: "Try again",
+            active: "Active",
+            disabled: "Disabled",
+            disabledNotice: "This account is disabled. The links below will not work until it is enabled again.",
+            traffic: "Traffic",
+            usageOfQuota: "{usage} / {quota} GB",
+            usageUnlimited: "{usage} GB used",
+            unlimited: "Unlimited quota",
+            quotaExceeded: "Quota exceeded",
+            percentUsed: "{percent}% used",
+            setupGuide: "Setup guide",
+            subscriptionLink: "Subscription link",
+            subscriptionHint: "Add this link to your client app to receive all servers automatically.",
+            serverLinks: "Server links ({count})",
+            show: "Show",
+            hide: "Hide",
+            copy: "Copy",
+            copied: "Copied",
+            since: "Since {date}",
+            renewLinks: "Renew links",
+            renewing: "Renewing...",
+            renewConfirm: "Renew links? Your current links will stop working and you will need to update your client apps.",
+            renewed: "Links renewed. Reloading...",
+            copyFailed: "Copy failed, select the text and copy it manually.",
+            accountIdMissing: "Account ID is missing.",
+        },
+        zh: {
+            title: "账户",
+            loading: "加载中...",
+            tryAgain: "重试",
+            active: "已启用",
+            disabled: "已停用",
+            disabledNotice: "此账户已停用。在重新启用之前，以下链接无法使用。",
+            traffic: "流量",
+            usageOfQuota: "{usage} / {quota} GB",
+            usageUnlimited: "已使用 {usage} GB",
+            unlimited: "流量不限",
+            quotaExceeded: "流量已用尽",
+            percentUsed: "已使用 {percent}%",
+            setupGuide: "设置指南",
+            subscriptionLink: "订阅链接",
+            subscriptionHint: "将此链接添加到客户端应用，即可自动获取所有服务器。",
+            serverLinks: "服务器链接（{count}）",
+            show: "显示",
+            hide: "隐藏",
+            copy: "复制",
+            copied: "已复制",
+            since: "注册于 {date}",
+            renewLinks: "更换链接",
+            renewing: "更换中...",
+            renewConfirm: "确定更换链接？当前链接将失效，您需要更新客户端应用。",
+            renewed: "链接已更换，正在刷新...",
+            copyFailed: "复制失败，请手动选择并复制文本。",
+            accountIdMissing: "缺少账户 ID。",
+        },
+    }
+
     function accountPage() {
         return {
+            lang: i18n.get(),
+            languages: i18n.languages,
             account: {},
             proxies: [],
             subscriptionUrl: "",
-            showMore: false,
+            showLinks: false,
             copiedKey: "",
+            loading: true,
             renewing: false,
             error: "",
+
+            t(key, params = {}) {
+                return i18n.translate(translations, this.lang, key, params)
+            },
+
+            setLang(lang) {
+                this.lang = lang
+                i18n.apply(lang)
+                document.title = this.t("title")
+            },
+
+            num(value, digits = 2) {
+                return i18n.number(this.lang, value, digits)
+            },
+
+            date(timestamp) {
+                return i18n.date(this.lang, timestamp)
+            },
 
             accountId() {
                 const parts = window.location.pathname.split("/").filter(Boolean)
@@ -99,9 +261,13 @@
             },
 
             async load() {
+                document.title = this.t("title")
+                this.loading = true
+                this.error = ""
                 const accountId = this.accountId()
                 if (!accountId) {
-                    this.error = "Account ID is missing."
+                    this.error = this.t("accountIdMissing")
+                    this.loading = false
                     return
                 }
                 try {
@@ -115,44 +281,46 @@
                         this.subscriptionUrl =
                             `${window.location.origin}/subscription/${this.account["proxy_id"]}#${host}`
                     }
+                    // Without a subscription link, the server links are the only thing to copy.
+                    this.showLinks = !this.subscriptionUrl
                 } catch (e) {
                     this.error = e.message
+                } finally {
+                    this.loading = false
                 }
             },
 
             percent() {
                 if (!this.account.quota) {
-                    return this.account.usage > 0 ? 100 : 0
+                    return 0
                 }
                 return Math.min(100, Math.floor(this.account.usage / this.account.quota * 100))
             },
 
             barColor() {
-                if (!this.account.quota) {
-                    return "bg-zinc-400"
-                }
                 const percent = this.percent()
-                return percent > 90 ? "bg-red-500" : percent > 60 ? "bg-amber-500" : "bg-zinc-800"
+                return percent >= 100 ? "bg-red-500" : percent > 80 ? "bg-amber-500" : "bg-zinc-800"
             },
 
             copy(key, text) {
                 copyText(text).then(() => {
                     this.copiedKey = key
-                    setTimeout(() => this.copiedKey = "", 1200)
-                }).catch(() => alert("Copy failed."))
+                    setTimeout(() => this.copiedKey = "", 1500)
+                }).catch(() => this.$store.toast.error(this.t("copyFailed")))
             },
 
             async renew() {
-                if (!confirm('Click "OK" to renew links.')) {
+                if (!confirm(this.t("renewConfirm"))) {
                     return
                 }
                 this.renewing = true
                 try {
                     await api("POST", `/api/account/${this.accountId()}/links/renew`)
-                    setTimeout(() => window.location.reload(), 2000)
+                    this.$store.toast.info(this.t("renewed"))
+                    setTimeout(() => window.location.reload(), 1500)
                 } catch (e) {
                     this.renewing = false
-                    alert(e.message)
+                    this.$store.toast.error(e.message)
                 }
             },
         }

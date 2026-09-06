@@ -127,6 +127,13 @@ It also accepts VLESS Reality Raw requests from clients and forwards them to the
 [ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(SOCKS)-> [ SSH to P-Node ] -> Internet
 ```
 
+### Reverse RR
+P-Manager is the reverse portal; each P-Node is a bridge that dials out to it, so P-Nodes work without a public/reachable inbound (only the P-Manager host must be reachable, which nodes learn from the pushed/pulled config). Accounts hit the same manager port and the portal load-balances them across all connected nodes (nodes share the `reverse-rr` domain).
+```
+[ Client ] -(VLESS Reality Raw)-> [ P-Manager ] ↪ [ P-Node dials back ] -> Internet
+```
+Config (`internal/composer/config_composer.go`): manager adds a `reverse-rr` inbound (accounts with vision flow + one no-flow bridge client per node) routed to the `reverse-rr-portal`; each node adds a `reverse-rr-bridge` + a no-flow `reverse-rr-tunnel` outbound to the manager. The bridge client id is a stable `util.StableUuid` (`reverseRrBridgeId`), so both sides agree without shared state. Enabled by `XraySettings.ReverseRrManagerPort`. Tunnel uses no flow because reverse carries mux (incompatible with `xtls-rprx-vision`).
+
 ## External Links
 - [Xray: Proxy Platform](https://github.com/XTLS/Xray-core)
 - [Xray Config Examples](https://github.com/XTLS/Xray-examples)

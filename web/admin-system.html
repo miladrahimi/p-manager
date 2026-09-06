@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | System</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=2">
+    <link rel="stylesheet" href="assets/css/app.css?v=6">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
-    <script src="assets/js/app.js?v=2"></script>
+    <script src="assets/js/app.js?v=6"></script>
     <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -28,57 +28,50 @@
         </nav>
     </header>
 
-    <!-- Stats & Platform -->
-    <section class="card" x-data="{ open: true }">
-        <button type="button" @click="open = !open"
-                class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
-            <h2 class="text-sm font-semibold">Stats &amp; Platform</h2>
-            <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
-                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
-            </svg>
+    <!-- Quick actions + display preferences (calendar is saved on this device only) -->
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3">
+        <button class="btn btn-outline-amber" :disabled="busy"
+                @click="action('Restart the Xray core?', 'POST', '/api/xray/restart')">
+            Restart Xray Core
         </button>
-        <div x-show="open" class="grid grid-cols-1 gap-6 px-5 pb-5 sm:grid-cols-2">
-        <div>
-            <h2 class="mb-3 text-sm font-semibold">Stats</h2>
-            <dl class="space-y-1.5 text-sm">
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500">Total usage</dt>
-                    <dd x-text="`${parseFloat(stats.total_usage || 0).toFixed(2)} GB`"></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500">Last total usage reset</dt>
-                    <dd x-text="ts2date(stats.total_usage_reset_at)"></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500">Total accounts</dt>
-                    <dd x-text="stats.total_accounts ?? '-'"></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500">Active accounts</dt>
-                    <dd x-text="stats.active_accounts ?? '-'"></dd>
-                </div>
-            </dl>
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-zinc-400" title="Affects dates across the admin panel. Saved on this device only.">Calendar</span>
+            <div class="flex gap-1 rounded-lg bg-zinc-100 p-1">
+            <button type="button" class="rounded-md px-3 py-1 text-sm font-medium transition-colors"
+                    :class="$store.prefs.calendar === 'gregorian' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
+                    @click="$store.prefs.setCalendar('gregorian')">Gregorian
+            </button>
+            <button type="button" class="rounded-md px-3 py-1 text-sm font-medium transition-colors"
+                    :class="$store.prefs.calendar === 'persian' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
+                    @click="$store.prefs.setCalendar('persian')">Persian
+            </button>
+            </div>
         </div>
-        <div>
-            <h2 class="mb-3 text-sm font-semibold">Platform</h2>
-            <dl class="space-y-1.5 text-sm">
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500">App name</dt>
-                    <dd x-text="platform.app_name ?? '-'"></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500">App version</dt>
-                    <dd x-text="platform.app_version ?? '-'"></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500">Core</dt>
-                    <dd x-text="platform.core ?? '-'"></dd>
-                </div>
-            </dl>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="card px-4 py-3">
+            <p class="text-xs text-zinc-500">Total usage</p>
+            <p class="mt-1 text-lg font-semibold tabular-nums"
+               x-text="`${parseFloat(stats.total_usage || 0).toFixed(2)} GB`"></p>
+            <p class="mt-0.5 truncate text-[11px] text-zinc-400"
+               x-text="`since ${ts2date(stats.total_usage_reset_at)}`"></p>
         </div>
+        <div class="card px-4 py-3">
+            <p class="text-xs text-zinc-500">Total accounts</p>
+            <p class="mt-1 text-lg font-semibold tabular-nums" x-text="stats.total_accounts ?? '-'"></p>
         </div>
-    </section>
+        <div class="card px-4 py-3">
+            <p class="text-xs text-zinc-500">Active accounts</p>
+            <p class="mt-1 text-lg font-semibold tabular-nums" x-text="stats.active_accounts ?? '-'"></p>
+        </div>
+        <div class="card px-4 py-3">
+            <p class="text-xs text-zinc-500">Disabled accounts</p>
+            <p class="mt-1 text-lg font-semibold tabular-nums"
+               x-text="stats.total_accounts != null && stats.active_accounts != null ? stats.total_accounts - stats.active_accounts : '-'"></p>
+        </div>
+    </div>
 
     <!-- Actions -->
     <section class="card mt-4" x-data="{ open: false }">
@@ -90,31 +83,40 @@
                 <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
             </svg>
         </button>
-        <div x-show="open" class="grid grid-cols-1 gap-2 px-5 pb-5 sm:grid-cols-3">
-            <button class="btn btn-outline-green" :disabled="busy"
-                    @click="action('Reset the total usage?', 'PATCH', '/api/stats', {total_usage: 0}, true)">
-                Reset Total Usage
-            </button>
-            <button class="btn btn-outline-green" :disabled="busy"
-                    @click="action('Reset usage for all nodes?', 'PATCH', '/api/nodes', {usage: 0})">
-                Reset Node Usages
-            </button>
-            <button class="btn btn-green" :disabled="busy"
-                    @click="action('Reset usage for all accounts and activate them?', 'PATCH', '/api/accounts', {usage: 0, enabled: true})">
-                Reset Account Usages
-            </button>
-            <button class="btn btn-dark" :disabled="busy"
-                    @click="action('Restart the Xray core?', 'POST', '/api/xray/restart')">
-                Restart Xray Core
-            </button>
-            <button class="btn btn-outline-danger" :disabled="busy"
-                    @click="action('Delete all disabled accounts?', 'DELETE', '/api/accounts?enabled=false')">
-                Delete Disabled Accounts
-            </button>
-            <button class="btn btn-danger" :disabled="busy"
-                    @click="action('Delete ALL accounts?', 'DELETE', '/api/accounts')">
-                Delete All Accounts
-            </button>
+        <div x-show="open" class="space-y-5 px-5 pb-5">
+            <!-- Reset usage -->
+            <div>
+                <p class="mb-2 text-xs font-medium tracking-wide text-zinc-400 uppercase">Reset usage</p>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <button class="btn btn-outline-green" :disabled="busy"
+                            @click="action('Reset the total usage?', 'PATCH', '/api/stats', {total_usage: 0}, true)">
+                        Total Usage
+                    </button>
+                    <button class="btn btn-outline-green" :disabled="busy"
+                            @click="action('Reset usage for all nodes?', 'PATCH', '/api/nodes', {usage: 0})">
+                        Node Usages
+                    </button>
+                    <button class="btn btn-outline-green" :disabled="busy"
+                            @click="action('Reset usage for all accounts and activate them?', 'PATCH', '/api/accounts', {usage: 0, enabled: true})">
+                        Account Usages
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danger zone -->
+            <div class="rounded-lg border border-red-200 bg-red-50/60 p-3">
+                <p class="mb-2 text-xs font-medium tracking-wide text-red-500 uppercase">Danger zone</p>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button class="btn btn-outline-danger" :disabled="busy"
+                            @click="action('Delete all disabled accounts?', 'DELETE', '/api/accounts?enabled=false')">
+                        Delete Disabled Accounts
+                    </button>
+                    <button class="btn btn-danger" :disabled="busy"
+                            @click="action('Delete ALL accounts?', 'DELETE', '/api/accounts')">
+                        Delete All Accounts
+                    </button>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -147,6 +149,14 @@
             <div>
                 <label class="label" title="RR port for P-Nodes or zero to disable.">Relay RR&rarr;RR Node Port</label>
                 <input type="number" class="input" x-model.number="xray.relay_rr_2_rr_node_port"
+                       min="0" max="65535" required>
+            </div>
+            <div>
+                <label class="label"
+                       title="RR port on the P-Manager for the reverse proxy; P-Nodes dial in. Zero to disable.">
+                    Reverse RR Port
+                </label>
+                <input type="number" class="input" x-model.number="xray.reverse_rr_manager_port"
                        min="0" max="65535" required>
             </div>
             <div>
@@ -289,6 +299,10 @@
         </form>
     </section>
 
+    <!-- Platform -->
+    <p class="mt-6 text-center text-xs text-zinc-400" x-show="platform.app_name" x-cloak
+       x-text="`${platform.app_name} ${platform.app_version} · ${platform.core}`"></p>
+
     <!-- Toasts -->
     <div class="fixed right-4 bottom-4 z-[60] flex flex-col gap-2">
         <template x-for="t in $store.toast.items" :key="t.id">
@@ -355,6 +369,7 @@
                         remote_rr_port: this.xray.remote_rr_port || 0,
                         relay_rr_2_rr_manager_port: this.xray.relay_rr_2_rr_manager_port || 0,
                         relay_rr_2_rr_node_port: this.xray.relay_rr_2_rr_node_port || 0,
+                        reverse_rr_manager_port: this.xray.reverse_rr_manager_port || 0,
                         relay_rr_2_ssh_port: this.xray.relay_rr_2_ssh_port || 0,
                         relay_rr_2_ssh_connections: this.xray.relay_rr_2_ssh_connections || 8,
                         node_sni: this.xray.node_sni,

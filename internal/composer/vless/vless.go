@@ -9,6 +9,7 @@ import (
 const (
 	Protocol        = "vless"
 	FlowVision      = "xtls-rprx-vision"
+	FlowNone        = ""
 	NetworkRaw      = "raw"
 	SecurityReality = "reality"
 	EncryptionNone  = "none"
@@ -64,7 +65,9 @@ func MakeRrInbound(
 	return inbound
 }
 
-// MakeRrOutbound makes a Reality Raw outbound.
+// MakeRrOutbound makes a Reality Raw outbound. The flow is usually FlowVision;
+// pass EncryptionEmpty (no flow) for tunnels that carry mux (e.g. the reverse
+// bridge), since xtls-rprx-vision is incompatible with mux.
 func MakeRrOutbound(
 	tag string,
 	address string,
@@ -72,8 +75,9 @@ func MakeRrOutbound(
 	id string,
 	publicKey string,
 	nodeSni string,
+	flow string,
 ) *component.Outbound {
-	user := MakeUser(id, FlowVision, EncryptionNone)
+	user := MakeUser(id, flow, EncryptionNone)
 
 	return &component.Outbound{
 		Tag:      tag,

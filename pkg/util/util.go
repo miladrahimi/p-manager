@@ -28,10 +28,8 @@ func Uuid() string {
 	return u.String()
 }
 
-// StableUuid derives a deterministic RFC-4122 UUID from the given seed. The same
-// seed always yields the same UUID, so two configs composed independently (e.g.
-// the manager's RR relay outbound and the matching P-Node inbound client) can
-// agree on an identifier without sharing any state or ordering.
+// StableUuid derives a deterministic RFC-4122 UUID from the seed, so configs
+// composed independently can agree on an id without sharing state.
 func StableUuid(seed string) string {
 	sum := sha256.Sum256([]byte(seed))
 	var b [16]byte

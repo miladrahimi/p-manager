@@ -42,6 +42,7 @@ func (c *Composer) accountLinks(d *data.Data, account *data.Account, links map[s
 	addRrLink("direct-rr", d.MainSettings.Host, xs.DirectRrPort, xs.ManagerSni)
 	addRrLink("relay-rr2rr", d.MainSettings.Host, xs.RelayRr2RrManagerPort, xs.ManagerSni)
 	addRrLink("relay-rr2ssh", d.MainSettings.Host, xs.RelayRr2SshPort, xs.ManagerSni)
+	addRrLink("reverse-rr", d.MainSettings.Host, xs.ReverseRrManagerPort, xs.ManagerSni)
 
 	if xs.RemoteRrPort > 0 {
 		for _, n := range d.Nodes {

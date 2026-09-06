@@ -51,12 +51,32 @@ async function api(method, url, body = undefined, options = {}) {
     return json
 }
 
+// calendarPref returns the date calendar, preferring the reactive Alpine store
+// (so views re-render on change) and falling back to localStorage.
+function calendarPref() {
+    try {
+        if (window.Alpine && Alpine.store("prefs")) return Alpine.store("prefs").calendar
+    } catch (e) {
+    }
+    try {
+        return localStorage.getItem("calendar") || "persian"
+    } catch (e) {
+        return "persian"
+    }
+}
+
+// dateLocale maps the calendar preference to an Intl locale. Persian uses the
+// Jalali calendar (no library needed — Intl provides it).
+function dateLocale() {
+    return calendarPref() === "persian" ? "fa-IR-u-ca-persian" : undefined
+}
+
 function ts2date(timestamp, defaultValue = "-") {
-    return timestamp ? new Date(timestamp).toLocaleDateString() : defaultValue
+    return timestamp ? new Date(timestamp).toLocaleDateString(dateLocale()) : defaultValue
 }
 
 function ts2datetime(timestamp, defaultValue = "-") {
-    return timestamp ? new Date(timestamp).toLocaleString() : defaultValue
+    return timestamp ? new Date(timestamp).toLocaleString(dateLocale()) : defaultValue
 }
 
 function copyText(text) {
@@ -80,9 +100,8 @@ function copyText(text) {
     })
 }
 
-// Map a node status to chip classes and a human label. When neutralUnavailable
-// is true, "unavailable" renders gray instead of red — used for Pull, where the
-// node simply isn't pulling yet rather than something having failed.
+// statusChip maps a node status to chip classes and a label. neutralUnavailable
+// renders "unavailable" gray instead of red (used for Pull).
 function statusChip(status, neutralUnavailable = false) {
     switch (status) {
         case "available":
@@ -117,4 +136,74 @@ document.addEventListener("alpine:init", () => {
             this.show(message, "error", 5000)
         },
     })
+
+    // Admin display preferences (UI-only, persisted in this browser).
+    Alpine.store("prefs", {
+        calendar: (() => {
+            try {
+                return localStorage.getItem("calendar") || "persian"
+            } catch (e) {
+                return "persian"
+            }
+        })(),
+        setCalendar(value) {
+            this.calendar = value
+            try {
+                localStorage.setItem("calendar", value)
+            } catch (e) {
+            }
+        },
+    })
 })
+
+// Minimal front-end i18n shared by the public pages (account, help).
+// The chosen language is kept in localStorage; Persian is the default.
+const i18n = {
+    languages: [{code: "fa", name: "پارسی"}, {code: "en", name: "English"}, {code: "zh", name: "中文"}],
+    locales: {fa: "fa-IR", en: "en-US", zh: "zh-CN"},
+
+    get() {
+        let lang = "fa"
+        try {
+            lang = localStorage.getItem("lang") || lang
+        } catch (e) {
+        }
+        return lang in this.locales ? lang : "fa"
+    },
+
+    // apply sets the document language and direction and remembers the choice.
+    apply(lang) {
+        document.documentElement.lang = lang
+        document.documentElement.dir = lang === "fa" ? "rtl" : "ltr"
+        try {
+            localStorage.setItem("lang", lang)
+        } catch (e) {
+        }
+    },
+
+    // translate looks up key in dictionary[lang] (falling back to English) and
+    // replaces {name} placeholders with params.
+    translate(dictionary, lang, key, params = {}) {
+        let text = dictionary[lang]?.[key] ?? dictionary.en[key] ?? key
+        for (const [name, value] of Object.entries(params)) {
+            text = text.replace(`{${name}}`, value)
+        }
+        return text
+    },
+
+    number(lang, value, digits = 2) {
+        return new Intl.NumberFormat(this.locales[lang], {
+            minimumFractionDigits: digits, maximumFractionDigits: digits,
+        }).format(value || 0)
+    },
+
+    // date renders in the Persian (Jalali) calendar for Persian and in the
+    // Gregorian calendar for every other language, regardless of browser defaults.
+    date(lang, timestamp) {
+        if (!timestamp) {
+            return "-"
+        }
+        const calendar = lang === "fa" ? "persian" : "gregory"
+        return new Date(timestamp).toLocaleDateString(`${this.locales[lang]}-u-ca-${calendar}`)
+    },
+}

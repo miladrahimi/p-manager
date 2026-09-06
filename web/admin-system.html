@@ -166,7 +166,7 @@
             <div class="mt-5 rounded-lg border border-zinc-200" x-data="{ showReality: false }">
                 <button type="button" @click="showReality = !showReality"
                         class="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left">
-                    <span class="text-xs font-medium tracking-wide text-zinc-400 uppercase">Reality</span>
+                    <span class="text-xs font-medium tracking-wide text-zinc-400 uppercase">Reality Settings</span>
                     <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="showReality && 'rotate-180'"
                          viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
@@ -295,6 +295,10 @@
             fields: [{field: "remote_rr_port", label: "Port", port: true}],
         },
         {
+            key: "reverse", name: "Reverse RR", flow: "[Client] -RR→ [P-Manager] ↪RR= [P-Node] → [Internet]",
+            fields: [{field: "reverse_rr_manager_port", label: "Port", port: true}],
+        },
+        {
             key: "relay", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
             fields: [
                 {field: "relay_rr_2_rr_manager_port", label: "Manager port", port: true},
@@ -307,10 +311,6 @@
                 {field: "relay_rr_2_ssh_port", label: "Port", port: true},
                 {field: "relay_rr_2_ssh_connections", label: "Connections", min: 1, max: 32},
             ],
-        },
-        {
-            key: "reverse", name: "Reverse RR", flow: "[Client] -RR→ [P-Manager] -RR↪ [P-Node] → [Internet]",
-            fields: [{field: "reverse_rr_manager_port", label: "Port", port: true}],
         },
     ]
 

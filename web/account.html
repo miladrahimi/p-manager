@@ -17,10 +17,11 @@
 <!--
   Screenshots: put one PNG per step at
       /assets/images/help/<app>/<step>.png      e.g. /assets/images/help/v2box/3.png
-  where <app> is v2box, onexray, v2rayng or v2rayn and <step> is the 1-based step number.
+  where <app> is the app key and <step> is the 1-based step number.
   An app's optional `firstShot` is the first step that has a screenshot; earlier
   steps show none. A later step whose image is missing shows a dashed placeholder
-  with the expected path.
+  with the expected path. An app without `steps` shows only its download links;
+  add `steps` (and screenshots) to complete its guide.
 -->
 
 <main class="mx-auto w-full max-w-md p-4 sm:p-6" x-data="accountPage()" x-init="load()">
@@ -142,8 +143,8 @@
                             <a class="chip chip-zinc hover:bg-zinc-200" :href="s.url" target="_blank" rel="noopener" x-text="s.name"></a>
                         </template>
                     </div>
-                    <!-- Steps -->
-                    <ol class="mt-6 space-y-6">
+                    <!-- Steps (only for apps whose guide is complete) -->
+                    <ol class="mt-6 space-y-6" x-show="steps().length">
                         <template x-for="(step, i) in steps()" :key="app + i">
                             <li class="flex gap-3">
                                 <span class="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-zinc-900 text-xs font-medium text-white"
@@ -164,7 +165,7 @@
                             </li>
                         </template>
                     </ol>
-                    <p class="mt-6 text-xs text-zinc-400" x-text="t('tip')"></p>
+                    <p class="mt-6 text-xs text-zinc-400" x-show="steps().length" x-text="t('tip')"></p>
                 </div>
             </div>
         </div>
@@ -293,7 +294,7 @@
     }
 
     // Each app: display name, store links (os: "apple" | "android" adds an icon)
-    // and per-language steps. Step N's
+    // and optional per-language steps. Step N's
     // screenshot is read from /assets/images/help/<key>/<N>.png.
     const apps = [
         {
@@ -341,29 +342,6 @@
                 {name: "Google Play", os: "android", url: "https://play.google.com/store/apps/details?id=net.yuandev.onexray"},
                 {name: "App Store", os: "apple", url: "https://apps.apple.com/app/onexray/id6448898396"},
             ],
-            steps: {
-                fa: [
-                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
-                    "OneXray را باز کنید و روی «+» در بالا بزنید.",
-                    "«Subscription» را برگزینید، پیوند را بچسبانید و نگه دارید.",
-                    "پیوند را به‌روز کنید تا سرورها نشان داده شوند.",
-                    "یک سرور را برگزینید و دکمه‌ی پیوستن را بزنید. در نخستین بار، درخواست VPN را بپذیرید.",
-                ],
-                en: [
-                    "Copy your subscription link above.",
-                    "Open OneXray and tap “+” at the top.",
-                    "Choose “Subscription”, paste the link and save.",
-                    "Update the subscription to load the servers.",
-                    "Select a server and tap the connect button. Allow the VPN permission on first connect.",
-                ],
-                zh: [
-                    "复制上方的订阅链接。",
-                    "打开 OneXray，点击顶部的“+”。",
-                    "选择“Subscription”，粘贴链接并保存。",
-                    "更新订阅以加载服务器。",
-                    "选择一个服务器，点击连接按钮。首次连接时请允许 VPN 权限。",
-                ],
-            },
         },
         {
             key: "v2rayng",
@@ -372,29 +350,6 @@
                 {name: "Google Play", os: "android", url: "https://play.google.com/store/apps/details?id=com.v2ray.ang"},
                 {name: "GitHub (Android)", os: "android", url: "https://github.com/2dust/v2rayNG/releases"},
             ],
-            steps: {
-                fa: [
-                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
-                    "v2rayNG را باز کنید، «☰» را بزنید و «Subscription group setting» را برگزینید.",
-                    "روی «+» بزنید، نامی بنویسید، پیوند را در خانه‌ی URL بچسبانید و با «✓» نگه دارید.",
-                    "به نمای نخست برگردید، «⋮» را بزنید و «Update subscription» را برگزینید.",
-                    "یک سرور را برگزینید و دکمه‌ی «V» در پایین را بزنید. در نخستین بار، درخواست VPN را بپذیرید.",
-                ],
-                en: [
-                    "Copy your subscription link above.",
-                    "Open v2rayNG, tap the “☰” menu and choose “Subscription group setting”.",
-                    "Tap “+”, enter a name, paste the link into the URL field and save with “✓”.",
-                    "Back on the main screen, tap the “⋮” menu and choose “Update subscription”.",
-                    "Select a server and tap the “V” button at the bottom. Allow the VPN permission on first connect.",
-                ],
-                zh: [
-                    "复制上方的订阅链接。",
-                    "打开 v2rayNG，点击“☰”菜单，选择“Subscription group setting”。",
-                    "点击“+”，输入名称，将链接粘贴到 URL 栏，然后点击“✓”保存。",
-                    "返回主界面，点击“⋮”菜单，选择“Update subscription”。",
-                    "选择一个服务器，点击底部的“V”按钮。首次连接时请允许 VPN 权限。",
-                ],
-            },
         },
         {
             key: "v2rayn",
@@ -402,29 +357,6 @@
             stores: [
                 {name: "GitHub (Windows, macOS, Linux)", url: "https://github.com/2dust/v2rayN/releases"},
             ],
-            steps: {
-                fa: [
-                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
-                    "v2rayN را باز کنید، به فهرست «Subscriptions» بروید و «Subscription group settings» را برگزینید.",
-                    "روی «Add» بزنید، نامی بنویسید، پیوند را در خانه‌ی URL بچسبانید و نگه دارید.",
-                    "از فهرست «Subscriptions» گزینه‌ی «Update subscription (without proxy)» را برگزینید تا سرورها دریافت شوند.",
-                    "یک سرور را برگزینید و در پایین پنجره، «System proxy» را روی «Set system proxy» بگذارید (یا Tun را روشن کنید).",
-                ],
-                en: [
-                    "Copy your subscription link above.",
-                    "Open v2rayN, open the “Subscriptions” menu and choose “Subscription group settings”.",
-                    "Click “Add”, enter a name, paste the link into the URL field and save.",
-                    "From the “Subscriptions” menu choose “Update subscription (without proxy)” to fetch the servers.",
-                    "Select a server and, at the bottom of the window, set “System proxy” to “Set system proxy” (or enable Tun mode).",
-                ],
-                zh: [
-                    "复制上方的订阅链接。",
-                    "打开 v2rayN，进入“订阅”菜单，选择“订阅分组设置”。",
-                    "点击“添加”，输入名称，将链接粘贴到 URL 栏并保存。",
-                    "在“订阅”菜单中选择“更新订阅（不通过代理）”以获取服务器。",
-                    "选择一个服务器，在窗口底部将“系统代理”设为“自动配置系统代理”（或开启 Tun 模式）。",
-                ],
-            },
         },
     ]
 
@@ -504,6 +436,7 @@
 
             steps() {
                 const steps = this.current().steps
+                if (!steps) return []
                 return steps[this.lang] || steps.en
             },
 

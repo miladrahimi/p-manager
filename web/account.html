@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Account</title>
-    <link rel="stylesheet" href="/assets/css/app.css?v=7">
+    <link rel="stylesheet" href="/assets/css/app.css?v=8">
     <link rel="icon" href="/assets/images/xray.svg">
     <link rel="apple-touch-icon" href="/assets/images/xray.svg">
-    <script src="/assets/js/app.js?v=7"></script>
+    <script src="/assets/js/app.js?v=8"></script>
     <script>i18n.apply(i18n.get()) // before first paint, avoids a direction flip</script>
     <script defer src="/assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
@@ -22,6 +22,9 @@
   steps show none. A later step whose image is missing shows a dashed placeholder
   with the expected path. An app without `steps` shows only its download links;
   add `steps` (and screenshots) to complete its guide.
+  A step is a string (same in both modes) or an object with `subscription` and/or
+  `links` texts: the text for the current mode is shown, and a step without one
+  is skipped. Screenshots keep their original step number either way.
 -->
 
 <main class="mx-auto w-full max-w-md p-4 sm:p-6" x-data="accountPage()" x-init="load()">
@@ -88,10 +91,11 @@
                 </div>
             </template>
 
-            <!-- Individual links -->
+            <!-- Individual links: the main section without a subscription, a collapsed extra with one -->
             <template x-if="proxies.length > 0">
-                <div class="mt-5 rounded-lg border border-zinc-200">
-                    <button type="button" class="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-start"
+                <div class="mt-5" :class="subscriptionUrl && 'rounded-lg border border-zinc-200'">
+                    <button x-show="subscriptionUrl" type="button"
+                            class="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-start"
                             @click="showLinks = !showLinks">
                         <span class="label mb-0" x-text="t('serverLinks', {count: num(proxies.length, 0)})"></span>
                         <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="showLinks && 'rotate-180'"
@@ -99,7 +103,9 @@
                             <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
                         </svg>
                     </button>
-                    <div x-show="showLinks" x-cloak class="space-y-2 border-t border-zinc-100 px-4 pt-3 pb-4">
+                    <p x-show="!subscriptionUrl" class="label" x-text="t('serverLinks', {count: num(proxies.length, 0)})"></p>
+                    <div x-show="showLinks" x-cloak class="space-y-2"
+                         :class="subscriptionUrl && 'border-t border-zinc-100 px-4 pt-3 pb-4'">
                         <template x-for="proxy in proxies" :key="proxy.key">
                             <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
                                 <a class="min-w-0 flex-1 p-2.5 text-start" dir="ltr" :href="proxy.value" :title="proxy.value">
@@ -112,9 +118,13 @@
                                         x-text="copiedKey === proxy.key ? t('copied') : t('copy')"></button>
                             </div>
                         </template>
+                        <p x-show="!subscriptionUrl" class="pt-0.5 text-xs text-zinc-400" x-text="t('serverLinksHint')"></p>
                     </div>
                 </div>
             </template>
+            <p x-show="!subscriptionUrl && proxies.length === 0" x-cloak
+               class="mt-5 rounded-lg border border-dashed border-zinc-300 p-4 text-center text-xs text-zinc-400"
+               x-text="t('noLinks')"></p>
 
             <!-- Setup guide (collapsed by default) -->
             <div class="mt-5 rounded-lg border border-zinc-200">
@@ -127,7 +137,7 @@
                     </svg>
                 </button>
                 <div x-show="showGuide" x-cloak class="border-t border-zinc-100 px-4 pt-3 pb-4">
-                    <p class="text-sm text-zinc-500" x-text="t('guideIntro')"></p>
+                    <p class="text-sm text-zinc-500" x-text="t(subscriptionUrl ? 'guideIntro' : 'guideIntroLinks')"></p>
                     <!-- App tabs -->
                     <div class="mt-3 flex gap-1 rounded-lg bg-zinc-100 p-1">
                         <template x-for="a in apps" :key="a.key">
@@ -145,27 +155,28 @@
                     </div>
                     <!-- Steps (only for apps whose guide is complete) -->
                     <ol class="mt-6 space-y-6" x-show="steps().length">
-                        <template x-for="(step, i) in steps()" :key="app + i">
+                        <template x-for="(step, i) in steps()" :key="app + step.n">
                             <li class="flex gap-3">
                                 <span class="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-zinc-900 text-xs font-medium text-white"
                                       x-text="num(i + 1, 0)"></span>
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-sm leading-6" x-text="step"></p>
-                                    <div class="mt-2">
+                                    <p class="text-sm leading-6" x-text="step.text"></p>
+                                    <div class="mt-2" x-show="shot(step.n)">
                                         <img class="mx-auto max-h-[420px] rounded-lg border border-zinc-200"
-                                             :src="shot(i)" :alt="t('screenshot', {n: num(i + 1, 0)})"
-                                             x-show="!missing[shot(i)]" @error="missing[shot(i)] = true">
-                                        <div x-show="missing[shot(i)]" x-cloak
+                                             :src="shot(step.n)" :alt="t('screenshot', {n: num(i + 1, 0)})"
+                                             x-show="!missing[shot(step.n)]" @error="missing[shot(step.n)] = true">
+                                        <div x-show="missing[shot(step.n)]" x-cloak
                                              class="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-xs text-zinc-400">
                                             <p x-text="t('screenshot', {n: num(i + 1, 0)})"></p>
-                                            <p class="mt-1 font-mono text-[11px]" dir="ltr" x-text="shot(i)"></p>
+                                            <p class="mt-1 font-mono text-[11px]" dir="ltr" x-text="shot(step.n)"></p>
                                         </div>
                                     </div>
                                 </div>
                             </li>
                         </template>
                     </ol>
-                    <p class="mt-6 text-xs text-zinc-400" x-show="steps().length" x-text="t('tip')"></p>
+                    <p class="mt-6 text-xs text-zinc-400" x-show="steps().length"
+                       x-text="t(subscriptionUrl ? 'tip' : 'tipLinks')"></p>
                 </div>
             </div>
         </div>
@@ -215,6 +226,8 @@
             subscriptionLink: "پیوند به‌روزشونده‌ی همه‌ی سرورها",
             subscriptionHint: "این پیوند را به برنامه‌ی خود بیفزایید تا همه‌ی سرورها خودکار دریافت شوند.",
             serverLinks: "پیوند تک‌تک سرورها ({count})",
+            serverLinksHint: "هر پیوند یک سرور است. یک یا چند پیوند را به برنامه‌ی خود بیفزایید.",
+            noLinks: "هنوز سروری در دسترس نیست.",
             copy: "رونوشت",
             copied: "رونوشت شد",
             since: "همراه ما از {date}",
@@ -225,9 +238,11 @@
             copyFailed: "رونوشت انجام نشد؛ نوشته را برگزینید و خودتان رونوشت بگیرید.",
             accountIdMissing: "شناسه‌ی کاربر یافت نشد.",
             guideIntro: "برنامه‌ی خود را برگزینید و گام‌ها را دنبال کنید. برای همه‌ی برنامه‌ها تنها به پیوند به‌روزشونده نیاز دارید.",
+            guideIntroLinks: "برنامه‌ی خود را برگزینید و گام‌ها را دنبال کنید. برای همه‌ی برنامه‌ها تنها به پیوند سرورها نیاز دارید.",
             availableOn: "دریافت از:",
             screenshot: "نماگرفت گام {n}",
             tip: "اگر نتوانستید بپیوندید، سرورها را به‌روز کنید و سرور دیگری را برگزینید.",
+            tipLinks: "اگر نتوانستید بپیوندید، پیوند سرور دیگری را بیفزایید و آن را بیازمایید.",
         },
         en: {
             title: "Account",
@@ -246,6 +261,8 @@
             subscriptionLink: "Subscription link",
             subscriptionHint: "Add this link to your client app to receive all servers automatically.",
             serverLinks: "Server links ({count})",
+            serverLinksHint: "Each link is one server. Add one or more of them to your client app.",
+            noLinks: "No servers are available yet.",
             copy: "Copy",
             copied: "Copied",
             since: "Since {date}",
@@ -256,9 +273,11 @@
             copyFailed: "Copy failed, select the text and copy it manually.",
             accountIdMissing: "Account ID is missing.",
             guideIntro: "Pick your app and follow the steps. All you need is your subscription link.",
+            guideIntroLinks: "Pick your app and follow the steps. All you need is the server links.",
             availableOn: "Get it on:",
             screenshot: "Screenshot for step {n}",
             tip: "If you cannot connect, update the subscription and try another server.",
+            tipLinks: "If you cannot connect, add another server link and try it.",
         },
         zh: {
             title: "账户",
@@ -277,6 +296,8 @@
             subscriptionLink: "订阅链接",
             subscriptionHint: "将此链接添加到客户端应用，即可自动获取所有服务器。",
             serverLinks: "服务器链接（{count}）",
+            serverLinksHint: "每个链接对应一台服务器。将其中一个或多个添加到客户端应用。",
+            noLinks: "暂无可用服务器。",
             copy: "复制",
             copied: "已复制",
             since: "注册于 {date}",
@@ -287,9 +308,11 @@
             copyFailed: "复制失败，请手动选择并复制文本。",
             accountIdMissing: "缺少账户 ID。",
             guideIntro: "选择您的应用并按步骤操作。您只需要订阅链接。",
+            guideIntroLinks: "选择您的应用并按步骤操作。您只需要服务器链接。",
             availableOn: "下载：",
             screenshot: "第 {n} 步截图",
             tip: "如果无法连接，请更新订阅并尝试其他服务器。",
+            tipLinks: "如果无法连接，请添加另一个服务器链接并尝试。",
         },
     }
 
@@ -307,31 +330,67 @@
             ],
             steps: {
                 fa: [
-                    "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
+                    {
+                        subscription: "پیوند به‌روزشونده‌ی همه‌ی سرورها را از بالا رونوشت بگیرید.",
+                        links: "پیوند یکی از سرورها را از بالا رونوشت بگیرید.",
+                    },
                     "V2Box را باز کنید، به بخش «Config» بروید و روی «+» در بالا بزنید.",
-                    "«Import from clipboard» را برگزینید تا همه‌ی سرورها در یک گروه به برنامه افزوده شوند.",
+                    {
+                        subscription: "«Import from clipboard» را برگزینید تا همه‌ی سرورها در یک گروه به برنامه افزوده شوند.",
+                        links: "«Import from clipboard» را برگزینید تا سرور به برنامه افزوده شود.",
+                    },
                     "اگر برنامه خواندن رونوشت‌ها (clipboard) را خواست، بپذیرید.",
-                    "گروهی از سرورها به برنامه افزوده می‌شود. یکی از سرورها را برگزینید و کشویی پیوستن را به راست بکشید تا بپیوندید.",
+                    {
+                        subscription: "گروهی از سرورها به برنامه افزوده می‌شود. یکی از سرورها را برگزینید و کشویی پیوستن را به راست بکشید تا بپیوندید.",
+                        links: "سرور به برنامه افزوده می‌شود. آن را برگزینید و کشویی پیوستن را به راست بکشید تا بپیوندید.",
+                    },
                     "پس از پیوستن، دکمه سبز می‌شود تا درستی پیوند را نشان دهد. با زدن دوباره‌ی آن، پیوند گسسته می‌شود.",
-                    "هر چند روز یک بار روی دکمه‌ی به‌روزرسانی بزنید تا فهرست سرورها به‌روز شود.",
+                    {
+                        subscription: "هر چند روز یک بار روی دکمه‌ی به‌روزرسانی بزنید تا فهرست سرورها به‌روز شود.",
+                        links: "برای افزودن سرورهای دیگر، همین گام‌ها را با پیوندهای دیگر تکرار کنید.",
+                    },
                 ],
                 en: [
-                    "Copy your subscription link above.",
+                    {
+                        subscription: "Copy your subscription link above.",
+                        links: "Copy one of the server links above.",
+                    },
                     "Open V2Box, go to the “Config” tab and tap “+” at the top.",
-                    "Choose “Import from clipboard” so all servers are added to the app as a single group.",
+                    {
+                        subscription: "Choose “Import from clipboard” so all servers are added to the app as a single group.",
+                        links: "Choose “Import from clipboard” to add the server to the app.",
+                    },
                     "If the app asks for permission to read your clipboard, allow it.",
-                    "A group of servers is added. Select one and drag the connect slider to the right to connect.",
+                    {
+                        subscription: "A group of servers is added. Select one and drag the connect slider to the right to connect.",
+                        links: "The server is added. Select it and drag the connect slider to the right to connect.",
+                    },
                     "Once connected, the button turns green to confirm the connection. Tap it again to disconnect.",
-                    "Every few days, tap the refresh button to update the server list.",
+                    {
+                        subscription: "Every few days, tap the refresh button to update the server list.",
+                        links: "To add more servers, repeat these steps with the other links.",
+                    },
                 ],
                 zh: [
-                    "复制上方的订阅链接。",
+                    {
+                        subscription: "复制上方的订阅链接。",
+                        links: "复制上方任意一个服务器链接。",
+                    },
                     "打开 V2Box，进入“Config”标签，点击顶部的“+”。",
-                    "选择“Import from clipboard”，将所有服务器作为一个分组导入应用。",
+                    {
+                        subscription: "选择“Import from clipboard”，将所有服务器作为一个分组导入应用。",
+                        links: "选择“Import from clipboard”，将该服务器添加到应用。",
+                    },
                     "如果应用请求读取剪贴板，请允许。",
-                    "应用中会添加一组服务器。选择其中一个，将连接滑块向右滑动即可连接。",
+                    {
+                        subscription: "应用中会添加一组服务器。选择其中一个，将连接滑块向右滑动即可连接。",
+                        links: "服务器已添加。选择它，将连接滑块向右滑动即可连接。",
+                    },
                     "连接后，按钮变为绿色表示连接成功。再次点击即可断开。",
-                    "每隔几天点击刷新按钮以更新服务器列表。",
+                    {
+                        subscription: "每隔几天点击刷新按钮以更新服务器列表。",
+                        links: "如需添加更多服务器，请用其他链接重复以上步骤。",
+                    },
                 ],
             },
         },
@@ -416,7 +475,7 @@
                     this.proxies = Object.entries(r["proxies"] || {})
                         .filter(([, value]) => value)
                         .map(([key, value]) => ({key: key, value: value}))
-                    if (this.account["proxy_id"]) {
+                    if (r["subscription_enabled"] && this.account["proxy_id"]) {
                         const host = r["host"] || window.location.host
                         this.subscriptionUrl =
                             `${window.location.origin}/subscription/${this.account["proxy_id"]}#${host}`
@@ -434,16 +493,19 @@
                 return apps.find(a => a.key === this.app)
             },
 
+            // Steps for the current mode, each with its original step number (n) for screenshots.
             steps() {
                 const steps = this.current().steps
                 if (!steps) return []
-                return steps[this.lang] || steps.en
+                const mode = this.subscriptionUrl ? "subscription" : "links"
+                return (steps[this.lang] || steps.en)
+                    .map((step, i) => ({text: typeof step === "string" ? step : step[mode], n: i + 1}))
+                    .filter(step => step.text)
             },
 
-            shot(index) {
-                const step = index + 1
-                if (step < (this.current().firstShot || 1)) return null
-                return `/assets/images/help/${this.app}/${step}.png`
+            shot(n) {
+                if (n < (this.current().firstShot || 1)) return null
+                return `/assets/images/help/${this.app}/${n}.png`
             },
 
             percent() {

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | System</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=7">
+    <link rel="stylesheet" href="assets/css/app.css?v=8">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
-    <script src="assets/js/app.js?v=7"></script>
+    <script src="assets/js/app.js?v=8"></script>
     <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -235,6 +235,19 @@
                 <input type="url" class="input" x-model.trim="main.singet_server" placeholder="https://...">
             </div>
             <div class="sm:col-span-2">
+                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 px-3 py-2.5">
+                    <input type="checkbox" class="switch" x-model="main.subscription_enabled">
+                    <span class="min-w-0">
+                        <span class="block text-sm font-medium"
+                              :class="!main.subscription_enabled && 'text-zinc-400'">Subscription link</span>
+                        <span class="block text-[11px] text-zinc-400">
+                            Show the auto-updating all-servers link on the account page.
+                            When off, the page shows only the individual server links.
+                        </span>
+                    </span>
+                </label>
+            </div>
+            <div class="sm:col-span-2">
                 <button type="submit" class="btn btn-dark w-full" :disabled="busy">Save Main Settings</button>
             </div>
         </form>
@@ -410,6 +423,7 @@
                         traffic_ratio: this.main.traffic_ratio,
                         singet_server: this.main.singet_server,
                         reset_policy: this.main.reset_policy,
+                        subscription_enabled: !!this.main.subscription_enabled,
                     })
                     this.$store.toast.info("Main settings saved successfully.")
                 } catch (e) {

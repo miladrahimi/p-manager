@@ -43,7 +43,12 @@ func AccountShow(composer *composer.Composer, db *data.Store) echo.HandlerFunc {
 			if account == nil {
 				return
 			}
-			r = AccountResponse{Account: *account, Proxies: make(map[string]string), Host: d.MainSettings.Host}
+			r = AccountResponse{
+				Account:             *account,
+				Proxies:             make(map[string]string),
+				Host:                d.MainSettings.Host,
+				SubscriptionEnabled: d.MainSettings.SubscriptionEnabled,
+			}
 			r.Account.Usage = r.Account.Usage * d.MainSettings.TrafficRatio
 			r.Account.Quota = r.Account.Quota * d.MainSettings.TrafficRatio
 		})
@@ -74,9 +79,10 @@ type AccountsImportRequest struct {
 }
 
 type AccountResponse struct {
-	Account data.Account      `json:"account"`
-	Proxies map[string]string `json:"proxies"`
-	Host    string            `json:"host"`
+	Account             data.Account      `json:"account"`
+	Proxies             map[string]string `json:"proxies"`
+	Host                string            `json:"host"`
+	SubscriptionEnabled bool              `json:"subscription_enabled"`
 }
 
 // AccountsIndex returns the list of accounts.

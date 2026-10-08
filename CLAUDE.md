@@ -54,6 +54,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
   - `/api/user/*` — account-holder APIs (account view, links renew); no auth, reached via the account link.
   - `/api/node/*` — node-facing APIs (`GET /api/node/:id/config`); guarded by `Server.authorizeNode` against that node's own `PullToken` (`Node.PullToken`, generated at creation). A node token works only for its own node and never for admin APIs, so the pull command carries no admin credentials.
 - Authentication is `Authorization: Bearer <token>`.
+- `GET /subscription/:proxyId` (public) always serves an account's subscription (all links, base64). The `SubscriptionEnabled` main setting (off by default) only controls whether the account page shows that link; when off, the page shows just the individual server links and the setup guide uses its per-link wording (`steps` entries with `subscription`/`links` variants in `web/account.html`).
 
 ## Major Dependencies
 - `github.com/xtls/xray-core`: Interaction with the running Xray process

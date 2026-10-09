@@ -146,8 +146,11 @@
                         </label>
                         <div class="flex gap-2 sm:justify-end">
                             <template x-for="f in m.fields" :key="f.field">
-                                <div class="flex-1 sm:w-28 sm:flex-none">
-                                    <label class="label mb-0.5 text-[11px]" x-text="f.label"></label>
+                                <div class="flex-1 sm:w-36 sm:flex-none">
+                                    <label class="label mb-0.5 text-[11px] whitespace-nowrap">
+                                        <span x-text="f.label"></span>
+                                        <span class="font-normal text-zinc-400" x-show="f.host" x-text="'(' + f.host + ')'"></span>
+                                    </label>
                                     <input type="number" class="input" x-model.number="xray[f.field]"
                                            :min="f.min ?? 1" :max="f.max ?? 65535" :placeholder="f.label"
                                            :disabled="!enabled[m.key]" :required="enabled[m.key]">
@@ -344,27 +347,30 @@
     const methods = [
         {
             key: "direct", name: "Direct RR", flow: "[Client] -RR→ [P-Manager] → [Internet]",
-            fields: [{field: "direct_rr_port", label: "Manager port", port: true}],
+            fields: [{field: "direct_rr_port", label: "Client port", host: "manager", port: true}],
         },
         {
             key: "remote", name: "Remote RR", flow: "[Client] -RR→ [P-Node] → [Internet]",
-            fields: [{field: "remote_rr_port", label: "Node port", port: true}],
+            fields: [{field: "remote_rr_port", label: "Client port", host: "node", port: true}],
         },
         {
             key: "reverse", name: "Reverse RR", flow: "[Client] -RR→ [P-Manager] ↪RR= [P-Node] → [Internet]",
-            fields: [{field: "reverse_rr_manager_port", label: "Manager port", port: true}],
+            fields: [
+                {field: "reverse_rr_manager_port", label: "Client port", host: "manager", port: true},
+                {field: "reverse_rr_portal_port", label: "Portal port", host: "manager", port: true},
+            ],
         },
         {
             key: "relay", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
             fields: [
-                {field: "relay_rr_2_rr_manager_port", label: "Manager port", port: true},
-                {field: "relay_rr_2_rr_node_port", label: "Node port", port: true},
+                {field: "relay_rr_2_rr_manager_port", label: "Client port", host: "manager", port: true},
+                {field: "relay_rr_2_rr_node_port", label: "Destination port", host: "node", port: true},
             ],
         },
         {
             key: "ssh", name: "Relay RR→SSH", flow: "[Client] -RR→ [P-Manager] -SSH→ [P-Node] → [Internet]",
             fields: [
-                {field: "relay_rr_2_ssh_port", label: "Manager port", port: true},
+                {field: "relay_rr_2_ssh_port", label: "Client port", host: "manager", port: true},
                 {field: "relay_rr_2_ssh_connections", label: "Connections", min: 1, max: 32},
             ],
         },
@@ -445,6 +451,7 @@
                         relay_rr_2_rr_manager_port: this.port("relay_rr_2_rr_manager_port"),
                         relay_rr_2_rr_node_port: this.port("relay_rr_2_rr_node_port"),
                         reverse_rr_manager_port: this.port("reverse_rr_manager_port"),
+                        reverse_rr_portal_port: this.port("reverse_rr_portal_port"),
                         relay_rr_2_ssh_port: this.port("relay_rr_2_ssh_port"),
                         relay_rr_2_ssh_connections: this.xray.relay_rr_2_ssh_connections || 8,
                         node_sni: this.xray.node_sni,

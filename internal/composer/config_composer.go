@@ -104,36 +104,45 @@ func (c *Composer) composeManagerConfig(
 		}
 	}
 
-	// Reverse RR: P-Manager is the portal; accounts and every P-Node bridge
-	// connect to this inbound, and the portal load-balances accounts across the
-	// connected bridges.
-	if hasClients && hasNodes && xs.ReverseRrManagerPort > 0 {
-		clients := make([]*component.Client, 0, len(rrClients)+len(d.Nodes))
-		clients = append(clients, rrClients...)
+	// Reverse RR: P-Manager is the portal. Accounts connect to the manager
+	// port, every P-Node bridge dials the portal port, and the portal
+	// load-balances accounts across the connected bridges.
+	if hasClients && hasNodes && xs.ReverseRrManagerPort > 0 && xs.ReverseRrPortalPort > 0 {
+		bridges := make([]*component.Client, 0, len(d.Nodes))
 		for _, n := range d.Nodes {
 			// No flow: the bridge tunnel carries mux, incompatible with vision.
-			clients = append(clients, vless.MakeUser(
+			bridges = append(bridges, vless.MakeUser(
 				reverseRrBridgeId(n.Id, xs.RealityPrivateKey),
 				vless.FlowNone,
 				vless.EncryptionEmpty,
 			))
 		}
 
-		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
-			"reverse-rr",
-			xs.ReverseRrManagerPort,
-			xs.RealityPrivateKey,
-			xs.ManagerSni,
-			clients,
-			fallback,
-		))
+		xc.Inbounds = append(xc.Inbounds,
+			vless.MakeRrInbound(
+				"reverse-rr",
+				xs.ReverseRrManagerPort,
+				xs.RealityPrivateKey,
+				xs.ManagerSni,
+				rrClients,
+				fallback,
+			),
+			vless.MakeRrInbound(
+				"reverse-rr-tunnel",
+				xs.ReverseRrPortalPort,
+				xs.RealityPrivateKey,
+				xs.ManagerSni,
+				bridges,
+				fallback,
+			),
+		)
 		xc.Reverse.Portals = append(xc.Reverse.Portals, &component.ReverseItem{
 			Tag:    "reverse-rr-portal",
 			Domain: reverseRrDomain,
 		})
 		// The portal sorts bridge registrations from account traffic by target.
 		xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
-			InboundTag:  []string{"reverse-rr"},
+			InboundTag:  []string{"reverse-rr", "reverse-rr-tunnel"},
 			OutboundTag: "reverse-rr-portal",
 		})
 	}
@@ -206,13 +215,13 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 
 	// Reverse RR: P-Node is the bridge; it dials out to the manager portal, so
 	// it needs only the manager host (delivered with this config), not its own.
-	if len(c.rrClients(d)) > 0 && xs.ReverseRrManagerPort > 0 && d.MainSettings.Host != "" {
+	if len(c.rrClients(d)) > 0 && xs.ReverseRrManagerPort > 0 && xs.ReverseRrPortalPort > 0 && d.MainSettings.Host != "" {
 		bridgeId := reverseRrBridgeId(node.Id, xs.RealityPrivateKey)
 		// No flow: the reverse tunnel carries mux, incompatible with vision.
 		xc.Outbounds = append(xc.Outbounds, vless.MakeRrOutbound(
 			"reverse-rr-tunnel",
 			d.MainSettings.Host,
-			xs.ReverseRrManagerPort,
+			xs.ReverseRrPortalPort,
 			bridgeId,
 			xs.RealityPublicKey,
 			xs.ManagerSni,

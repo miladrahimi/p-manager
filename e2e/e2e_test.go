@@ -71,7 +71,7 @@ func TestProxyMethods(t *testing.T) {
 
 	ports := freePorts(t, 9)
 	managerPort, nodePort := ports[0], ports[1]
-	directRr, remoteRr, relayRr2RrManager, relayRr2RrNode, reverseRr, relayRr2Ssh := ports[2], ports[3], ports[4], ports[5], ports[6], ports[7]
+	directRr, remoteRr, relayRr2RrManager, relayRr2RrNode, reverseRr, relayRr2Ssh, reverseRrPortal := ports[2], ports[3], ports[4], ports[5], ports[6], ports[7], ports[8]
 	if !withSsh {
 		relayRr2Ssh = 0
 	}
@@ -123,6 +123,7 @@ func TestProxyMethods(t *testing.T) {
 	xs["relay_rr_2_rr_manager_port"] = relayRr2RrManager
 	xs["relay_rr_2_rr_node_port"] = relayRr2RrNode
 	xs["reverse_rr_manager_port"] = reverseRr
+	xs["reverse_rr_portal_port"] = reverseRrPortal
 	xs["relay_rr_2_ssh_port"] = relayRr2Ssh
 	xs["relay_rr_2_ssh_connections"] = 1
 	admin.call(t, http.MethodPost, "/xray-settings", xs, nil)

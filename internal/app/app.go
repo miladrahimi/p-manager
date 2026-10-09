@@ -12,6 +12,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/internal/http/server"
+	"github.com/miladrahimi/p-manager/internal/provisioner"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-node/pkg/database"
 	"github.com/miladrahimi/p-node/pkg/http/client"
@@ -32,6 +33,7 @@ type App struct {
 	database    *data.Store
 	composer    *composer.Composer
 	coordinator *coordinator.Coordinator
+	provisioner *provisioner.Provisioner
 	xray        *xray.Xray
 	sshClient   *ssh.Client
 	sshPool     *ssh.Pool
@@ -74,7 +76,8 @@ func New() (a *App, err error) {
 	a.sshPool = ssh.New(l, a.sshClient, config.SshStdoutPath(root), config.SshStderrPath(root))
 	a.composer = composer.New(c, a.database, a.xray)
 	a.coordinator = coordinator.New(a.httpClient, l, a.database, a.xray, a.composer, a.sshPool, a.sshClient)
-	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient, a.sshClient)
+	a.provisioner = provisioner.New(l, a.database, a.sshClient, a.coordinator)
+	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient, a.sshClient, a.provisioner)
 
 	l.Info("app: constructed successfully")
 

@@ -26,12 +26,14 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - `internal/data`: Database schema, models, and default values
 - `internal/http/server`: Echo server setup and routing
 - `internal/http/handlers`: HTTP handlers (`handlers/api` for JSON APIs, plus the static `account` page handler)
-- `pkg/ssh`: SSH client, connection/proxy config, process management, and connection pool
+- `internal/provisioner`: Creates a Hetzner server, installs P-Node on it over SSH, and registers it as a node (in-memory jobs; also deletes the server when such a node is removed)
+- `pkg/hetzner`: Minimal Hetzner Cloud API client (ssh keys, locations, server types, images, servers)
+- `pkg/ssh`: SSH client (SOCKS check/tunnels, remote command `Run`, known_hosts cleanup), connection/proxy config, process management, and connection pool. Authentication is always key-based (batch mode)
 - `pkg/util`: Generic utils
 - `scripts`: Scripts for project and server setup
 - `storage`: Application data storage directory (database, logs, generated xray config)
 - `third_party`: Third-party binaries and libraries (Xray binaries)
-- `web`: Static admin web UI files. Alpine.js is vendored under `assets/third_party`; `assets/js/app.js` holds the shared fetch-based API client and helpers. Styling is Tailwind: edit `assets/css/app.src.css`, then run `make web` to regenerate the committed `assets/css/app.css`.
+- `web`: Static admin web UI files. Alpine.js is vendored under `assets/third_party`; `assets/js/app.js` holds the shared fetch-based API client and helpers, including the toast store and the in-page confirm dialog (`confirmDialog(...)` + `$store.dialog`; never use native `alert`/`confirm`, each page renders the shared dialog markup next to its toasts). Styling is Tailwind: edit `assets/css/app.src.css`, then run `make web` to regenerate the committed `assets/css/app.css`.
 
 ## Database
 - File-backed JSON store.
@@ -52,6 +54,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - Routes are grouped by audience under `/api` (`internal/http/server/server.go`):
   - `/api/admin/*` — admin panel; guarded by `Server.authorizeAdmin` (the admin password `admin_password`, `internal/data/main_settings.go`), except `POST /api/admin/sign-in` which issues the token.
   - `/api/user/*` — account-holder APIs (account view, links renew); no auth, reached via the account link.
+  - `/api/admin/nodes/hetzner` — Hetzner provisioning: `GET` lists jobs (+ whether a token is set), `POST` starts one (body `manager_url`, the panel origin, used to run `set-manager` on the node), `DELETE /:jobId` dismisses a failed job.
   - `/api/node/*` — node-facing APIs (`GET /api/node/:id/config`); guarded by `Server.authorizeNode` against that node's own `PullToken` (`Node.PullToken`, generated at creation). A node token works only for its own node and never for admin APIs, so the pull command carries no admin credentials.
 - Authentication is `Authorization: Bearer <token>`.
 - `GET /subscription/:proxyId` (public) always serves an account's subscription (all links, base64). The `SubscriptionEnabled` main setting (off by default) only controls whether the account page shows that link; when off, the page shows just the individual server links and the setup guide uses its per-link wording (`steps` entries with `subscription`/`links` variants in `web/account.html`).
@@ -81,6 +84,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - The built `p-manager` binary is tracked and should be committed when updated.
 - `go.mod` uses `replace github.com/miladrahimi/p-node => ../p-node` to develop against a local P-Node checkout.
 - Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` instead of `clientID`, etc.).
+- Hetzner provisioning (`internal/provisioner`): needs `MainSettings.HetznerToken`. Picks the cheapest non-deprecated x86 server type in stock at a `DE` location (tie → more memory), the newest non-deprecated `debian-*` system image, IPv4 only, with all SSH keys of the Hetzner project injected (the manager host's key must already be one of them; nothing is generated or uploaded). Installs P-Node with its one-line installer as root (waits for cloud-init/apt locks), reads `http_port`/`http_token` from `/root/p-node-1/storage/database/data.json`, adds the node with `Provider=hetzner` + `ProviderServerId` and fills `Node.Details` (free-form `map[string]string` shown in the node details modal: provider, server, type, specs, location, image, price, IP, created), then runs `set-manager` best-effort. One job runs at a time; on failure the created server is deleted again. `NodesDelete` deletes the Hetzner server first and keeps the node if that fails.
 - `Node` sync flags `SshEnabled`/`PushEnabled` default on via `NewNode`. There is no DB migration layer (backward compatibility with pre-flag databases is intentionally not supported), so the driver's `json.Unmarshal` leaves keys the file omits at their zero value — an old database would read those flags back as `false`; recreate/re-add nodes rather than relying on an upgrade path. Pulling is intentionally NOT a flag: a P-Node pulls only after its setup command is run on the node, so the pull status is derived from `PulledAt` (`pullStatus`) and shown read-only in the UI — there is nothing manager-side to enable/disable.
 
 ## Xray Proxy

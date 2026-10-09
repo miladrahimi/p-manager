@@ -16,6 +16,9 @@ type Settings struct {
 	// It only affects the account page UI: when off, accounts see just the individual server links,
 	// while the subscription endpoint itself keeps working.
 	SubscriptionEnabled bool `json:"subscription_enabled"`
+	// HetznerToken is a Hetzner Cloud project API token (read & write). When set,
+	// the nodes page can create a server on Hetzner and install P-Node on it.
+	HetznerToken string `json:"hetzner_token" validate:"max=128"`
 }
 
 // NewSettings creates a new settings instance.
@@ -26,6 +29,7 @@ func NewSettings(
 	singetServer string,
 	resetPolicy string,
 	subscriptionEnabled bool,
+	hetznerToken string,
 ) *Settings {
 	return &Settings{
 		AdminPassword:       adminPassword,
@@ -34,6 +38,7 @@ func NewSettings(
 		SingetServer:        singetServer,
 		ResetPolicy:         resetPolicy,
 		SubscriptionEnabled: subscriptionEnabled,
+		HetznerToken:        hetznerToken,
 	}
 }
 
@@ -46,5 +51,6 @@ func DefaultSettings() *Settings {
 		"",
 		"",
 		defaultSubscriptionEnabled,
+		"",
 	)
 }

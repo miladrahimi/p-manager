@@ -13,6 +13,10 @@ const (
 	NodeStatusDisabled    NodeStatus = "disabled"
 )
 
+// NodeProviderHetzner marks a node whose server P-Manager created on Hetzner
+// Cloud; deleting such a node deletes the server first.
+const NodeProviderHetzner = "hetzner"
+
 // Node represents a server (node) in the system.
 type Node struct {
 	Id          string     `json:"id" validate:"required,max=64"`
@@ -30,6 +34,13 @@ type Node struct {
 	PushStatus  NodeStatus `json:"push_status"`
 	PushedAt    int64      `json:"pushed_at"`
 	PulledAt    int64      `json:"pulled_at"`
+	// Provider is empty for manually added nodes, or the cloud provider whose
+	// server backs this node (NodeProviderHetzner), with its server id.
+	Provider         string `json:"provider" validate:"omitempty,oneof=hetzner"`
+	ProviderServerId int64  `json:"provider_server_id"`
+	// Details holds free-form information about the node shown in the UI
+	// (e.g. the Hetzner server specs and price), keyed by label.
+	Details map[string]string `json:"details"`
 }
 
 // NewNode creates a new node with the sync options enabled. Pulling has no flag:
@@ -45,5 +56,6 @@ func NewNode(id string, host string, httpToken string, httpPort int, sshUser str
 		SshPort:     sshPort,
 		SshEnabled:  true,
 		PushEnabled: true,
+		Details:     map[string]string{},
 	}
 }

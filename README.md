@@ -47,6 +47,13 @@ Access the admin panel at the default port `8080`.
 * `System`: Modify settings and view metrics
 * `Exit`: Sign out of the admin panel
 
+#### Automatic P-Nodes on Hetzner
+
+Set a Hetzner Cloud project API token (read & write) in `System > Main Settings`, then use `+ Hetzner Node`
+on the `Nodes` tab. P-Manager creates the cheapest in-stock x86 server in Germany (IPv4 only, newest Debian,
+all SSH keys of the project), installs P-Node on it over SSH, and adds it as a node. Deleting such a node deletes
+its Hetzner server as well. The SSH key of the host running P-Manager must already be one of the project's keys.
+
 ### Configuration
 
 You can customize the web panel port and additional settings by modifying the configuration file found at:

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Account</title>
-    <link rel="stylesheet" href="/assets/css/app.css?v=8">
+    <link rel="stylesheet" href="/assets/css/app.css?v=9">
     <link rel="icon" href="/assets/images/xray.svg">
     <link rel="apple-touch-icon" href="/assets/images/xray.svg">
-    <script src="/assets/js/app.js?v=8"></script>
+    <script src="/assets/js/app.js?v=9"></script>
     <script>i18n.apply(i18n.get()) // before first paint, avoids a direction flip</script>
     <script defer src="/assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
@@ -198,6 +198,22 @@
         </template>
     </div>
 
+    <!-- Confirm dialog (replaces the native confirm(); see confirmDialog in app.js) -->
+    <div x-cloak x-show="$store.dialog.open" class="fixed inset-0 z-[55] flex items-center justify-center p-4"
+         @keydown.escape.window="$store.dialog.close(false)">
+        <div class="absolute inset-0 bg-black/50" @click="$store.dialog.close(false)"></div>
+        <div class="card relative w-full max-w-sm p-5" role="dialog" aria-modal="true">
+            <h3 class="font-semibold" x-text="$store.dialog.title"></h3>
+            <p class="mt-2 text-sm whitespace-pre-line text-zinc-600" x-text="$store.dialog.message"></p>
+            <div class="mt-5 flex justify-end gap-2">
+                <button class="btn btn-outline" @click="$store.dialog.close(false)"
+                        x-text="$store.dialog.cancelLabel"></button>
+                <button class="btn" :class="$store.dialog.danger ? 'btn-danger' : 'btn-dark'"
+                        @click="$store.dialog.close(true)" x-text="$store.dialog.confirmLabel"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toasts -->
     <div class="fixed top-4 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col-reverse items-center gap-2">
         <template x-for="t in $store.toast.items" :key="t.id">
@@ -235,6 +251,8 @@
             renewing: "نوسازی...",
             renewConfirm: "پیوندها نوسازی شوند؟ پیوندهای کنونی از کار می‌افتند و باید برنامه‌های خود را به‌روز کنید.",
             renewed: "پیوندها نوسازی شدند. بارگذاری دوباره...",
+            confirmYes: "تأیید",
+            confirmNo: "انصراف",
             copyFailed: "رونوشت انجام نشد؛ نوشته را برگزینید و خودتان رونوشت بگیرید.",
             accountIdMissing: "شناسه‌ی کاربر یافت نشد.",
             guideIntro: "برنامه‌ی خود را برگزینید و گام‌ها را دنبال کنید. برای همه‌ی برنامه‌ها تنها به پیوند به‌روزشونده نیاز دارید.",
@@ -270,6 +288,8 @@
             renewing: "Renewing...",
             renewConfirm: "Renew links? Your current links will stop working and you will need to update your client apps.",
             renewed: "Links renewed. Reloading...",
+            confirmYes: "Confirm",
+            confirmNo: "Cancel",
             copyFailed: "Copy failed, select the text and copy it manually.",
             accountIdMissing: "Account ID is missing.",
             guideIntro: "Pick your app and follow the steps. All you need is your subscription link.",
@@ -305,6 +325,8 @@
             renewing: "更换中...",
             renewConfirm: "确定更换链接？当前链接将失效，您需要更新客户端应用。",
             renewed: "链接已更换，正在刷新...",
+            confirmYes: "确定",
+            confirmNo: "取消",
             copyFailed: "复制失败，请手动选择并复制文本。",
             accountIdMissing: "缺少账户 ID。",
             guideIntro: "选择您的应用并按步骤操作。您只需要订阅链接。",
@@ -528,7 +550,12 @@
             },
 
             async renew() {
-                if (!confirm(this.t("renewConfirm"))) {
+                if (!await confirmDialog({
+                    title: this.t("renewLinks"),
+                    message: this.t("renewConfirm"),
+                    confirmLabel: this.t("confirmYes"),
+                    cancelLabel: this.t("confirmNo"),
+                })) {
                     return
                 }
                 this.renewing = true

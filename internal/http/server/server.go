@@ -17,6 +17,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/internal/http/handlers"
 	"github.com/miladrahimi/p-manager/internal/http/handlers/api"
+	"github.com/miladrahimi/p-manager/internal/provisioner"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-node/pkg/http/client"
 	cm "github.com/miladrahimi/p-node/pkg/http/middleware"
@@ -35,6 +36,7 @@ type Server struct {
 	db          *data.Store
 	hc          *client.Client
 	sshClient   *ssh.Client
+	provisioner *provisioner.Provisioner
 }
 
 // New creates a new instance of HTTP Server.
@@ -46,6 +48,7 @@ func New(
 	db *data.Store,
 	hc *client.Client,
 	sshClient *ssh.Client,
+	provisioner *provisioner.Provisioner,
 ) *Server {
 	e := echo.New()
 	e.HideBanner = true
@@ -59,6 +62,7 @@ func New(
 		db:          db,
 		hc:          hc,
 		sshClient:   sshClient,
+		provisioner: provisioner,
 	}
 }
 
@@ -101,7 +105,12 @@ func (s *Server) Run() {
 	adminApi.PATCH("/nodes", api.NodesUpdatePartialBatch(s.coordinator, s.db))
 	adminApi.PUT("/nodes/:id", api.NodesUpdate(s.coordinator, s.db))
 	adminApi.PATCH("/nodes/:id", api.NodesUpdateToggles(s.coordinator, s.db))
-	adminApi.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db))
+	adminApi.DELETE("/nodes/:id", api.NodesDelete(s.coordinator, s.db, s.provisioner))
+
+	// Admin APIs: Nodes on Hetzner (automatic provisioning)
+	adminApi.GET("/nodes/hetzner", api.NodesHetznerShow(s.provisioner))
+	adminApi.POST("/nodes/hetzner", api.NodesHetznerStore(s.provisioner))
+	adminApi.DELETE("/nodes/hetzner/:jobId", api.NodesHetznerDismiss(s.provisioner))
 
 	// Admin APIs: Stats
 	adminApi.GET("/stats", api.StatsIndex(s.db))

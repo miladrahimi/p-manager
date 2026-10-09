@@ -11,6 +11,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/coordinator"
 	"github.com/miladrahimi/p-manager/internal/data"
+	"github.com/miladrahimi/p-manager/internal/provisioner"
 	"github.com/miladrahimi/p-manager/pkg/util"
 )
 
@@ -328,9 +329,25 @@ func NodesUpdateToggles(coordinator *coordinator.Coordinator, db *data.Store) ec
 	}
 }
 
-// NodesDelete deletes a node.
-func NodesDelete(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
+// NodesDelete deletes a node. A node backed by a provider server (Hetzner)
+// has its server deleted first; the node stays if that fails.
+func NodesDelete(coordinator *coordinator.Coordinator, db *data.Store, p *provisioner.Provisioner) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		var node *data.Node
+		db.Read(func(d *data.Data) {
+			if n := d.FindNodeById(c.Param("id")); n != nil {
+				copied := *n
+				node = &copied
+			}
+		})
+		if node != nil {
+			if err := p.Destroy(*node); err != nil {
+				return c.JSON(http.StatusBadGateway, map[string]string{
+					"message": fmt.Sprintf("Cannot delete the Hetzner server: %v", err.Error()),
+				})
+			}
+		}
+
 		deleted := false
 		err := db.Mutate(func(d *data.Data) (bool, error) {
 			for i, s := range d.Nodes {

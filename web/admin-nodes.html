@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | Nodes</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=8">
+    <link rel="stylesheet" href="assets/css/app.css?v=9">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
-    <script src="assets/js/app.js?v=8"></script>
+    <script src="assets/js/app.js?v=9"></script>
     <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -40,9 +40,30 @@
                 </svg>
                 P-Node GitHub
             </a>
+            <button class="btn btn-outline" :disabled="provisioning"
+                    title="Create the cheapest Hetzner Cloud server in Germany, install P-Node on it, and add it as a node."
+                    @click="addHetzner()">+ Hetzner Node</button>
             <button class="btn btn-dark" @click="openAdd()">+ Add Node</button>
         </div>
     </div>
+
+    <!-- Hetzner provisioning jobs -->
+    <template x-for="job in hetzner.jobs" :key="job.id">
+        <section class="card mb-4 flex items-center justify-between gap-3 p-4">
+            <div class="min-w-0">
+                <p class="text-sm font-medium"
+                   x-text="job.status === 'failed' ? 'Hetzner node provisioning failed' : 'Provisioning a Hetzner node...'"></p>
+                <p class="mt-0.5 text-xs break-words" :class="job.status === 'failed' ? 'text-red-600' : 'text-zinc-500'"
+                   x-text="job.status === 'failed' ? job.error : job.step"></p>
+            </div>
+            <template x-if="job.status === 'failed'">
+                <button class="btn btn-outline btn-xs flex-none" @click="dismissJob(job)">Dismiss</button>
+            </template>
+            <template x-if="job.status !== 'failed'">
+                <span class="h-4 w-4 flex-none animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900"></span>
+            </template>
+        </section>
+    </template>
 
     <p x-cloak x-show="loading" class="py-8 text-center text-sm text-zinc-500">Loading nodes...</p>
     <p x-cloak x-show="!loading && nodes.length === 0" class="card p-8 text-center text-sm text-zinc-500">
@@ -53,8 +74,10 @@
         <template x-for="node in nodes" :key="node.id">
             <section class="card p-4">
                 <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
+                    <div class="flex min-w-0 items-center gap-2">
                         <h3 class="truncate font-mono text-sm font-semibold" x-text="node.host"></h3>
+                        <span x-show="node.provider === 'hetzner'" class="chip chip-zinc flex-none"
+                              title="This server was created on Hetzner Cloud by P-Manager; deleting the node deletes the server.">Hetzner</span>
                     </div>
                     <div class="flex flex-none gap-1">
                         <button class="btn btn-outline btn-xs" @click="openInfo(node)">View</button>
@@ -273,6 +296,18 @@
                 </div>
             </dl>
 
+            <!-- Free-form node details (e.g. filled by the Hetzner provisioner) -->
+            <template x-if="detailRows(info).length">
+                <dl class="mt-4 space-y-2 border-t border-zinc-100 pt-4 text-sm">
+                    <template x-for="row in detailRows(info)" :key="row.key">
+                        <div class="flex items-start gap-2">
+                            <dt class="w-28 flex-none text-zinc-500" x-text="row.key"></dt>
+                            <dd class="min-w-0 break-words font-mono text-xs" x-text="row.value"></dd>
+                        </div>
+                    </template>
+                </dl>
+            </template>
+
             <div class="mt-4">
                 <p class="label">Pulling setup command (run on the P-Node)</p>
                 <div class="flex items-stretch overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
@@ -281,6 +316,22 @@
                             :class="copied ? 'bg-emerald-600 text-white' : 'btn-dark'"
                             @click="copy(info.command)" x-text="copied ? 'Copied!' : 'Copy'"></button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm dialog (replaces the native confirm(); see confirmDialog in app.js) -->
+    <div x-cloak x-show="$store.dialog.open" class="fixed inset-0 z-[55] flex items-center justify-center p-4"
+         @keydown.escape.window="$store.dialog.close(false)">
+        <div class="absolute inset-0 bg-black/50" @click="$store.dialog.close(false)"></div>
+        <div class="card relative w-full max-w-sm p-5" role="dialog" aria-modal="true">
+            <h3 class="font-semibold" x-text="$store.dialog.title"></h3>
+            <p class="mt-2 text-sm whitespace-pre-line text-zinc-600" x-text="$store.dialog.message"></p>
+            <div class="mt-5 flex justify-end gap-2">
+                <button class="btn btn-outline" @click="$store.dialog.close(false)"
+                        x-text="$store.dialog.cancelLabel"></button>
+                <button class="btn" :class="$store.dialog.danger ? 'btn-danger' : 'btn-dark'"
+                        @click="$store.dialog.close(true)" x-text="$store.dialog.confirmLabel"></button>
             </div>
         </div>
     </div>
@@ -309,6 +360,7 @@
             edit: {},
             infoOpen: false,
             info: {},
+            hetzner: {configured: false, jobs: []},
             options: [
                 {
                     field: "push_enabled", status: "push_status", label: "Push",
@@ -320,6 +372,10 @@
                 },
             ],
 
+            get provisioning() {
+                return this.hetzner.jobs.some(job => job.status === "running")
+            },
+
             init() {
                 this.load()
                 setInterval(() => {
@@ -327,6 +383,12 @@
                         this.load(true)
                     }
                 }, 10000)
+                // Follow a running provisioning job more closely.
+                setInterval(() => {
+                    if (this.provisioning) {
+                        this.loadHetzner(true)
+                    }
+                }, 3000)
             },
 
             async load(silent = false) {
@@ -339,6 +401,57 @@
                 } finally {
                     this.loading = false
                 }
+                await this.loadHetzner(silent)
+            },
+
+            // loadHetzner refreshes the provisioning jobs. A running job that
+            // disappears has finished: the new node is in the list.
+            async loadHetzner(silent = false) {
+                const running = this.hetzner.jobs.filter(job => job.status === "running").map(job => job.id)
+                try {
+                    this.hetzner = await api("GET", "/api/admin/nodes/hetzner")
+                } catch (e) {
+                    if (!silent) {
+                        this.$store.toast.error(e.message)
+                    }
+                    return
+                }
+                const finished = running.some(id => !this.hetzner.jobs.some(job => job.id === id))
+                if (finished) {
+                    this.$store.toast.info("Hetzner node added successfully.")
+                    this.nodes = await api("GET", "/api/admin/nodes").catch(() => this.nodes)
+                }
+            },
+
+            async addHetzner() {
+                if (!this.hetzner.configured) {
+                    this.$store.toast.error("Set the Hetzner API token in System > Main Settings first.")
+                    return
+                }
+                if (!await confirmDialog({
+                    title: "Create a Hetzner node",
+                    message: "Create the cheapest Hetzner server in Germany and install P-Node on it?\n" +
+                        "This takes a few minutes and the server is billed to your Hetzner account.",
+                    confirmLabel: "Create",
+                })) {
+                    return
+                }
+                try {
+                    await api("POST", "/api/admin/nodes/hetzner", {manager_url: window.location.origin})
+                    this.$store.toast.info("Provisioning started.")
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                }
+                await this.loadHetzner(true)
+            },
+
+            async dismissJob(job) {
+                try {
+                    await api("DELETE", `/api/admin/nodes/hetzner/${job.id}`)
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                }
+                await this.loadHetzner(true)
             },
 
             openAdd() {
@@ -468,7 +581,13 @@
             },
 
             async destroy(node) {
-                if (!confirm(`Press 'OK' to delete the node "${node.host}".`)) {
+                const extra = node.provider === "hetzner" ? "\nThis also deletes its Hetzner server." : ""
+                if (!await confirmDialog({
+                    title: "Delete node",
+                    message: `Delete the node "${node.host}"?${extra}`,
+                    confirmLabel: "Delete",
+                    danger: true,
+                })) {
                     return
                 }
                 try {
@@ -478,6 +597,15 @@
                     this.$store.toast.error(e.message)
                 }
                 await this.load()
+            },
+
+            // detailRows lists a node's free-form details, well-known keys first.
+            detailRows(node) {
+                const order = ["Provider", "Server", "Type", "Specs", "Location", "Image", "Price", "IP", "Created"]
+                const rank = key => order.includes(key) ? order.indexOf(key) : order.length
+                return Object.entries(node.details || {})
+                    .map(([key, value]) => ({key, value}))
+                    .sort((a, b) => rank(a.key) - rank(b.key) || a.key.localeCompare(b.key))
             },
 
             openInfo(node) {

@@ -117,7 +117,43 @@ function statusChip(status, neutralUnavailable = false) {
     }
 }
 
+// confirmDialog shows the in-page confirm dialog (pages render the shared
+// markup bound to $store.dialog) and resolves to true when confirmed.
+function confirmDialog(options) {
+    return Alpine.store("dialog").confirm(options)
+}
+
 document.addEventListener("alpine:init", () => {
+    // Confirm dialog state; see confirmDialog().
+    Alpine.store("dialog", {
+        open: false,
+        title: "",
+        message: "",
+        confirmLabel: "Confirm",
+        cancelLabel: "Cancel",
+        danger: false,
+        resolver: null,
+        confirm({title = "Are you sure?", message = "", confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false}) {
+            // A dialog opened over another one cancels the first.
+            this.close(false)
+            this.title = title
+            this.message = message
+            this.confirmLabel = confirmLabel
+            this.cancelLabel = cancelLabel
+            this.danger = danger
+            this.open = true
+            return new Promise(resolve => this.resolver = resolve)
+        },
+        close(result) {
+            this.open = false
+            const resolver = this.resolver
+            this.resolver = null
+            if (resolver) {
+                resolver(result)
+            }
+        },
+    })
+
     // Toast notifications; pages render the shared container markup.
     Alpine.store("toast", {
         items: [],

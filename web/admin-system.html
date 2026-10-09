@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | System</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=8">
+    <link rel="stylesheet" href="assets/css/app.css?v=9">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
-    <script src="assets/js/app.js?v=8"></script>
+    <script src="assets/js/app.js?v=9"></script>
     <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -253,6 +253,36 @@
         </form>
     </section>
 
+    <!-- Integrations -->
+    <section class="card mt-4" x-data="{ open: false }">
+        <button type="button" @click="open = !open"
+                class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
+            <h2 class="text-sm font-semibold">Integrations</h2>
+            <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
+                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+        <form x-show="open" class="grid grid-cols-1 gap-3 px-5 pb-5" @submit.prevent="saveMainSettings('Integrations')">
+            <div>
+                <label class="label">
+                    <a class="underline" href="https://console.hetzner.cloud/" target="_blank" rel="noopener">Hetzner Cloud</a>
+                    API Token (empty to disable)
+                </label>
+                <input type="text" class="input font-mono" x-model.trim="main.hetzner_token" maxlength="128"
+                       placeholder="Project API token with read & write permission" autocomplete="off">
+                <p class="mt-1 text-[11px] text-zinc-400">
+                    Enables the "Hetzner Node" button on the nodes page: P-Manager creates the cheapest in-stock
+                    server in Germany, installs P-Node on it, and adds it as a node. Deleting such a node deletes
+                    the server too.
+                </p>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-dark w-full" :disabled="busy">Save Integrations</button>
+            </div>
+        </form>
+    </section>
+
     <!-- Import -->
     <section class="card mt-4" x-data="{ open: false }">
         <button type="button" @click="open = !open"
@@ -282,6 +312,22 @@
     <!-- Platform -->
     <p class="mt-6 text-center text-xs text-zinc-400" x-show="platform.app_name" x-cloak
        x-text="`${platform.app_name} ${platform.app_version} · ${platform.core_name}`"></p>
+
+    <!-- Confirm dialog (replaces the native confirm(); see confirmDialog in app.js) -->
+    <div x-cloak x-show="$store.dialog.open" class="fixed inset-0 z-[55] flex items-center justify-center p-4"
+         @keydown.escape.window="$store.dialog.close(false)">
+        <div class="absolute inset-0 bg-black/50" @click="$store.dialog.close(false)"></div>
+        <div class="card relative w-full max-w-sm p-5" role="dialog" aria-modal="true">
+            <h3 class="font-semibold" x-text="$store.dialog.title"></h3>
+            <p class="mt-2 text-sm whitespace-pre-line text-zinc-600" x-text="$store.dialog.message"></p>
+            <div class="mt-5 flex justify-end gap-2">
+                <button class="btn btn-outline" @click="$store.dialog.close(false)"
+                        x-text="$store.dialog.cancelLabel"></button>
+                <button class="btn" :class="$store.dialog.danger ? 'btn-danger' : 'btn-dark'"
+                        @click="$store.dialog.close(true)" x-text="$store.dialog.confirmLabel"></button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toasts -->
     <div class="fixed top-4 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col-reverse items-center gap-2">
@@ -360,7 +406,7 @@
             },
 
             async action(message, method, url, body = undefined, reload = false) {
-                if (!confirm(`Press 'OK' to confirm: ${message}`)) {
+                if (!await confirmDialog({title: "Confirm action", message: message, confirmLabel: "Confirm"})) {
                     return
                 }
                 this.busy = true
@@ -414,7 +460,7 @@
                 }
             },
 
-            async saveMainSettings() {
+            async saveMainSettings(label = "Main settings") {
                 this.busy = true
                 try {
                     await api("POST", "/api/admin/main-settings", {
@@ -424,8 +470,9 @@
                         singet_server: this.main.singet_server,
                         reset_policy: this.main.reset_policy,
                         subscription_enabled: !!this.main.subscription_enabled,
+                        hetzner_token: this.main.hetzner_token || "",
                     })
-                    this.$store.toast.info("Main settings saved successfully.")
+                    this.$store.toast.info(`${label} saved successfully.`)
                 } catch (e) {
                     this.$store.toast.error(e.message)
                 } finally {

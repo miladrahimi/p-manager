@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | Accounts</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=8">
+    <link rel="stylesheet" href="assets/css/app.css?v=9">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
-    <script src="assets/js/app.js?v=8"></script>
+    <script src="assets/js/app.js?v=9"></script>
     <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -134,6 +134,22 @@
         </div>
     </div>
 
+    <!-- Confirm dialog (replaces the native confirm(); see confirmDialog in app.js) -->
+    <div x-cloak x-show="$store.dialog.open" class="fixed inset-0 z-[55] flex items-center justify-center p-4"
+         @keydown.escape.window="$store.dialog.close(false)">
+        <div class="absolute inset-0 bg-black/50" @click="$store.dialog.close(false)"></div>
+        <div class="card relative w-full max-w-sm p-5" role="dialog" aria-modal="true">
+            <h3 class="font-semibold" x-text="$store.dialog.title"></h3>
+            <p class="mt-2 text-sm whitespace-pre-line text-zinc-600" x-text="$store.dialog.message"></p>
+            <div class="mt-5 flex justify-end gap-2">
+                <button class="btn btn-outline" @click="$store.dialog.close(false)"
+                        x-text="$store.dialog.cancelLabel"></button>
+                <button class="btn" :class="$store.dialog.danger ? 'btn-danger' : 'btn-dark'"
+                        @click="$store.dialog.close(true)" x-text="$store.dialog.confirmLabel"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toasts -->
     <div class="fixed top-4 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col-reverse items-center gap-2">
         <template x-for="t in $store.toast.items" :key="t.id">
@@ -253,7 +269,11 @@
             },
 
             async reset(account) {
-                if (!confirm(`Press 'OK' to reset the usage of "${account.name}".`)) {
+                if (!await confirmDialog({
+                    title: "Reset account",
+                    message: `Reset the usage of "${account.name}" and enable the account?`,
+                    confirmLabel: "Reset",
+                })) {
                     return
                 }
                 try {
@@ -266,7 +286,12 @@
             },
 
             async destroy(account) {
-                if (!confirm(`Press 'OK' to delete the account "${account.name}".`)) {
+                if (!await confirmDialog({
+                    title: "Delete account",
+                    message: `Delete the account "${account.name}"? This cannot be undone.`,
+                    confirmLabel: "Delete",
+                    danger: true,
+                })) {
                     return
                 }
                 try {

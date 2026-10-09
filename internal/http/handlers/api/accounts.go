@@ -385,7 +385,7 @@ func AccountsImport(
 		}
 
 		baseURL := strings.TrimRight(r.Url, "/")
-		url := fmt.Sprintf("%s/api/accounts", baseURL)
+		url := fmt.Sprintf("%s/api/admin/accounts", baseURL)
 		response, err := hc.Do("GET", url, r.Password, nil)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{

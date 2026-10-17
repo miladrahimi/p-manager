@@ -49,7 +49,7 @@ func newConfigSyncer(
 func (c *configSyncer) updateLocalConfig() error {
 	c.l.Info("coordinator: updating local configs...")
 
-	localConfig := c.composer.ManagerConfig(c.state.SshConfigsByNode())
+	localConfig := c.composer.ManagerConfig(c.state.SshConfigsByNode(), c.state.PaqetPortsByNode())
 	if err := c.xray.Reconfigure(localConfig); err != nil {
 		return errors.WithStack(err)
 	}

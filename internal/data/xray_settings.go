@@ -12,6 +12,8 @@ type XraySettings struct {
 	ReverseRrPortalPort    int    `json:"reverse_rr_portal_port" validate:"min=0,max=65535"`
 	RelayRr2SshPort        int    `json:"relay_rr_2_ssh_port" validate:"min=0,max=65535"`
 	RelayRr2SshConnections int    `json:"relay_rr_2_ssh_connections" validate:"min=1,max=32"`
+	RelayRr2PqPort         int    `json:"relay_rr_2_pq_port" validate:"min=0,max=65535"`
+	RelayRr2PqNodePort     int    `json:"relay_rr_2_pq_node_port" validate:"min=0,max=65535"`
 	RealityPrivateKey      string `json:"reality_private_key"`
 	RealityPublicKey       string `json:"reality_public_key"`
 	NodeSni                string `json:"node_sni" validate:"required,hostname_rfc1123"`

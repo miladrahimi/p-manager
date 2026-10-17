@@ -30,10 +30,11 @@ type Coordinator struct {
 	state     *State
 
 	sshSyncer    *sshSyncer
+	paqetSyncer  *paqetSyncer
 	configSyncer *configSyncer
 	statsSyncer  *statsSyncer
 
-	// updateMu serializes UpdateConfigs and the ssh proxy sync.
+	// updateMu serializes UpdateConfigs and the ssh/paqet proxy syncs.
 	updateMu sync.Mutex
 }
 
@@ -46,8 +47,10 @@ func New(
 	writer *composer.Composer,
 	sshManager *ssh.Pool,
 	sshClient *ssh.Client,
+	root string,
+	c *config.Config,
 ) *Coordinator {
-	c := &Coordinator{
+	cdr := &Coordinator{
 		l:         logger,
 		hc:        hc,
 		db:        db,
@@ -58,11 +61,12 @@ func New(
 		state:     newState(),
 	}
 
-	c.sshSyncer = newSshSyncer(logger, db, sshManager, sshClient, c.state)
-	c.configSyncer = newConfigSyncer(logger, db, hc, xray, writer, c.state)
-	c.statsSyncer = newStatsSyncer(logger, db, hc, xray, c.UpdateConfigs)
+	cdr.sshSyncer = newSshSyncer(logger, db, sshManager, sshClient, cdr.state)
+	cdr.paqetSyncer = newPaqetSyncer(logger, db, cdr.state, root, c)
+	cdr.configSyncer = newConfigSyncer(logger, db, hc, xray, writer, cdr.state)
+	cdr.statsSyncer = newStatsSyncer(logger, db, hc, xray, cdr.UpdateConfigs)
 
-	return c
+	return cdr
 }
 
 // Run starts the coordinator and its workers.
@@ -79,6 +83,12 @@ func (c *Coordinator) Run(ctx context.Context) error {
 		c.updateMu.Lock()
 		defer c.updateMu.Unlock()
 		return errors.WithStack(c.sshSyncer.syncSshProxies())
+	}).Start(ctx)
+
+	worker.New("syncPaqetClients", c.l, time.Second*10, func() error {
+		c.updateMu.Lock()
+		defer c.updateMu.Unlock()
+		return errors.WithStack(c.paqetSyncer.syncPaqetClients())
 	}).Start(ctx)
 
 	worker.New("pushConfigToStaleNodes", c.l, time.Second*10, func() error {
@@ -160,6 +170,9 @@ func (c *Coordinator) UpdateConfigs() {
 	if err := c.sshSyncer.syncSshProxies(); err != nil {
 		c.l.Error("coordinator: cannot sync ssh proxies", zap.Error(err))
 	}
+	if err := c.paqetSyncer.syncPaqetClients(); err != nil {
+		c.l.Error("coordinator: cannot sync paqet clients", zap.Error(err))
+	}
 	// A reconfigure failure (e.g. a port conflict from bad settings) must not
 	// crash the whole manager; log and keep serving so it can be fixed.
 	if err := c.configSyncer.updateLocalConfig(); err != nil {
@@ -190,6 +203,13 @@ func (c *Coordinator) CheckSshStatus(nodeId string) {
 	if err := c.sshSyncer.checkSshStatus(node); err != nil {
 		c.l.Debug("coordinator: ssh check failed", zap.String("id", nodeId), zap.Error(err))
 	}
+}
+
+// Close stops the paqet clients.
+func (c *Coordinator) Close() error {
+	c.updateMu.Lock()
+	defer c.updateMu.Unlock()
+	return errors.WithStack(c.paqetSyncer.stopAll())
 }
 
 // State returns the current state of the coordinator.

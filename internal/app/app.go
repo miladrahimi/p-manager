@@ -75,7 +75,7 @@ func New() (a *App, err error) {
 	a.xray = xray.New(a.context, l, c.Xray.LogLevel, config.XrayConfigPath(root), config.XrayBinaryPath(root))
 	a.sshPool = ssh.New(l, a.sshClient, config.SshStdoutPath(root), config.SshStderrPath(root))
 	a.composer = composer.New(c, a.database, a.xray)
-	a.coordinator = coordinator.New(a.httpClient, l, a.database, a.xray, a.composer, a.sshPool, a.sshClient)
+	a.coordinator = coordinator.New(a.httpClient, l, a.database, a.xray, a.composer, a.sshPool, a.sshClient, root, c)
 	a.provisioner = provisioner.New(l, a.database, a.sshClient, a.coordinator)
 	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient, a.sshClient, a.provisioner)
 
@@ -142,6 +142,11 @@ func (a *App) Close() {
 	if a.sshPool != nil {
 		if err := a.sshPool.StopAll(); err != nil {
 			a.logger.Error("cannot close ssh manager", zap.Error(errors.WithStack(err)))
+		}
+	}
+	if a.coordinator != nil {
+		if err := a.coordinator.Close(); err != nil {
+			a.logger.Error("cannot close paqet clients", zap.Error(errors.WithStack(err)))
 		}
 	}
 	if a.database != nil {

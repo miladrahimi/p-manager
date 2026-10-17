@@ -5,6 +5,9 @@
 //
 // Run with: make e2e (go test -tags e2e ./e2e/). Set E2E_SSH=1 to include
 // Relay RR2SSH, which needs passwordless ssh to 127.0.0.1 for the current user.
+// Set E2E_PQ=1 to include Relay RR2PQ, which needs root on Linux (paqet sends
+// raw packets over a veth pair the test creates): make e2e-docker runs the
+// whole test that way in a privileged container.
 package e2e
 
 import (
@@ -33,10 +36,26 @@ const (
 	sshPort       = 22
 )
 
+// Third-party binary directories by GOOS/GOARCH (see internal/config/paths.go).
 var xrayDirs = map[string]string{
-	"darwin": "third_party/xray-macos-arm64",
-	"linux":  "third_party/xray-linux-64",
+	"darwin/arm64": "third_party/xray-macos-arm64",
+	"linux/amd64":  "third_party/xray-linux-64",
+	"linux/arm64":  "third_party/xray-linux-arm64",
 }
+
+var paqetDirs = map[string]string{
+	"darwin/arm64": "third_party/paqet-macos-arm64",
+	"linux/amd64":  "third_party/paqet-linux-64",
+	"linux/arm64":  "third_party/paqet-linux-arm64",
+}
+
+// The veth pair paqet runs over when E2E_PQ=1: the manager side and the node side.
+const (
+	pqManagerIface = "pq0"
+	pqManagerAddr  = "10.200.0.1"
+	pqNodeIface    = "pq1"
+	pqNodeAddr     = "10.200.0.2"
+)
 
 func TestProxyMethods(t *testing.T) {
 	managerRepo, err := filepath.Abs("..")
@@ -48,14 +67,38 @@ func TestProxyMethods(t *testing.T) {
 		nodeRepo = filepath.Join(managerRepo, "..", "p-node")
 	}
 	withSsh := os.Getenv("E2E_SSH") == "1"
+	withPq := os.Getenv("E2E_PQ") == "1"
 
-	xrayDir, ok := xrayDirs[runtime.GOOS]
+	platform := runtime.GOOS + "/" + runtime.GOARCH
+	xrayDir, ok := xrayDirs[platform]
 	if !ok {
-		t.Skipf("no xray binary for %s", runtime.GOOS)
+		t.Skipf("no xray binary for %s", platform)
 	}
 	xrayBinary := filepath.Join(managerRepo, xrayDir, "xray")
 	if _, err := os.Stat(xrayBinary); err != nil {
 		t.Skipf("xray binary not found at %s (run make local-setup)", xrayBinary)
+	}
+	paqetDir := paqetDirs[platform]
+	if withPq {
+		if runtime.GOOS != "linux" || os.Geteuid() != 0 {
+			t.Fatal("E2E_PQ=1 needs root on Linux (use make e2e-docker)")
+		}
+		for _, repo := range []string{managerRepo, nodeRepo} {
+			if _, err := os.Stat(filepath.Join(repo, paqetDir, "paqet")); err != nil {
+				t.Fatalf("paqet binary not found in %s/%s", repo, paqetDir)
+			}
+		}
+	}
+
+	// paqet needs real Ethernet interfaces (loopback has no MAC), so the
+	// manager and the node each get one end of a veth pair.
+	nodeHost := "127.0.0.1"
+	var managerPaqet, nodePaqet map[string]any
+	if withPq {
+		managerMac, nodeMac := setupVeth(t)
+		nodeHost = pqNodeAddr
+		managerPaqet = map[string]any{"interface": pqManagerIface, "address": pqManagerAddr, "router_mac": nodeMac}
+		nodePaqet = map[string]any{"interface": pqNodeIface, "address": pqNodeAddr, "router_mac": managerMac}
 	}
 
 	// The target the proxied requests must reach.
@@ -69,17 +112,22 @@ func TestProxyMethods(t *testing.T) {
 	managerBin := build(t, managerRepo, filepath.Join(work, "p-manager"))
 	nodeBin := build(t, nodeRepo, filepath.Join(work, "p-node"))
 
-	ports := freePorts(t, 9)
+	ports := freePorts(t, 11)
 	managerPort, nodePort := ports[0], ports[1]
 	directRr, remoteRr, relayRr2RrManager, relayRr2RrNode, reverseRr, relayRr2Ssh, reverseRrPortal := ports[2], ports[3], ports[4], ports[5], ports[6], ports[7], ports[8]
+	relayRr2Pq, relayRr2PqNode := ports[9], ports[10]
 	if !withSsh {
 		relayRr2Ssh = 0
 	}
+	if !withPq {
+		relayRr2Pq, relayRr2PqNode = 0, 0
+	}
 
 	// --- P-Node ---
-	nodeRoot := prepareRoot(t, nodeRepo, filepath.Join(work, "node"), xrayDir, map[string]any{
+	nodeRoot := prepareRoot(t, nodeRepo, filepath.Join(work, "node"), xrayDir, paqetDir, map[string]any{
 		"http_server": map[string]any{"port": nodePort},
 		"logger":      map[string]any{"level": "debug", "format": "2006-01-02 15:04:05.000"},
+		"paqet":       nodePaqet,
 	})
 	nodeProc := startProcess(t, nodeBin, nodeRoot)
 	nodeUrl := fmt.Sprintf("http://127.0.0.1:%d", nodePort)
@@ -93,9 +141,10 @@ func TestProxyMethods(t *testing.T) {
 	readJsonFile(t, filepath.Join(nodeRoot, "storage/database/data.json"), &nodeDb)
 
 	// --- P-Manager ---
-	managerRoot := prepareRoot(t, managerRepo, filepath.Join(work, "manager"), xrayDir, map[string]any{
+	managerRoot := prepareRoot(t, managerRepo, filepath.Join(work, "manager"), xrayDir, paqetDir, map[string]any{
 		"http_server": map[string]any{"host": "127.0.0.1", "port": managerPort},
 		"logger":      map[string]any{"level": "debug", "format": "2006-01-02 15:04:05.000"},
+		"paqet":       managerPaqet,
 	})
 	managerProc := startProcess(t, managerBin, managerRoot)
 	managerUrl := fmt.Sprintf("http://127.0.0.1:%d", managerPort)
@@ -126,6 +175,8 @@ func TestProxyMethods(t *testing.T) {
 	xs["reverse_rr_portal_port"] = reverseRrPortal
 	xs["relay_rr_2_ssh_port"] = relayRr2Ssh
 	xs["relay_rr_2_ssh_connections"] = 1
+	xs["relay_rr_2_pq_port"] = relayRr2Pq
+	xs["relay_rr_2_pq_node_port"] = relayRr2PqNode
 	admin.call(t, http.MethodPost, "/xray-settings", xs, nil)
 
 	// Node: pushed over HTTP; SSH only when the environment provides it.
@@ -138,7 +189,7 @@ func TestProxyMethods(t *testing.T) {
 		PullToken string `json:"pull_token"`
 	}
 	admin.call(t, http.MethodPost, "/nodes", map[string]any{
-		"host":         "127.0.0.1",
+		"host":         nodeHost,
 		"http_token":   nodeDb.Settings.HttpToken,
 		"http_port":    nodePort,
 		"ssh_user":     sshUser,
@@ -184,9 +235,12 @@ func TestProxyMethods(t *testing.T) {
 	}
 	(&apiClient{base: managerUrl + "/api/user"}).call(t, http.MethodGet, "/account/"+account.Id, nil, &shown)
 
-	want := []string{"direct-rr", "remote-rr-127.0.0.1", "relay-rr2rr", "reverse-rr"}
+	want := []string{"direct-rr", "remote-rr-" + nodeHost, "relay-rr2rr", "reverse-rr"}
 	if withSsh {
 		want = append(want, "relay-rr2ssh")
+	}
+	if withPq {
+		want = append(want, "relay-rr2pq")
 	}
 	for _, method := range want {
 		method := method
@@ -205,6 +259,37 @@ func TestProxyMethods(t *testing.T) {
 	if !withSsh {
 		t.Log("relay-rr2ssh skipped; set E2E_SSH=1 to include it")
 	}
+	if !withPq {
+		t.Log("relay-rr2pq skipped; run make e2e-docker to include it")
+	}
+}
+
+// setupVeth creates the veth pair for paqet and returns the MAC addresses of the
+// manager and node ends. Needs root on Linux.
+func setupVeth(t *testing.T) (managerMac, nodeMac string) {
+	t.Helper()
+	_ = exec.Command("ip", "link", "del", pqManagerIface).Run() // leftover from an aborted run
+	for _, args := range [][]string{
+		{"link", "add", pqManagerIface, "type", "veth", "peer", "name", pqNodeIface},
+		{"addr", "add", pqManagerAddr + "/24", "dev", pqManagerIface},
+		{"addr", "add", pqNodeAddr + "/24", "dev", pqNodeIface},
+		{"link", "set", pqManagerIface, "up"},
+		{"link", "set", pqNodeIface, "up"},
+	} {
+		if b, err := exec.Command("ip", args...).CombinedOutput(); err != nil {
+			t.Fatalf("ip %s: %v\n%s", strings.Join(args, " "), err, b)
+		}
+	}
+	t.Cleanup(func() { _ = exec.Command("ip", "link", "del", pqManagerIface).Run() })
+
+	mac := func(name string) string {
+		iface, err := net.InterfaceByName(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return iface.HardwareAddr.String()
+	}
+	return mac(pqManagerIface), mac(pqNodeIface)
 }
 
 // fetchThroughLink runs an Xray client for the share link and fetches the target through it.
@@ -321,7 +406,7 @@ func (c *apiClient) call(t *testing.T, method, path string, in, out any) {
 }
 
 // prepareRoot lays out a working directory the way the app expects it under its cwd.
-func prepareRoot(t *testing.T, repo, root, xrayDir string, localConfig map[string]any) string {
+func prepareRoot(t *testing.T, repo, root, xrayDir, paqetDir string, localConfig map[string]any) string {
 	t.Helper()
 	for _, d := range []string{"configs", "storage/app", "storage/database", "storage/logs", filepath.Dir(xrayDir)} {
 		if err := os.MkdirAll(filepath.Join(root, d), 0o755); err != nil {
@@ -330,8 +415,16 @@ func prepareRoot(t *testing.T, repo, root, xrayDir string, localConfig map[strin
 	}
 	copyFile(t, filepath.Join(repo, "configs/main.defaults.json"), filepath.Join(root, "configs/main.defaults.json"))
 	writeJson(t, filepath.Join(root, "configs/main.json"), localConfig)
-	if err := os.Symlink(filepath.Join(repo, xrayDir), filepath.Join(root, xrayDir)); err != nil {
-		t.Fatal(err)
+	for _, dir := range []string{xrayDir, paqetDir} {
+		if dir == "" {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(repo, dir)); err != nil {
+			continue
+		}
+		if err := os.Symlink(filepath.Join(repo, dir), filepath.Join(root, dir)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return root
 }
@@ -478,7 +571,7 @@ func copyFile(t *testing.T, src, dst string) {
 }
 
 func dumpLogs(t *testing.T, name, root string) {
-	for _, f := range []string{"stdout.log", "storage/logs/app-std.log", "storage/logs/xray-error.log"} {
+	for _, f := range []string{"stdout.log", "storage/logs/app-std.log", "storage/logs/xray-error.log", "storage/logs/paqet.log"} {
 		b, err := os.ReadFile(filepath.Join(root, f))
 		if err != nil || len(bytes.TrimSpace(b)) == 0 {
 			continue

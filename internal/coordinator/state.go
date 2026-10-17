@@ -13,12 +13,14 @@ type State struct {
 	mu               sync.RWMutex
 	xrayUpdatedAt    time.Time
 	sshConfigsByNode map[string][]*ssh.ProxyConfig
+	paqetPortsByNode map[string]int // node id -> local SOCKS5 port of its paqet client
 }
 
 func newState() *State {
 	return &State{
 		xrayUpdatedAt:    time.Now(),
 		sshConfigsByNode: map[string][]*ssh.ProxyConfig{},
+		paqetPortsByNode: map[string]int{},
 	}
 }
 
@@ -68,4 +70,32 @@ func (s *State) SshConfigsCount() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.sshConfigsByNode)
+}
+
+func (s *State) PaqetPort(nodeId string) (int, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	port, ok := s.paqetPortsByNode[nodeId]
+	return port, ok
+}
+
+func (s *State) SetPaqetPort(nodeId string, port int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.paqetPortsByNode[nodeId] = port
+}
+
+func (s *State) RemovePaqetPort(nodeId string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.paqetPortsByNode, nodeId)
+}
+
+// PaqetPortsByNode returns a copy of the node -> paqet SOCKS5 port map.
+func (s *State) PaqetPortsByNode() map[string]int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make(map[string]int, len(s.paqetPortsByNode))
+	maps.Copy(out, s.paqetPortsByNode)
+	return out
 }

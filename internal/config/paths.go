@@ -5,10 +5,18 @@ import (
 	"runtime"
 )
 
-// XrayBinaryPath returns the path of the xray binary for the current OS.
+// Binary paths of the embedded third-party tools, keyed by GOOS/GOARCH. Linux
+// amd64 is the production platform; the others serve local development and e2e.
 var xrayBinaryPaths = map[string]string{
-	"darwin": "third_party/xray-macos-arm64/xray",
-	"linux":  "third_party/xray-linux-64/xray",
+	"darwin/arm64": "third_party/xray-macos-arm64/xray",
+	"linux/amd64":  "third_party/xray-linux-64/xray",
+	"linux/arm64":  "third_party/xray-linux-arm64/xray",
+}
+
+var paqetBinaryPaths = map[string]string{
+	"darwin/arm64": "third_party/paqet-macos-arm64/paqet",
+	"linux/amd64":  "third_party/paqet-linux-64/paqet",
+	"linux/arm64":  "third_party/paqet-linux-arm64/paqet",
 }
 
 // DatabaseDirectory returns the path of the database directory.
@@ -41,11 +49,30 @@ func XrayConfigPath(root string) string {
 	return filepath.Join(root, "storage/app/xray.json")
 }
 
-// XrayBinaryPath returns the path of the xray binary for the current OS.
+// PaqetConfigPath returns the path of the paqet client config file for a node.
+func PaqetConfigPath(root, nodeId string) string {
+	return filepath.Join(root, "storage/app/paqet-"+nodeId+".yaml")
+}
+
+// PaqetLogPath returns the path of the log file shared by the paqet clients.
+func PaqetLogPath(root string) string {
+	return filepath.Join(root, "storage/logs/paqet.log")
+}
+
+// XrayBinaryPath returns the path of the xray binary for the current platform.
 func XrayBinaryPath(root string) string {
-	path, found := xrayBinaryPaths[runtime.GOOS]
+	return filepath.Join(root, binaryPath(xrayBinaryPaths))
+}
+
+// PaqetBinaryPath returns the path of the paqet binary for the current platform.
+func PaqetBinaryPath(root string) string {
+	return filepath.Join(root, binaryPath(paqetBinaryPaths))
+}
+
+func binaryPath(paths map[string]string) string {
+	path, found := paths[runtime.GOOS+"/"+runtime.GOARCH]
 	if !found {
-		path = xrayBinaryPaths["linux"]
+		path = paths["linux/amd64"]
 	}
-	return filepath.Join(root, path)
+	return path
 }

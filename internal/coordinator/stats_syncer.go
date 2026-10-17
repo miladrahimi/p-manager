@@ -174,10 +174,12 @@ func (s *statsSyncer) loadLocalStats() error {
 				nodes[rest] += value
 			} else if rest, ok := strings.CutPrefix(tag, "relay-rr2ssh-"); ok {
 				nodes[rest] += value
+			} else if rest, ok := strings.CutPrefix(tag, "relay-rr2pq-"); ok {
+				nodes[rest] += value
 			}
 		case "inbound":
 			switch tag {
-			case "direct-rr", "relay-rr2rr", "relay-rr2ssh":
+			case "direct-rr", "relay-rr2rr", "relay-rr2ssh", "relay-rr2pq":
 				totalBytes += value
 			}
 		}

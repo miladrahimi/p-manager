@@ -141,7 +141,7 @@
                             <span class="min-w-0">
                                 <span class="block text-sm font-medium" :class="!enabled[m.key] && 'text-zinc-400'"
                                       x-text="m.name"></span>
-                                <code class="block truncate text-[11px] text-zinc-400" x-text="m.flow"></code>
+                                <code class="block truncate text-[11px] text-zinc-400" x-html="flowHtml(m)"></code>
                             </span>
                         </label>
                         <div class="flex gap-2 sm:justify-end">
@@ -374,6 +374,14 @@
                 {field: "relay_rr_2_ssh_connections", label: "Connections", min: 1, max: 32},
             ],
         },
+        {
+            key: "pq", name: "Relay RR→Paqet", flow: "[Client] -RR→ [P-Manager] -Paqet→ [P-Node] → [Internet]",
+            link: {label: "Paqet", url: "https://github.com/hanselime/paqet"},
+            fields: [
+                {field: "relay_rr_2_pq_port", label: "Client port", host: "manager", port: true},
+                {field: "relay_rr_2_pq_node_port", label: "Destination port", host: "node", port: true},
+            ],
+        },
     ]
 
     function systemPage() {
@@ -429,6 +437,15 @@
                 }
             },
 
+            // The flow line, with the method's link (if any) wrapped around its label.
+            flowHtml(m) {
+                if (!m.link) {
+                    return m.flow
+                }
+                const anchor = `<a class="underline" href="${m.link.url}" target="_blank" rel="noopener">${m.link.label}</a>`
+                return m.flow.replace(m.link.label, anchor)
+            },
+
             toggleMethod(m, on) {
                 this.enabled[m.key] = on
                 if (on) {
@@ -454,6 +471,8 @@
                         reverse_rr_portal_port: this.port("reverse_rr_portal_port"),
                         relay_rr_2_ssh_port: this.port("relay_rr_2_ssh_port"),
                         relay_rr_2_ssh_connections: this.xray.relay_rr_2_ssh_connections || 8,
+                        relay_rr_2_pq_port: this.port("relay_rr_2_pq_port"),
+                        relay_rr_2_pq_node_port: this.port("relay_rr_2_pq_node_port"),
                         node_sni: this.xray.node_sni,
                         manager_sni: this.xray.manager_sni,
                         reality_private_key: this.xray.reality_private_key,

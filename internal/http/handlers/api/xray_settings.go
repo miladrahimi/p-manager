@@ -45,6 +45,7 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 			r.DirectRrPort,
 			r.RelayRr2RrManagerPort,
 			r.RelayRr2SshPort,
+			r.RelayRr2PqPort,
 			r.ReverseRrManagerPort,
 			r.ReverseRrPortalPort,
 		}) {
@@ -55,6 +56,7 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 		if !util.PortsDistinct([]int{
 			r.RemoteRrPort,
 			r.RelayRr2RrNodePort,
+			r.RelayRr2PqNodePort,
 		}) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Node ports must be distinct.",
@@ -70,6 +72,7 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 			{r.DirectRrPort, d.DirectRrPort},
 			{r.RelayRr2RrManagerPort, d.RelayRr2RrManagerPort},
 			{r.RelayRr2SshPort, d.RelayRr2SshPort},
+			{r.RelayRr2PqPort, d.RelayRr2PqPort},
 			{r.ReverseRrManagerPort, d.ReverseRrManagerPort},
 			{r.ReverseRrPortalPort, d.ReverseRrPortalPort},
 		} {

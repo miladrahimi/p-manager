@@ -7,3 +7,6 @@ configs/main.json
 configs/main.local.json
 
 bin/
+third_party/paqet-macos-arm64
+third_party/xray-linux-arm64
+third_party/paqet-linux-arm64

@@ -14,7 +14,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Tech stack
 - Main: Go 1.25.x, Cobra CLI, Echo v4 HTTP server
 - UI: static HTML + Alpine.js (behavior) + Tailwind CSS v4 (styling), no build toolchain beyond the Tailwind CLI
-- Reuses several packages from the P-Node repo (`github.com/miladrahimi/p-node`): `pkg/database`, `pkg/logger`, `pkg/xray`, `pkg/http/client`, `pkg/worker`, and `pkg/util` for filesystem/port helpers (`pkg/util` here holds only manager-specific helpers).
+- Reuses several packages from the P-Node repo (`github.com/miladrahimi/p-node`): `pkg/database`, `pkg/logger`, `pkg/xray`, `pkg/paqet`, `pkg/http/client`, `pkg/worker`, and `pkg/util` for filesystem/port helpers (`pkg/util` here holds only manager-specific helpers).
 
 ## Packages
 - `cmd`: Cobra commands (`serve`)
@@ -22,7 +22,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - `internal/app`: App lifecycle orchestration
 - `internal/composer`: Xray configuration generator for local and remote Xray instances (subpackages `vless`, `socks`; also `link_composer.go` for share links)
 - `internal/config`: Configuration loader, constants (`config.go`), and filesystem paths (`paths.go`)
-- `internal/coordinator`: Periodic sync between current state, local Xray process, and P-Nodes (`config_syncer`, `stats_syncer`, `ssh_syncer`, `state`)
+- `internal/coordinator`: Periodic sync between current state, local Xray process, and P-Nodes (`config_syncer`, `stats_syncer`, `ssh_syncer`, `paqet_syncer`, `state`)
 - `internal/data`: Database schema, models, and default values
 - `internal/http/server`: Echo server setup and routing
 - `internal/http/handlers`: HTTP handlers (`handlers/api` for JSON APIs, plus the static `account` page handler)
@@ -32,7 +32,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - `pkg/util`: Generic utils
 - `scripts`: Scripts for project and server setup
 - `storage`: Application data storage directory (database, logs, generated xray config)
-- `third_party`: Third-party binaries and libraries (Xray binaries)
+- `third_party`: Third-party binaries and libraries (Xray and paqet binaries; Linux amd64 is tracked, macOS/arm64 builds come from `make local-setup` / `make e2e-docker` and are ignored)
 - `web`: Static admin web UI files. Alpine.js is vendored under `assets/third_party`; `assets/js/app.js` holds the shared fetch-based API client and helpers, including the toast store and the in-page confirm dialog (`confirmDialog(...)` + `$store.dialog`; never use native `alert`/`confirm`, each page renders the shared dialog markup next to its toasts). Styling is Tailwind: edit `assets/css/app.src.css`, then run `make web` to regenerate the committed `assets/css/app.css`.
 
 ## Database
@@ -71,7 +71,8 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Build & Run
 - `make local-serve` — run locally (`go run main.go serve`)
 - `make build` — cross-compile the Linux amd64 `p-manager` binary
-- `make e2e` — end-to-end test (`e2e/`, build tag `e2e`): builds P-Manager and P-Node, runs both as processes in temp dirs, and fetches a local HTTP target through every proxy method via an Xray client; needs the local Xray binary (`make local-setup`) and `../p-node` (override with `P_NODE_DIR`); set `E2E_SSH=1` to include Relay RR2SSH (needs passwordless ssh to 127.0.0.1)
+- `make e2e` — end-to-end test (`e2e/`, build tag `e2e`): builds P-Manager and P-Node, runs both as processes in temp dirs, and fetches a local HTTP target through every proxy method via an Xray client; needs the local Xray binary (`make local-setup`) and `../p-node` (override with `P_NODE_DIR`); set `E2E_SSH=1` to include Relay RR2SSH (needs passwordless ssh to 127.0.0.1); set `E2E_PQ=1` to include Relay RR2PQ (needs root on Linux: the test creates a veth pair `pq0`/`pq1` for paqet)
+- `make e2e-docker` — the same e2e with `E2E_PQ=1` inside a privileged Linux container (`e2e/Dockerfile`, `scripts/e2e-docker.sh`); downloads the Linux binaries for the container architecture into `third_party` on first use. This is the only way to run RR2PQ end to end on a Mac: paqet needs root and an Ethernet interface (no loopback)
 - `make web` — rebuild the admin UI stylesheet (`web/assets/css/app.css`) via the Tailwind standalone CLI (downloaded to `bin/` on first use); commit the regenerated CSS
 - `make local-setup` / `make setup` — local / server setup scripts
 - `make clean` / `make fresh` — remove logs / wipe storage state (`app`, `database`, `logs`)
@@ -105,6 +106,14 @@ connections to the network where the next node resides.
 ## SSH Proxy
 SSH Proxy is the same SOCKS proxy provided by the SSH tool. The provided SOCKS proxy is used as an outbound for Xray.
 
+## paqet (PQ)
+[paqet](https://github.com/hanselime/paqet) is a raw-packet tunnel: it crafts TCP packets itself (pcap, no handshake, no
+kernel connection tracking) and runs KCP + smux inside them. Its client exposes a local SOCKS5 proxy, which P-Manager
+uses as an Xray outbound exactly like the SSH SOCKS proxies. P-Node's `pkg/paqet` runs the binary (either role) as a
+supervised child process from a generated YAML config, detects the network it needs (default-route interface, its IPv4,
+gateway MAC; overridable via the `paqet` block in `configs/main.json`), and on Linux adds the iptables NOTRACK/RST-drop
+rules a paqet server needs. Both ends must run as root (pcap); the systemd services do.
+
 ## Supported Methods
 ### Direct RR
 P-Manager works as a proxy-server.
@@ -134,6 +143,22 @@ It also accepts VLESS Reality Raw requests from clients and forwards them to the
 ```
 [ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(SOCKS)-> [ SSH to P-Node ] -> Internet
 ```
+
+### Relay RR2PQ
+P-Manager works as a relay server over paqet.
+It runs one paqet client per P-Node (local SOCKS5 proxy, raw-packet KCP tunnel to the node's paqet server) and accepts
+VLESS Reality Raw requests from clients, balancing them over those SOCKS proxies.
+```
+[ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(SOCKS)-> [ paqet client ] ~(raw TCP/KCP)~> [ paqet server on P-Node ] -> Internet
+```
+Enabled when `XraySettings.RelayRr2PqPort` (manager, clients) and `XraySettings.RelayRr2PqNodePort` (node, paqet server)
+are set. The per-node shared key is a stable `util.StableUuid` (`composer.RelayRr2PqKey`), so both sides derive it. The
+node learns its server port and key from the `_paqet` field carried inside the pushed/pulled Xray config
+(`component.Paqet`; Xray ignores the key). Manager side: `coordinator/paqet_syncer.go` keeps the clients running
+(`storage/app/paqet-<nodeId>.yaml`, log `storage/logs/paqet.log`), `State.PaqetPortsByNode` feeds the composer's
+`relay-rr2pq` inbound + balancer over `relay-rr2pq-<nodeId>` SOCKS outbounds. Node side: `coordinator.Apply` reconfigures
+Xray and the paqet server together (`storage/app/paqet.yaml`). KCP MTU is pinned to 1200 (`paqet.Mtu`) because Iranian
+carriers fragment larger raw packets.
 
 ### Reverse RR
 P-Manager is the reverse portal; each P-Node is a bridge that dials out to it, so P-Nodes work without a public/reachable inbound (only the P-Manager host must be reachable, which nodes learn from the pushed/pulled config). Accounts hit the same manager port and the portal load-balances them across all connected nodes (nodes share the `reverse-rr` domain).

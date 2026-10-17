@@ -2,7 +2,7 @@
 
 P-Manager is a web-based proxy management panel built around Xray, designed with a minimal interface for maximum control.
 It provides a unified platform to manage users, monitor traffic usage, add and configure nodes, and run as a proxy server or relay.
-It supports both Xray and SSH-based connection solutions.
+It supports Xray, SSH, and [paqet](https://github.com/hanselime/paqet) (raw-packet) based connection solutions.
 
 ## Documentation
 

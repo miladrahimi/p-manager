@@ -16,10 +16,13 @@ import (
 // ManagerConfig composes the P-Manager (local) xray config. The api inbound
 // port is left at its default; Xray.Reconfigure replaces it with the port of
 // the running instance.
-func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConfig) *xrayConfig.Config {
+func (c *Composer) ManagerConfig(
+	sshConfigsByNodeIds map[string][]*ssh.ProxyConfig,
+	paqetPortsByNodeIds map[string]int,
+) *xrayConfig.Config {
 	var xc *xrayConfig.Config
 	c.db.Read(func(d *data.Data) {
-		xc = c.composeManagerConfig(d, sshConfigsByNodeIds)
+		xc = c.composeManagerConfig(d, sshConfigsByNodeIds, paqetPortsByNodeIds)
 	})
 	return xc
 }
@@ -29,6 +32,7 @@ func (c *Composer) ManagerConfig(sshConfigsByNodeIds map[string][]*ssh.ProxyConf
 func (c *Composer) composeManagerConfig(
 	d *data.Data,
 	sshConfigsByNodeIds map[string][]*ssh.ProxyConfig,
+	paqetPortsByNodeIds map[string]int,
 ) *xrayConfig.Config {
 	rrClients := c.rrClients(d)
 	xs := d.XraySettings
@@ -99,6 +103,40 @@ func (c *Composer) composeManagerConfig(
 			})
 			xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
 				Tag:      "relay-rr2ssh",
+				Selector: outbounds,
+			})
+		}
+	}
+
+	// Relay RR2PQ: accounts are balanced over the local SOCKS proxies of the
+	// paqet clients, one per node (started by the coordinator).
+	if hasClients && hasNodes && xs.RelayRr2PqPort > 0 && xs.RelayRr2PqNodePort > 0 {
+		outbounds := make([]string, 0, len(d.Nodes))
+		for _, n := range d.Nodes {
+			socksPort, ok := paqetPortsByNodeIds[n.Id]
+			if !ok || socksPort <= 0 {
+				continue
+			}
+			tag := fmt.Sprintf("relay-rr2pq-%s", n.Id)
+			xc.Outbounds = append(xc.Outbounds, socks.MakeOutbound(tag, "127.0.0.1", socksPort))
+			outbounds = append(outbounds, tag)
+		}
+
+		if len(outbounds) > 0 {
+			xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
+				"relay-rr2pq",
+				xs.RelayRr2PqPort,
+				xs.RealityPrivateKey,
+				xs.ManagerSni,
+				rrClients,
+				fallback,
+			))
+			xc.Routing.Rules = append(xc.Routing.Rules, &component.Rule{
+				InboundTag:  []string{"relay-rr2pq"},
+				BalancerTag: "relay-rr2pq",
+			})
+			xc.Routing.Balancers = append(xc.Routing.Balancers, &component.Balancer{
+				Tag:      "relay-rr2pq",
 				Selector: outbounds,
 			})
 		}
@@ -247,6 +285,14 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 		)
 	}
 
+	// Relay RR2PQ: the node runs a paqet server the manager's paqet client dials.
+	if len(c.rrClients(d)) > 0 && xs.RelayRr2PqPort > 0 && xs.RelayRr2PqNodePort > 0 {
+		xc.Paqet = &component.Paqet{
+			Port: xs.RelayRr2PqNodePort,
+			Key:  RelayRr2PqKey(node.Id, xs.RealityPrivateKey),
+		}
+	}
+
 	if xs.RemoteRrPort > 0 {
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"remote-rr",
@@ -282,6 +328,12 @@ func rr2rrClientId(nodeId, realityPrivateKey string) string {
 // inbound and the node outbound (each derives it independently).
 func reverseRrBridgeId(nodeId, realityPrivateKey string) string {
 	return util.StableUuid("reverse-rr|" + nodeId + "|" + realityPrivateKey)
+}
+
+// RelayRr2PqKey is the stable paqet shared key for a node, derived on both
+// sides from the node id and the Reality private key.
+func RelayRr2PqKey(nodeId, realityPrivateKey string) string {
+	return util.StableUuid("relay-rr2pq|" + nodeId + "|" + realityPrivateKey)
 }
 
 // rrClients returns the RR-ready client list. The caller must hold the store

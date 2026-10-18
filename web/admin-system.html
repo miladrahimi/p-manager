@@ -24,17 +24,19 @@
             <a class="nav-link" href="admin-accounts.html">Accounts</a>
             <a class="nav-link" href="admin-nodes.html">Nodes</a>
             <span class="nav-link-active">System</span>
-            <a class="nav-link" href="admin-logs.html">Logs</a>
             <button class="nav-link" @click="exit()">Exit</button>
         </nav>
     </header>
 
     <!-- Quick actions + display preferences (calendar is saved on this device only) -->
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <button class="btn btn-outline-amber w-full sm:w-auto" :disabled="busy"
-                @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
-            Restart Xray Core
-        </button>
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <button class="btn btn-outline-amber w-full sm:w-auto" :disabled="busy"
+                    @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
+                Restart Xray Core
+            </button>
+            <a class="btn btn-outline w-full sm:w-auto" href="admin-logs.html">View Logs</a>
+        </div>
         <div class="flex items-center justify-between gap-2 sm:justify-start">
             <span class="text-xs text-zinc-400" title="Affects dates across the admin panel. Saved on this device only.">Calendar</span>
             <div class="flex gap-1 rounded-lg bg-zinc-100 p-1">

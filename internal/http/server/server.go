@@ -38,6 +38,7 @@ type Server struct {
 	sshClient   *ssh.Client
 	provisioner *provisioner.Provisioner
 	logsDir     string
+	done        chan struct{} // closed on Close so long-lived streams end
 }
 
 // New creates a new instance of HTTP Server.
@@ -66,6 +67,7 @@ func New(
 		sshClient:   sshClient,
 		provisioner: provisioner,
 		logsDir:     logsDir,
+		done:        make(chan struct{}),
 	}
 }
 
@@ -127,7 +129,7 @@ func (s *Server) Run() {
 
 	// Admin APIs: Logs (the stream is a long-lived chunked text response)
 	adminApi.GET("/logs", api.LogsIndex(s.logsDir))
-	adminApi.GET("/logs/:name", api.LogsStream(s.logsDir))
+	adminApi.GET("/logs/:name", api.LogsStream(s.logsDir, s.done))
 
 	// Admin APIs: Main Settings
 	adminApi.GET("/main-settings", api.MainSettingsShow(s.db))
@@ -199,6 +201,8 @@ func (s *Server) Close() error {
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Open log streams would otherwise keep Shutdown waiting until its deadline.
+	close(s.done)
 	if err := s.engine.Shutdown(c); err != nil {
 		return errors.WithStack(err)
 	}

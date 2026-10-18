@@ -54,10 +54,11 @@ func MakeRrInbound(
 				ShortIds:    []string{""},
 			},
 		},
-		// Sniffed domains replace the destination (no routeOnly), so the access
-		// log shows domains instead of client-resolved IPs and domain rules match.
+		// routeOnly: sniffed domains feed routing rules only; the destination
+		// (and the access log, which records it before sniffing) stays as sent.
 		Sniffing: &component.Sniffing{
 			Enabled:      true,
+			RouteOnly:    true,
 			DestOverride: []string{"http", "tls", "quic"},
 		},
 	}

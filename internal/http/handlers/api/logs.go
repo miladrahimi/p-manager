@@ -55,9 +55,10 @@ func LogsIndex(dir string) echo.HandlerFunc {
 }
 
 // LogsStream streams a log file as chunked plain text: the last `lines` lines
-// first, then every byte appended to the file until the client disconnects
-// (tail -f). A truncated or replaced file is picked up from its start.
-func LogsStream(dir string) echo.HandlerFunc {
+// first, then every byte appended to the file until the client disconnects or
+// done is closed (tail -f). A truncated or replaced file is picked up from its
+// start.
+func LogsStream(dir string, done <-chan struct{}) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		name := c.Param("name")
 		if name != filepath.Base(name) || !strings.HasSuffix(name, ".log") {
@@ -96,6 +97,8 @@ func LogsStream(dir string) echo.HandlerFunc {
 		for {
 			select {
 			case <-ctx.Done():
+				return nil
+			case <-done:
 				return nil
 			case <-ticker.C:
 			}

@@ -67,7 +67,7 @@ func TestLogsStream(t *testing.T) {
 	c.SetParamValues("app.log")
 
 	done := make(chan error, 1)
-	go func() { done <- LogsStream(dir)(c) }()
+	go func() { done <- LogsStream(dir, nil)(c) }()
 
 	step := 3 * logsPollInterval
 	time.Sleep(step)
@@ -114,7 +114,7 @@ func TestLogsStreamRejectsBadNames(t *testing.T) {
 		c := e.NewContext(req, rec)
 		c.SetParamNames("name")
 		c.SetParamValues(name)
-		if err := LogsStream(dir)(c); err != nil {
+		if err := LogsStream(dir, nil)(c); err != nil {
 			t.Fatal(err)
 		}
 		if rec.Code != http.StatusNotFound {
@@ -132,5 +132,36 @@ func appendFile(t *testing.T, path, content string) {
 	defer func() { _ = f.Close() }()
 	if _, err = f.WriteString(content); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLogsStreamStopsOnDone(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "app.log"), []byte("l1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("name")
+	c.SetParamValues("app.log")
+
+	done := make(chan struct{})
+	finished := make(chan error, 1)
+	go func() { finished <- LogsStream(dir, done)(c) }()
+	time.Sleep(2 * logsPollInterval)
+	close(done)
+
+	select {
+	case err := <-finished:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("stream did not stop after done was closed")
+	}
+	if got := rec.Body.String(); got != "l1\n" {
+		t.Errorf("got %q", got)
 	}
 }

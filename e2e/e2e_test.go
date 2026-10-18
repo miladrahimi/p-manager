@@ -1,7 +1,8 @@
 //go:build e2e
 
 // Package e2e runs P-Manager and P-Node as real processes and checks that an
-// account can reach the internet through every supported proxy method.
+// account can reach the internet through every supported proxy method, first
+// with distinct node ports and then with Remote RR and Relay RR2RR sharing one.
 //
 // Run with: make e2e (go test -tags e2e ./e2e/). Set E2E_SSH=1 to include
 // Relay RR2SSH, which needs passwordless ssh to 127.0.0.1 for the current user.
@@ -262,6 +263,51 @@ func TestProxyMethods(t *testing.T) {
 	if !withPq {
 		t.Log("relay-rr2pq skipped; run make e2e-docker to include it")
 	}
+
+	// Shared node port: Remote RR and Relay RR2RR on the same node port, so the
+	// node serves the account and the manager's relay from one inbound.
+	t.Run("shared-node-port", func(t *testing.T) {
+		xs["relay_rr_2_rr_node_port"] = remoteRr
+		admin.call(t, http.MethodPost, "/xray-settings", xs, nil)
+
+		waitFor(t, 60*time.Second, "node to serve the relay from the remote-rr inbound", func() bool {
+			var xc struct {
+				Inbounds []struct {
+					Tag      string `json:"tag"`
+					Port     int    `json:"port"`
+					Settings struct {
+						Clients []struct {
+							Id string `json:"id"`
+						} `json:"clients"`
+					} `json:"settings"`
+				} `json:"inbounds"`
+			}
+			if err := readJson(filepath.Join(nodeRoot, "storage/app/xray.json"), &xc); err != nil {
+				return false
+			}
+			merged := false
+			for _, in := range xc.Inbounds {
+				if in.Tag == "relay-rr2rr" {
+					return false
+				}
+				if in.Tag == "remote-rr" && in.Port == remoteRr && len(in.Settings.Clients) == 2 {
+					merged = true
+				}
+			}
+			return merged
+		})
+
+		for _, method := range []string{"remote-rr-" + nodeHost, "relay-rr2rr"} {
+			method := method
+			link := shown.Proxies[method+"@127.0.0.1"]
+			t.Run(method, func(t *testing.T) {
+				got := fetchThroughLink(t, xrayBinary, filepath.Join(work, "client-shared-"+method), link, target.URL)
+				if got != body {
+					t.Fatalf("got %q through %s on the shared node port, want %q", got, method, body)
+				}
+			})
+		}
+	})
 }
 
 // setupVeth creates the veth pair for paqet and returns the MAC addresses of the

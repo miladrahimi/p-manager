@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/miladrahimi/p-manager/internal/composer"
 	"github.com/miladrahimi/p-manager/internal/data"
 	"github.com/miladrahimi/p-manager/pkg/util"
 	"github.com/miladrahimi/p-node/pkg/http/client"
@@ -65,10 +66,13 @@ func (s *statsSyncer) pullStatsFromNodes() {
 
 // pullStatsFromNode pulls the stats of a single node.
 func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
-	var url, token string
+	var url, token, relayClientId string
 	s.db.Read(func(d *data.Data) {
 		url = fmt.Sprintf("%s://%s:%d/xray/stats", "http", node.Host, node.HttpPort)
 		token = node.HttpToken
+		if d.XraySettings.NodeRrShared() {
+			relayClientId = composer.RelayRr2RrClientId(node.Id, d.XraySettings.RealityPrivateKey)
+		}
 	})
 
 	s.l.Info("coordinator: pulling stats from a node...", zap.String("url", url))
@@ -106,6 +110,12 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 				nodeUsageBytes += value
 			}
 		}
+	}
+
+	// With a shared node port the remote-rr inbound also carries the manager's
+	// relay traffic, which loadLocalStats already counts via the relay outbound.
+	if relayClientId != "" {
+		nodeUsageBytes = max(nodeUsageBytes-users[relayClientId], 0)
 	}
 
 	shouldSync := false

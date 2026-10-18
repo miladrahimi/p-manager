@@ -31,6 +31,13 @@ func NewXraySettings(vlessPrivateKey string, vlessPublicKey string, nodeSni stri
 	}
 }
 
+// NodeRrShared reports whether Remote RR and Relay RR2RR use the same node
+// port. The node then serves both from one inbound, so a single port (e.g.
+// 443) can carry account clients and the manager's relay at the same time.
+func (x *XraySettings) NodeRrShared() bool {
+	return x.RemoteRrPort > 0 && x.RelayRr2RrManagerPort > 0 && x.RelayRr2RrNodePort == x.RemoteRrPort
+}
+
 func DefaultXray() *XraySettings {
 	return NewXraySettings("", "", config.DefaultNodeSni, config.DefaultManagerSni)
 }

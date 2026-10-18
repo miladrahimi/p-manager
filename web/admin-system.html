@@ -150,12 +150,12 @@
                         <div class="flex gap-2 sm:justify-end">
                             <template x-for="f in m.fields" :key="f.field">
                                 <div class="flex-1 sm:w-36 sm:flex-none">
-                                    <label class="label mb-0.5 text-[11px] whitespace-nowrap">
+                                    <label class="label mb-0.5 text-[11px] whitespace-nowrap" :title="f.hint">
                                         <span x-text="f.label"></span>
                                         <span class="font-normal text-zinc-400" x-show="f.host" x-text="'(' + f.host + ')'"></span>
                                     </label>
                                     <input type="number" class="input" x-model.number="xray[f.field]"
-                                           :min="f.min ?? 1" :max="f.max ?? 65535" :placeholder="f.label"
+                                           :min="f.min ?? 1" :max="f.max ?? 65535" :placeholder="f.label" :title="f.hint"
                                            :disabled="!enabled[m.key]" :required="enabled[m.key]">
                                 </div>
                             </template>
@@ -367,7 +367,10 @@
             key: "relay", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
             fields: [
                 {field: "relay_rr_2_rr_manager_port", label: "Client port", host: "manager", port: true},
-                {field: "relay_rr_2_rr_node_port", label: "Destination port", host: "node", port: true},
+                {
+                    field: "relay_rr_2_rr_node_port", label: "Destination port", host: "node", port: true,
+                    hint: "May equal the Remote RR client port: the node then serves clients and the relay from one inbound.",
+                },
             ],
         },
         {

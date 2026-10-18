@@ -62,7 +62,7 @@ func (c *Composer) composeManagerConfig(
 				fmt.Sprintf("relay-rr2rr-%s", n.Id),
 				n.Host,
 				xs.RelayRr2RrNodePort,
-				rr2rrClientId(n.Id, xs.RealityPrivateKey),
+				RelayRr2RrClientId(n.Id, xs.RealityPrivateKey),
 				xs.RealityPublicKey,
 				xs.NodeSni,
 				vless.FlowVision,
@@ -231,9 +231,12 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 
 	// The relay client id is derived deterministically, so it matches the
 	// manager's relay outbound without reading the manager's live config.
-	if len(c.rrClients(d)) > 0 && xs.RelayRr2RrManagerPort > 0 && xs.RelayRr2RrNodePort > 0 {
-		clientId := rr2rrClientId(node.Id, xs.RealityPrivateKey)
-		clients := []*component.Client{vless.MakeUser(clientId, vless.FlowVision, vless.EncryptionEmpty)}
+	relayOn := len(c.rrClients(d)) > 0 && xs.RelayRr2RrManagerPort > 0 && xs.RelayRr2RrNodePort > 0
+	relayClient := vless.MakeUser(RelayRr2RrClientId(node.Id, xs.RealityPrivateKey), vless.FlowVision, vless.EncryptionEmpty)
+	// With a shared port the remote-rr inbound below serves the relay too.
+	shared := relayOn && xs.NodeRrShared()
+	if relayOn && !shared {
+		clients := []*component.Client{relayClient}
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"relay-rr2rr",
 			xs.RelayRr2RrNodePort,
@@ -294,12 +297,16 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 	}
 
 	if xs.RemoteRrPort > 0 {
+		clients := c.rrClients(d)
+		if shared {
+			clients = append(clients, relayClient)
+		}
 		xc.Inbounds = append(xc.Inbounds, vless.MakeRrInbound(
 			"remote-rr",
 			xs.RemoteRrPort,
 			xs.RealityPrivateKey,
 			xs.NodeSni,
-			c.rrClients(d),
+			clients,
 			fallback,
 		))
 		xc.Routing.Rules = append(
@@ -318,9 +325,9 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 // so the portal pools and load-balances their tunnels.
 const reverseRrDomain = "reverse-rr"
 
-// rr2rrClientId is the stable relay client id shared by the manager outbound and
-// the node inbound (each derives it independently).
-func rr2rrClientId(nodeId, realityPrivateKey string) string {
+// RelayRr2RrClientId is the stable relay client id shared by the manager
+// outbound and the node inbound (each derives it independently).
+func RelayRr2RrClientId(nodeId, realityPrivateKey string) string {
 	return util.StableUuid("relay-rr2rr|" + nodeId + "|" + realityPrivateKey)
 }
 
@@ -363,7 +370,7 @@ func (c *Composer) LogLabels() map[string]string {
 		}
 		for _, n := range d.Nodes {
 			labels[n.Id] = n.Host
-			labels[rr2rrClientId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
+			labels[RelayRr2RrClientId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
 			labels[reverseRrBridgeId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
 		}
 	})

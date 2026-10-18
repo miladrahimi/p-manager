@@ -137,6 +137,10 @@ It accepts VLESS Reality Raw requests from clients and forwards them to the P-No
 [ Client ] -(VLESS Reality Raw)-> [ P-Manager ] -(VLESS Reality Raw)-> [ P-Node ] -> Internet
 ```
 
+`RelayRr2RrNodePort` may equal `RemoteRrPort` (`XraySettings.NodeRrShared`): the node then serves accounts and the
+manager's relay client from the single `remote-rr` inbound, so one port (e.g. 443) carries both methods. The stats
+syncer subtracts the relay client's user traffic from that inbound so the node usage is not counted twice.
+
 ### Relay RR2SSH
 P-Manager works as a relay server.
 It starts SSH connections to P-Nodes and provides SOCKS proxies.

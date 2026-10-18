@@ -53,13 +53,15 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 				"message": "Manager ports must be distinct.",
 			})
 		}
-		if !util.PortsDistinct([]int{
-			r.RemoteRrPort,
-			r.RelayRr2RrNodePort,
-			r.RelayRr2PqNodePort,
-		}) {
+		// Remote RR and Relay RR2RR may share the node port (one inbound serves
+		// both); paqet needs its own.
+		nodePorts := []int{r.RemoteRrPort, r.RelayRr2PqNodePort}
+		if r.RelayRr2RrNodePort != r.RemoteRrPort {
+			nodePorts = append(nodePorts, r.RelayRr2RrNodePort)
+		}
+		if !util.PortsDistinct(nodePorts) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Node ports must be distinct.",
+				"message": "Node ports must be distinct (only Remote RR and Relay RR→RR may share one).",
 			})
 		}
 

@@ -77,7 +77,7 @@ func New() (a *App, err error) {
 	a.composer = composer.New(c, a.database, a.xray)
 	a.coordinator = coordinator.New(a.httpClient, l, a.database, a.xray, a.composer, a.sshPool, a.sshClient, root, c)
 	a.provisioner = provisioner.New(l, a.database, a.sshClient, a.coordinator)
-	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient, a.sshClient, a.provisioner)
+	a.httpServer = server.New(c, l, a.composer, a.coordinator, a.database, a.httpClient, a.sshClient, a.provisioner, config.LogsDirectory(root))
 
 	l.Info("app: constructed successfully")
 

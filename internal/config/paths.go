@@ -76,3 +76,9 @@ func binaryPath(paths map[string]string) string {
 	}
 	return path
 }
+
+// LogsDirectory returns the path of the directory holding all log files
+// (app, ssh, xray, paqet).
+func LogsDirectory(root string) string {
+	return filepath.Join(root, "storage/logs")
+}

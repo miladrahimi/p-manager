@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>P-Manager | Logs</title>
+    <link rel="stylesheet" href="assets/css/app.css?v=9">
+    <link rel="icon" href="assets/images/xray.svg">
+    <link rel="apple-touch-icon" href="assets/images/xray.svg">
+    <script src="assets/js/app.js?v=9"></script>
+    <script defer src="assets/third_party/alpinejs-3.17.1/alpine.min.js"></script>
+</head>
+<body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
+
+<main class="mx-auto w-full max-w-7xl p-4 sm:p-6" x-data="logsPage()" x-init="init()">
+
+    <header class="mb-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+        <div class="flex items-center gap-3">
+            <img src="assets/images/xray.svg" class="h-9 w-9" alt="P-Manager">
+            <h1 class="text-lg font-semibold">P-Manager</h1>
+        </div>
+        <nav class="flex items-center gap-1">
+            <a class="nav-link" href="admin-accounts.html">Accounts</a>
+            <a class="nav-link" href="admin-nodes.html">Nodes</a>
+            <a class="nav-link" href="admin-system.html">System</a>
+            <span class="nav-link-active">Logs</span>
+            <button class="nav-link" @click="exit()">Exit</button>
+        </nav>
+    </header>
+
+    <!-- Toolbar: file, filter, stream controls -->
+    <div class="mb-4 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 lg:flex-row lg:items-center">
+        <select class="input lg:w-64" x-model="file" @change="open()" :disabled="!files.length">
+            <template x-for="f in files" :key="f.name">
+                <option :value="f.name" x-text="`${f.name} (${formatSize(f.size)})`"></option>
+            </template>
+        </select>
+        <input type="search" class="input lg:flex-1" x-model.trim="filter" placeholder="Filter (case-insensitive)">
+        <div class="flex items-center justify-between gap-2 sm:justify-start">
+            <!-- Stream state; click toggles between live and paused -->
+            <button class="btn" type="button" :class="stateButton().class" :title="stateButton().title"
+                    @click="paused ? resume() : pause()" :disabled="!file">
+                <span class="h-2 w-2 rounded-full" :class="stateButton().dot"></span>
+                <span x-text="stateButton().label"></span>
+            </button>
+            <button class="btn btn-outline" type="button" @click="lines = []" :disabled="!lines.length">Clear</button>
+        </div>
+    </div>
+
+    <!-- Log output: a fixed-size terminal that scrolls on its own (no wrapping) -->
+    <div class="card overflow-hidden">
+        <div x-ref="output" class="h-[36rem] overflow-auto bg-zinc-950 px-3 py-2 font-mono text-xs leading-4 whitespace-pre text-zinc-200"
+             @scroll="onScroll()">
+            <span class="text-zinc-500" x-show="!visible().length" x-cloak
+                  x-text="lines.length ? 'No lines match the filter.' : (file ? 'Waiting for log lines...' : 'No log files found.')"></span>
+            <template x-for="l in visible()" :key="l.id">
+                <div :class="levelClass(l.level)" x-text="l.text"></div>
+            </template>
+        </div>
+        <div class="flex items-center justify-between border-t border-zinc-200 px-3 py-1.5 text-[11px] text-zinc-400">
+            <span x-text="`${visible().length} of ${lines.length} lines (buffer ${maxLines})`"></span>
+            <span x-show="dropped" x-cloak x-text="`${dropped} older lines dropped`"></span>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="fixed top-4 left-1/2 z-[60] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col-reverse items-center gap-2">
+        <template x-for="t in $store.toast.items" :key="t.id">
+            <div class="rounded-lg px-4 py-2.5 text-sm text-white shadow-lg"
+                 :class="t.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'" x-text="t.message"></div>
+        </template>
+    </div>
+</main>
+
+<script>
+    function logsPage() {
+        return {
+            files: [],
+            file: "",
+            tail: 100, // trailing lines loaded before following
+            filter: "",
+            lines: [],
+            maxLines: 5000,
+            dropped: 0,
+            follow: true,
+            paused: false,
+            status: "idle", // idle | connecting | live | paused | disconnected
+            controller: null,
+            counter: 0,
+            retryTimer: null,
+
+            async init() {
+                await this.loadFiles()
+                window.addEventListener("beforeunload", () => this.close())
+            },
+
+            async loadFiles() {
+                try {
+                    this.files = await api("GET", "/api/admin/logs")
+                } catch (e) {
+                    this.$store.toast.error(e.message)
+                    return
+                }
+                if (!this.files.length) {
+                    return
+                }
+                let preferred = ""
+                try {
+                    preferred = localStorage.getItem("logs.file") || ""
+                } catch (e) {
+                }
+                this.file = this.files.some(f => f.name === preferred) ? preferred : this.files[0].name
+                this.open()
+            },
+
+            // open (re)starts the stream for the selected file from its tail.
+            open() {
+                this.close()
+                this.lines = []
+                this.dropped = 0
+                this.paused = false
+                if (!this.file) {
+                    this.status = "idle"
+                    return
+                }
+                try {
+                    localStorage.setItem("logs.file", this.file)
+                } catch (e) {
+                }
+                this.setFollow(true)
+                this.stream()
+            },
+
+            close() {
+                clearTimeout(this.retryTimer)
+                this.retryTimer = null
+                if (this.controller) {
+                    this.controller.abort()
+                    this.controller = null
+                }
+            },
+
+            pause() {
+                this.close()
+                this.paused = true
+                this.status = "paused"
+            },
+
+            // resume reconnects and, to not miss anything, reloads the tail.
+            resume() {
+                this.open()
+            },
+
+            // stream reads the chunked tail response and appends complete lines;
+            // on a dropped connection it reconnects (reloading the tail).
+            async stream() {
+                const controller = new AbortController()
+                this.controller = controller
+                this.status = "connecting"
+                const url = `/api/admin/logs/${encodeURIComponent(this.file)}?lines=${this.tail}`
+                let response
+                try {
+                    response = await fetch(url, {
+                        headers: {"Authorization": `Bearer ${localStorage.getItem("token") || ""}`},
+                        signal: controller.signal,
+                    })
+                } catch (e) {
+                    if (!controller.signal.aborted) {
+                        this.retry(controller)
+                    }
+                    return
+                }
+                if (response.status === 401) {
+                    exit()
+                    return
+                }
+                if (!response.ok) {
+                    this.status = "disconnected"
+                    this.$store.toast.error(`Cannot open ${this.file} (${response.status}).`)
+                    return
+                }
+
+                this.status = "live"
+                const reader = response.body.getReader()
+                const decoder = new TextDecoder()
+                let rest = ""
+                try {
+                    while (true) {
+                        const {done, value} = await reader.read()
+                        if (done) {
+                            break
+                        }
+                        rest += decoder.decode(value, {stream: true})
+                        const parts = rest.split("\n")
+                        rest = parts.pop()
+                        this.append(parts)
+                    }
+                } catch (e) {
+                    // Aborted by close(), or the connection dropped.
+                }
+                if (!controller.signal.aborted) {
+                    this.retry(controller)
+                }
+            },
+
+            retry(controller) {
+                this.status = "disconnected"
+                this.retryTimer = setTimeout(() => {
+                    if (this.controller === controller) {
+                        this.lines = []
+                        this.dropped = 0
+                        this.stream()
+                    }
+                }, 2000)
+            },
+
+            append(rawLines) {
+                const parsed = rawLines.filter(l => l.length).map(l => this.parse(l))
+                if (!parsed.length) {
+                    return
+                }
+                this.lines.push(...parsed)
+                const overflow = this.lines.length - this.maxLines
+                if (overflow > 0) {
+                    this.lines.splice(0, overflow)
+                    this.dropped += overflow
+                }
+                if (this.follow) {
+                    this.$nextTick(() => this.scrollToBottom())
+                }
+            },
+
+            // parse flattens a line to display text and guesses its level. App
+            // logs are zap JSON lines (rendered as "ts LEVEL message fields");
+            // other files (xray, ssh, paqet) are shown as-is.
+            parse(raw) {
+                const line = {id: ++this.counter, raw: raw, level: "", text: raw}
+                if (raw.startsWith("{")) {
+                    try {
+                        const {ts, level, message, ...rest} = JSON.parse(raw)
+                        line.level = (level || "").toUpperCase()
+                        const fields = Object.keys(rest).length ? " " + JSON.stringify(rest) : ""
+                        line.text = [ts, line.level, message].filter(v => v).join(" ") + fields
+                        return line
+                    } catch (e) {
+                    }
+                }
+                const m = raw.match(/\[(Debug|Info|Warning|Error)\]|\b(DEBUG|INFO|WARN|WARNING|ERROR|FATAL)\b/)
+                if (m) {
+                    line.level = (m[1] || m[2]).toUpperCase().replace("WARNING", "WARN")
+                }
+                return line
+            },
+
+            visible() {
+                if (!this.filter) {
+                    return this.lines
+                }
+                const q = this.filter.toLowerCase()
+                return this.lines.filter(l => l.raw.toLowerCase().includes(q))
+            },
+
+            levelClass(level) {
+                switch (level) {
+                    case "ERROR":
+                    case "FATAL":
+                        return "text-red-400"
+                    case "WARN":
+                        return "text-amber-300"
+                    case "DEBUG":
+                        return "text-zinc-400"
+                    default:
+                        return ""
+                }
+            },
+
+            stateButton() {
+                switch (this.status) {
+                    case "live":
+                        return {class: "btn-outline-green", dot: "bg-emerald-500 animate-pulse", label: "Live", title: "Receiving new lines; click to pause"}
+                    case "connecting":
+                        return {class: "btn-outline-amber", dot: "bg-amber-500", label: "Connecting", title: "Opening the stream"}
+                    case "disconnected":
+                        return {class: "btn-outline-danger", dot: "bg-red-500", label: "Reconnecting", title: "Connection lost; retrying"}
+                    case "paused":
+                        return {class: "btn-outline", dot: "bg-zinc-400", label: "Paused", title: "Click to resume (reloads the last lines)"}
+                    default:
+                        return {class: "btn-outline", dot: "bg-zinc-300", label: "Idle", title: ""}
+                }
+            },
+
+            setFollow(on) {
+                this.follow = on
+                if (on) {
+                    this.$nextTick(() => this.scrollToBottom())
+                }
+            },
+
+            scrollToBottom() {
+                const el = this.$refs.output
+                el.scrollTop = el.scrollHeight
+            },
+
+            // New lines are followed (scrolled into view) by default; scrolling up
+            // stops that so older lines can be read, scrolling back down resumes it.
+            onScroll() {
+                const el = this.$refs.output
+                this.follow = el.scrollHeight - el.scrollTop - el.clientHeight < 8
+            },
+
+            formatSize(bytes) {
+                if (bytes < 1024) return `${bytes} B`
+                if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+                return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+            },
+        }
+    }
+</script>
+</body>
+</html>

@@ -370,7 +370,8 @@ func (c *Composer) LogLabels() map[string]string {
 		}
 		for _, n := range d.Nodes {
 			labels[n.Id] = n.Host
-			labels[RelayRr2RrClientId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
+			// The relay client shows up in node logs as the manager's connection.
+			labels[RelayRr2RrClientId(n.Id, d.XraySettings.RealityPrivateKey)] = "relay from P-Manager"
 			labels[reverseRrBridgeId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
 		}
 	})

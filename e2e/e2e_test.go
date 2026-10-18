@@ -12,6 +12,7 @@
 package e2e
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -264,6 +265,31 @@ func TestProxyMethods(t *testing.T) {
 		t.Log("relay-rr2paqet skipped; run make e2e-docker to include it")
 	}
 
+	// Logs: the manager lists and streams its own log files and, proxied through
+	// it, the node's.
+	t.Run("logs", func(t *testing.T) {
+		for _, src := range []struct{ name, base string }{
+			{"manager", "/logs"},
+			{"node", "/nodes/" + node.Id + "/logs"},
+		} {
+			var files []struct {
+				Name string `json:"name"`
+			}
+			admin.call(t, http.MethodGet, src.base, nil, &files)
+			found := false
+			for _, f := range files {
+				found = found || f.Name == "app-std.log"
+			}
+			if !found {
+				t.Fatalf("%s: app-std.log not listed in %v", src.name, files)
+			}
+			line := streamFirstLine(t, managerUrl+"/api/admin"+src.base+"/app-std.log?lines=5", adminPassword)
+			if !strings.Contains(line, `"level"`) {
+				t.Fatalf("%s: unexpected log line %q", src.name, line)
+			}
+		}
+	})
+
 	// Shared node port: Remote RR and Relay RR2RR on the same node port, so the
 	// node serves the account and the manager's relay from one inbound.
 	t.Run("shared-node-port", func(t *testing.T) {
@@ -408,6 +434,32 @@ func fetchThroughLink(t *testing.T, xrayBinary, dir, link, targetUrl string) str
 	}
 	t.Fatalf("request through proxy failed: %v", lastErr)
 	return ""
+}
+
+// streamFirstLine opens a chunked log stream and returns its first line.
+func streamFirstLine(t *testing.T, url, token string) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("GET %s: status %d: %s", url, resp.StatusCode, b)
+	}
+	scanner := bufio.NewScanner(resp.Body)
+	if !scanner.Scan() {
+		t.Fatalf("GET %s: no line before the stream ended: %v", url, scanner.Err())
+	}
+	return scanner.Text()
 }
 
 // --- helpers ---

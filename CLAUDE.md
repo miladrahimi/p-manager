@@ -14,7 +14,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Tech stack
 - Main: Go 1.25.x, Cobra CLI, Echo v4 HTTP server
 - UI: static HTML + Alpine.js (behavior) + Tailwind CSS v4 (styling), no build toolchain beyond the Tailwind CLI
-- Reuses several packages from the P-Node repo (`github.com/miladrahimi/p-node`): `pkg/database`, `pkg/logger`, `pkg/xray`, `pkg/paqet`, `pkg/http/client`, `pkg/worker`, and `pkg/util` for filesystem/port helpers (`pkg/util` here holds only manager-specific helpers).
+- Reuses several packages from the P-Node repo (`github.com/miladrahimi/p-node`): `pkg/database`, `pkg/logger`, `pkg/xray`, `pkg/paqet`, `pkg/http/client`, `pkg/http/logs`, `pkg/worker`, and `pkg/util` for filesystem/port helpers (`pkg/util` here holds only manager-specific helpers).
 
 ## Packages
 - `cmd`: Cobra commands (`serve`)
@@ -55,7 +55,8 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
   - `/api/admin/*` — admin panel; guarded by `Server.authorizeAdmin` (the admin password `admin_password`, `internal/data/main_settings.go`), except `POST /api/admin/sign-in` which issues the token.
   - `/api/user/*` — account-holder APIs (account view, links renew); no auth, reached via the account link.
   - `/api/admin/nodes/hetzner` — Hetzner provisioning: `GET` lists jobs (+ whether a token is set), `POST` starts one (body `manager_url`, the panel origin, used to run `set-manager` on the node), `DELETE /:jobId` dismisses a failed job.
-  - `/api/admin/logs` — log viewer: `GET` lists the `*.log` files under `storage/logs` (`config.LogsDirectory`); `GET /:name?lines=N` streams one file as chunked `text/plain` (`tail -f`: the last N lines, then every appended byte, polling every 500ms; truncated/replaced files restart from their start) until the client disconnects. The admin page (`web/admin-logs.html`) reads it with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the Bearer header), parses zap JSON lines client-side, and reconnects on drop.
+  - `/api/admin/logs` — log viewer: `GET` lists the `*.log` files under `storage/logs` (`config.LogsDirectory`); `GET /:name?lines=N` streams one file as chunked `text/plain` (`tail -f`: the last N lines, then every appended byte, polling every 500ms; truncated/replaced files restart from their start) until the client disconnects. The admin page (`web/admin-logs.html`) reads it with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the Bearer header), parses zap JSON lines client-side, and reconnects on drop. The index/stream handlers are P-Node's shared `pkg/http/logs`.
+  - `/api/admin/nodes/:id/logs` — node logs: `GET` lists and `GET /:name?lines=N` streams a P-Node's log files by proxying its own `GET /logs` and `GET /logs/:name` (authenticated with the node's HTTP token, so the node needs `HttpPort`/push). The logs page has a source select: Manager or any node with an HTTP port.
   - `/api/node/*` — node-facing APIs (`GET /api/node/:id/config`); guarded by `Server.authorizeNode` against that node's own `PullToken` (`Node.PullToken`, generated at creation). A node token works only for its own node and never for admin APIs, so the pull command carries no admin credentials.
 - Authentication is `Authorization: Bearer <token>`.
 - `GET /subscription/:proxyId` (public) always serves an account's subscription (all links, base64). The `SubscriptionEnabled` main setting (off by default) only controls whether the account page shows that link; when off, the page shows just the individual server links and the setup guide uses its per-link wording (`steps` entries with `subscription`/`links` variants in `web/account.html`).

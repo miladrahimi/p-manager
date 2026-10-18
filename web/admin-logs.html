@@ -28,8 +28,15 @@
         </nav>
     </header>
 
-    <!-- Toolbar: file, filter, stream controls -->
+    <!-- Toolbar: source (manager or a node), file, filter, stream controls -->
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 lg:flex-row lg:items-center">
+        <select class="input lg:w-48" x-model="source" @change="loadFiles()" :disabled="!nodes.length"
+                title="Whose logs to show: the manager or a node (needs an HTTP port)">
+            <option value="">Manager</option>
+            <template x-for="n in nodes" :key="n.id">
+                <option :value="n.id" x-text="n.host"></option>
+            </template>
+        </select>
         <select class="input lg:w-64" x-model="file" @change="open()" :disabled="!files.length">
             <template x-for="f in files" :key="f.name">
                 <option :value="f.name" x-text="`${f.name} (${formatSize(f.size)})`"></option>
@@ -75,6 +82,8 @@
 <script>
     function logsPage() {
         return {
+            nodes: [], // nodes with an HTTP port, i.e. with a log API
+            source: "", // "" = manager, else a node id
             files: [],
             file: "",
             tail: 100, // trailing lines loaded before following
@@ -94,8 +103,30 @@
 
             async init() {
                 await this.loadLabels()
+                await this.loadNodes()
                 await this.loadFiles()
                 window.addEventListener("beforeunload", () => this.close())
+            },
+
+            async loadNodes() {
+                try {
+                    this.nodes = (await api("GET", "/api/admin/nodes")).filter(n => n.http_port > 0)
+                } catch (e) {
+                    this.nodes = []
+                    return
+                }
+                let preferred = ""
+                try {
+                    preferred = localStorage.getItem("logs.source") || ""
+                } catch (e) {
+                }
+                this.source = this.nodes.some(n => n.id === preferred) ? preferred : ""
+            },
+
+            // Log API base of the selected source (the manager itself, or a node
+            // proxied through the manager).
+            logsBase() {
+                return this.source ? `/api/admin/nodes/${encodeURIComponent(this.source)}/logs` : "/api/admin/logs"
             },
 
             // loadLabels fetches id -> name/host so known account and node ids in
@@ -132,8 +163,18 @@
             },
 
             async loadFiles() {
+                this.close()
+                this.files = []
+                this.file = ""
+                this.lines = []
+                this.dropped = 0
+                this.status = "idle"
                 try {
-                    this.files = await api("GET", "/api/admin/logs")
+                    localStorage.setItem("logs.source", this.source)
+                } catch (e) {
+                }
+                try {
+                    this.files = await api("GET", this.logsBase())
                 } catch (e) {
                     this.$store.toast.error(e.message)
                     return
@@ -194,7 +235,7 @@
                 const controller = new AbortController()
                 this.controller = controller
                 this.status = "connecting"
-                const url = `/api/admin/logs/${encodeURIComponent(this.file)}?lines=${this.tail}`
+                const url = `${this.logsBase()}/${encodeURIComponent(this.file)}?lines=${this.tail}`
                 let response
                 try {
                     response = await fetch(url, {
@@ -213,7 +254,12 @@
                 }
                 if (!response.ok) {
                     this.status = "disconnected"
-                    this.$store.toast.error(`Cannot open ${this.file} (${response.status}).`)
+                    let message = `Cannot open ${this.file} (${response.status}).`
+                    try {
+                        message = (await response.json()).message || message
+                    } catch (e) {
+                    }
+                    this.$store.toast.error(message)
                     return
                 }
 

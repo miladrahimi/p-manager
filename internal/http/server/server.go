@@ -20,6 +20,7 @@ import (
 	"github.com/miladrahimi/p-manager/internal/provisioner"
 	"github.com/miladrahimi/p-manager/pkg/ssh"
 	"github.com/miladrahimi/p-node/pkg/http/client"
+	"github.com/miladrahimi/p-node/pkg/http/logs"
 	cm "github.com/miladrahimi/p-node/pkg/http/middleware"
 	"github.com/miladrahimi/p-node/pkg/http/validator"
 	"github.com/miladrahimi/p-node/pkg/logger"
@@ -116,6 +117,9 @@ func (s *Server) Run() {
 	adminApi.GET("/nodes/hetzner", api.NodesHetznerShow(s.provisioner))
 	adminApi.POST("/nodes/hetzner", api.NodesHetznerStore(s.provisioner))
 	adminApi.DELETE("/nodes/hetzner/:jobId", api.NodesHetznerDismiss(s.provisioner))
+	// Admin APIs: Node logs (proxied from the node's own log API)
+	adminApi.GET("/nodes/:id/logs", api.NodesLogsIndex(s.db))
+	adminApi.GET("/nodes/:id/logs/:name", api.NodesLogsStream(s.db, s.done))
 
 	// Admin APIs: Stats
 	adminApi.GET("/stats", api.StatsIndex(s.db))
@@ -128,8 +132,8 @@ func (s *Server) Run() {
 	adminApi.GET("/insights", api.InsightsIndex(s.db))
 
 	// Admin APIs: Logs (the stream is a long-lived chunked text response)
-	adminApi.GET("/logs", api.LogsIndex(s.logsDir))
-	adminApi.GET("/logs/:name", api.LogsStream(s.logsDir, s.done))
+	adminApi.GET("/logs", logs.Index(s.logsDir))
+	adminApi.GET("/logs/:name", logs.Stream(s.logsDir, s.done))
 	adminApi.GET("/log-labels", api.LogsLabels(s.composer))
 
 	// Admin APIs: Main Settings

@@ -426,7 +426,7 @@
 
             async addHetzner() {
                 if (!this.hetzner.configured) {
-                    this.$store.toast.error("Set the Hetzner API token in System > Main Settings first.")
+                    this.$store.toast.error("Set the Hetzner API token in System > Integrations first.")
                     return
                 }
                 if (!await confirmDialog({

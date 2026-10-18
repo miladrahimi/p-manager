@@ -50,7 +50,7 @@ func NodesHetznerStore(p *provisioner.Provisioner) echo.HandlerFunc {
 		job, err := p.Start(r.ManagerUrl)
 		switch {
 		case errors.Is(err, provisioner.ErrTokenMissing):
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Set the Hetzner API token in the main settings first."})
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Set the Hetzner API token in System > Integrations first."})
 		case errors.Is(err, provisioner.ErrBusy):
 			return c.JSON(http.StatusConflict, map[string]string{"message": "A node is already being provisioned."})
 		case errors.Is(err, provisioner.ErrMaxNodes):

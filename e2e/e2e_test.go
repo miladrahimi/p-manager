@@ -241,7 +241,7 @@ func TestProxyMethods(t *testing.T) {
 		want = append(want, "relay-rr2ssh")
 	}
 	if withPq {
-		want = append(want, "relay-rr2pq")
+		want = append(want, "relay-rr2paqet")
 	}
 	for _, method := range want {
 		method := method
@@ -261,7 +261,7 @@ func TestProxyMethods(t *testing.T) {
 		t.Log("relay-rr2ssh skipped; set E2E_SSH=1 to include it")
 	}
 	if !withPq {
-		t.Log("relay-rr2pq skipped; run make e2e-docker to include it")
+		t.Log("relay-rr2paqet skipped; run make e2e-docker to include it")
 	}
 
 	// Shared node port: Remote RR and Relay RR2RR on the same node port, so the

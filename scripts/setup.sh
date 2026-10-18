@@ -70,6 +70,10 @@ elif systemctl list-unit-files --type=service --all | awk '{print $1}' | grep -q
     SERVICE_EXISTS=true
 fi
 
+# Clear the logs before the service (re)starts, so the new process creates
+# fresh files instead of writing to ones deleted from under it.
+rm -f "$ROOT"/storage/logs/*.log
+
 # Create or update the service file, reload systemd, enable and restart the service
 if [ "$SERVICE_EXISTS" = true ]; then
     echo "Service $SERVICE_NAME already exists. Updating unit file..."
@@ -105,5 +109,4 @@ if ! crontab -l | grep -q "$COMMAND"; then
 fi
 
 # Store update time
-rm -f "$ROOT"/storage/logs/*.log
 date '+%Y-%m-%d %H:%M:%S' > "$ROOT"/storage/app/update.txt

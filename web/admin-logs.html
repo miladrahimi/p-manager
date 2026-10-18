@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>P-Manager | Logs</title>
-    <link rel="stylesheet" href="assets/css/app.css?v=9">
+    <link rel="stylesheet" href="assets/css/app.css?v=10">
     <link rel="icon" href="assets/images/xray.svg">
     <link rel="apple-touch-icon" href="assets/images/xray.svg">
     <script src="assets/js/app.js?v=9"></script>
@@ -30,19 +30,19 @@
 
     <!-- Toolbar: source (manager or a node), file, filter, stream controls -->
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 lg:flex-row lg:items-center">
-        <select class="input lg:w-48" x-model="source" @change="loadFiles()" :disabled="!nodes.length"
-                title="Whose logs to show: the manager or a node (needs an HTTP port)">
-            <option value="">Manager</option>
+        <select class="input lg:w-48 lg:shrink-0" x-model="source" @change="loadFiles()" :disabled="!nodes.length"
+                title="Whose logs to show: P-Manager or a P-Node (needs an HTTP port)">
+            <option value="">P-Manager</option>
             <template x-for="n in nodes" :key="n.id">
-                <option :value="n.id" x-text="n.host"></option>
+                <option :value="n.id" x-text="`P-Node ${n.host}`"></option>
             </template>
         </select>
-        <select class="input lg:w-64" x-model="file" @change="open()" :disabled="!files.length">
+        <select class="input lg:w-64 lg:shrink-0" x-model="file" @change="open()" :disabled="!files.length">
             <template x-for="f in files" :key="f.name">
                 <option :value="f.name" x-text="`${f.name} (${formatSize(f.size)})`"></option>
             </template>
         </select>
-        <input type="search" class="input lg:flex-1" x-model.trim="filter" placeholder="Filter (case-insensitive)">
+        <input type="search" class="input min-w-0 lg:flex-1" x-model.trim="filter" placeholder="Filter (case-insensitive)">
         <div class="flex items-center justify-between gap-2 sm:justify-start">
             <!-- Stream state; click toggles between live and paused -->
             <button class="btn" type="button" :class="stateButton().class" :title="stateButton().title"

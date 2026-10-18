@@ -54,11 +54,12 @@ func MakeRrInbound(
 				ShortIds:    []string{""},
 			},
 		},
-		// routeOnly: sniffed domains feed routing rules only; the destination
-		// (and the access log, which records it before sniffing) stays as sent.
+		// Sniffed domains replace the destination (no routeOnly), so outbounds
+		// (nodes, ssh/paqet SOCKS) receive domains instead of client-resolved
+		// IPs and resolve them at the exit. The Xray access log still prints the
+		// destination the client sent; sniffed names show up in the error log.
 		Sniffing: &component.Sniffing{
 			Enabled:      true,
-			RouteOnly:    true,
 			DestOverride: []string{"http", "tls", "quic"},
 		},
 	}

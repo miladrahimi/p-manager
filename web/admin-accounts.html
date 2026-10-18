@@ -35,7 +35,7 @@
                   x-text="`(${filtered().length}/${accounts.length})`"></span>
         </h2>
         <div class="flex flex-wrap gap-2">
-            <input type="search" class="input w-48" placeholder="Search by name..." x-model.trim="q">
+            <input type="search" class="input w-48" placeholder="Search by name or ID..." x-model.trim="q">
             <button class="btn btn-dark" @click="openCreate()">+ Add Account</button>
         </div>
     </div>
@@ -191,7 +191,7 @@
             filtered() {
                 const q = this.q.toLowerCase()
                 return this.accounts
-                    .filter(a => !q || a.name.toLowerCase().includes(q))
+                    .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.includes(q) || (a.proxy_id || "").includes(q))
                     .sort((a, b) => {
                         const x = a[this.sortKey], y = b[this.sortKey]
                         const c = typeof x === "string" ? x.localeCompare(y) : (x === y ? 0 : x > y ? 1 : -1)

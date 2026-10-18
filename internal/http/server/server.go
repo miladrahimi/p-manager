@@ -130,6 +130,7 @@ func (s *Server) Run() {
 	// Admin APIs: Logs (the stream is a long-lived chunked text response)
 	adminApi.GET("/logs", api.LogsIndex(s.logsDir))
 	adminApi.GET("/logs/:name", api.LogsStream(s.logsDir, s.done))
+	adminApi.GET("/log-labels", api.LogsLabels(s.composer))
 
 	// Admin APIs: Main Settings
 	adminApi.GET("/main-settings", api.MainSettingsShow(s.db))

@@ -54,7 +54,7 @@
             <span class="text-zinc-500" x-show="!visible().length" x-cloak
                   x-text="lines.length ? 'No lines match the filter.' : (file ? 'Waiting for log lines...' : 'No log files found.')"></span>
             <template x-for="l in visible()" :key="l.id">
-                <div :class="levelClass(l.level)" x-text="l.text"></div>
+                <div :class="levelClass(l.level)" x-html="html(l.text)"></div>
             </template>
         </div>
         <div class="flex items-center justify-between border-t border-zinc-200 px-3 py-1.5 text-[11px] text-zinc-400">
@@ -80,6 +80,8 @@
             tail: 100, // trailing lines loaded before following
             filter: "",
             lines: [],
+            labels: {},
+            labelsRe: null,
             maxLines: 5000,
             dropped: 0,
             follow: true,
@@ -90,8 +92,40 @@
             retryTimer: null,
 
             async init() {
+                await this.loadLabels()
                 await this.loadFiles()
                 window.addEventListener("beforeunload", () => this.close())
+            },
+
+            // loadLabels fetches id -> name/host so known account and node ids in
+            // log lines are shown as "id [{label}]" (the bracketed part is added).
+            async loadLabels() {
+                try {
+                    this.labels = await api("GET", "/api/admin/log-labels")
+                } catch (e) {
+                    this.labels = {}
+                    return
+                }
+                // Longest ids first so a full uuid wins over a node id that happens
+                // to equal its first segment; ids inside longer tokens never match.
+                const ids = Object.keys(this.labels).sort((a, b) => b.length - a.length)
+                    .map(id => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+                this.labelsRe = ids.length
+                    ? new RegExp(`(?<![A-Za-z0-9])(${ids.join("|")})(?![A-Za-z0-9]|-[0-9a-f]{4}-)`, "g")
+                    : null
+            },
+
+            annotate(text) {
+                if (!this.labelsRe) {
+                    return text
+                }
+                return text.replace(this.labelsRe, (id) => `${id} [{${this.labels[id]}}]`)
+            },
+
+            // html escapes the line and highlights the added [{label}] parts.
+            html(text) {
+                const escaped = text.replace(/[&<>"']/g, ch => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[ch]))
+                return escaped.replace(/\[\{([^}]*)\}\]/g, '<span class="text-cyan-300">[{$1}]</span>')
             },
 
             async loadFiles() {
@@ -240,7 +274,7 @@
                         const {ts, level, message, ...rest} = JSON.parse(raw)
                         line.level = (level || "").toUpperCase()
                         const fields = Object.keys(rest).length ? " " + JSON.stringify(rest) : ""
-                        line.text = [ts, line.level, message].filter(v => v).join(" ") + fields
+                        line.text = this.annotate([ts, line.level, message].filter(v => v).join(" ") + fields)
                         return line
                     } catch (e) {
                     }
@@ -249,6 +283,7 @@
                 if (m) {
                     line.level = (m[1] || m[2]).toUpperCase().replace("WARNING", "WARN")
                 }
+                line.text = this.annotate(raw)
                 return line
             },
 
@@ -257,7 +292,7 @@
                     return this.lines
                 }
                 const q = this.filter.toLowerCase()
-                return this.lines.filter(l => l.raw.toLowerCase().includes(q))
+                return this.lines.filter(l => l.text.toLowerCase().includes(q))
             },
 
             levelClass(level) {

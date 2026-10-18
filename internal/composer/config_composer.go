@@ -348,3 +348,24 @@ func (c *Composer) rrClients(d *data.Data) []*component.Client {
 	}
 	return clients
 }
+
+// LogLabels maps every identifier that can show up in log lines (account ids
+// and proxy ids, node ids and the client/bridge ids derived from them) to a
+// human-readable label, so the log viewer can annotate them.
+func (c *Composer) LogLabels() map[string]string {
+	labels := map[string]string{}
+	c.db.Read(func(d *data.Data) {
+		for _, a := range d.Accounts {
+			labels[a.Id] = a.Name
+			if a.ProxyId != "" {
+				labels[a.ProxyId] = a.Name
+			}
+		}
+		for _, n := range d.Nodes {
+			labels[n.Id] = n.Host
+			labels[rr2rrClientId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
+			labels[reverseRrBridgeId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
+		}
+	})
+	return labels
+}

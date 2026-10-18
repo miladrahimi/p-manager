@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/miladrahimi/p-manager/internal/composer"
 )
 
 const (
@@ -182,4 +183,12 @@ func writeTail(w io.Writer, file *os.File, n int) (int64, error) {
 
 	_, err = w.Write(buf[pos:])
 	return size, err
+}
+
+// LogsLabels returns the id -> label map the log viewer uses to annotate
+// account and node identifiers in log lines.
+func LogsLabels(composer *composer.Composer) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return c.JSON(http.StatusOK, composer.LogLabels())
+	}
 }

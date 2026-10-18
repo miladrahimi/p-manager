@@ -81,6 +81,7 @@
             filter: "",
             lines: [],
             labels: {},
+            highlighted: new Set(), // escaped labels, to highlight only added text
             labelsRe: null,
             maxLines: 5000,
             dropped: 0,
@@ -98,7 +99,7 @@
             },
 
             // loadLabels fetches id -> name/host so known account and node ids in
-            // log lines are shown as "id [{label}]" (the bracketed part is added).
+            // log lines are shown as "id (label)", with the added part highlighted.
             async loadLabels() {
                 try {
                     this.labels = await api("GET", "/api/admin/log-labels")
@@ -108,6 +109,8 @@
                 }
                 // Longest ids first so a full uuid wins over a node id that happens
                 // to equal its first segment; ids inside longer tokens never match.
+                const esc = t => t.replace(/[&<>"']/g, ch => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[ch]))
+                this.highlighted = new Set(Object.values(this.labels).map(esc))
                 const ids = Object.keys(this.labels).sort((a, b) => b.length - a.length)
                     .map(id => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
                 this.labelsRe = ids.length
@@ -119,13 +122,13 @@
                 if (!this.labelsRe) {
                     return text
                 }
-                return text.replace(this.labelsRe, (id) => `${id} [{${this.labels[id]}}]`)
+                return text.replace(this.labelsRe, (id) => `${id} (${this.labels[id]})`)
             },
 
-            // html escapes the line and highlights the added [{label}] parts.
+            // html escapes the line and highlights the added (label) parts.
             html(text) {
                 const escaped = text.replace(/[&<>"']/g, ch => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[ch]))
-                return escaped.replace(/\[\{([^}]*)\}\]/g, '<span class="text-cyan-300">[{$1}]</span>')
+                return escaped.replace(/ \(([^()]*)\)/g, (m, label) => this.highlighted.has(label) ? ` <span class="text-cyan-300">(${label})</span>` : m)
             },
 
             async loadFiles() {

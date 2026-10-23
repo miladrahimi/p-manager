@@ -7,16 +7,25 @@ type Data struct {
 	Stats        *Stats        `json:"stats"`
 	MainSettings *Settings     `json:"main_settings"`
 	XraySettings *XraySettings `json:"xray_settings"`
+	Cdn          *Cdn          `json:"cdn"`
 }
 
 // New creates a new instance of Data.
-func New(accounts []*Account, nodes []*Node, stats *Stats, mainSettings *Settings, xraySettings *XraySettings) *Data {
+func New(
+	accounts []*Account,
+	nodes []*Node,
+	stats *Stats,
+	mainSettings *Settings,
+	xraySettings *XraySettings,
+	cdn *Cdn,
+) *Data {
 	return &Data{
 		Accounts:     accounts,
 		Nodes:        nodes,
 		Stats:        stats,
 		MainSettings: mainSettings,
 		XraySettings: xraySettings,
+		Cdn:          cdn,
 	}
 }
 
@@ -28,6 +37,7 @@ func Default() *Data {
 		DefaultStats(),
 		DefaultSettings(),
 		DefaultXray(),
+		DefaultCdn(),
 	)
 }
 

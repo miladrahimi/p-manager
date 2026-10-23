@@ -20,6 +20,9 @@ type vlessLinkOptions struct {
 	publicKey   string
 	path        string
 	fingerprint string
+	hostHeader  string
+	mode        string
+	alpn        string
 }
 
 func makeVlessLink(opts vlessLinkOptions) string {
@@ -53,6 +56,15 @@ func makeVlessLink(opts vlessLinkOptions) string {
 	}
 	if opts.fingerprint != "" {
 		query.Set("fp", opts.fingerprint)
+	}
+	if opts.hostHeader != "" {
+		query.Set("host", opts.hostHeader)
+	}
+	if opts.mode != "" {
+		query.Set("mode", opts.mode)
+	}
+	if opts.alpn != "" {
+		query.Set("alpn", opts.alpn)
 	}
 
 	vlessUrl.RawQuery = query.Encode()

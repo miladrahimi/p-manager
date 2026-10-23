@@ -105,8 +105,8 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 				users[tag] += value
 			}
 		case "inbound":
-			// Only remote-rr; relay-rr2rr is already counted by the manager's loadLocalStats (no double-count).
-			if tag == "remote-rr" {
+			// Only client inbounds; relay-rr2rr is already counted by the manager's loadLocalStats (no double-count).
+			if tag == "remote-rr" || tag == "remote-cxh" {
 				nodeUsageBytes += value
 			}
 		}

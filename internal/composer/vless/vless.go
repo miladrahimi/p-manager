@@ -2,6 +2,7 @@ package vless
 
 import (
 	"net"
+	"strings"
 
 	"github.com/miladrahimi/p-node/pkg/xray/config/component"
 )
@@ -11,7 +12,10 @@ const (
 	FlowVision      = "xtls-rprx-vision"
 	FlowNone        = ""
 	NetworkRaw      = "raw"
+	NetworkXhttp    = "xhttp"
 	SecurityReality = "reality"
+	SecurityTls     = "tls"
+	XhttpPacketUp   = "packet-up"
 	EncryptionNone  = "none"
 	EncryptionEmpty = ""
 )
@@ -109,4 +113,50 @@ func MakeRrOutbound(
 			},
 		},
 	}
+}
+
+// MakeCxhInbound makes an XHTTP TLS inbound serving the given PEM certificate.
+// It accepts any Host header, so new CDN subdomains need no config change.
+// XHTTP has no fallbacks, and the clients carry no flow (vision needs raw).
+func MakeCxhInbound(
+	tag string,
+	port int,
+	path string,
+	certificate string,
+	privateKey string,
+	clients []*component.Client,
+) *component.Inbound {
+	return &component.Inbound{
+		Tag:      tag,
+		Port:     port,
+		Protocol: Protocol,
+		Settings: &component.InboundSettings{
+			Clients:    clients,
+			Decryption: EncryptionNone,
+		},
+		StreamSettings: &component.StreamSettings{
+			Network:  NetworkXhttp,
+			Security: SecurityTls,
+			TlsSettings: &component.TlsSettings{
+				Alpn: []string{"h2", "http/1.1"},
+				Certificates: []*component.Certificate{{
+					Certificate: pemLines(certificate),
+					Key:         pemLines(privateKey),
+				}},
+			},
+			XhttpSettings: &component.XhttpSettings{
+				Path: path,
+				Mode: "auto",
+			},
+		},
+		Sniffing: &component.Sniffing{
+			Enabled:      true,
+			DestOverride: []string{"http", "tls", "quic"},
+		},
+	}
+}
+
+// pemLines splits a PEM block into the line array Xray takes for inline certificates.
+func pemLines(pem string) []string {
+	return strings.Split(strings.TrimSpace(pem), "\n")
 }

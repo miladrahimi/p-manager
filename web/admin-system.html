@@ -154,9 +154,19 @@
                                         <span x-text="f.label"></span>
                                         <span class="font-normal text-zinc-400" x-show="f.host" x-text="'(' + f.host + ')'"></span>
                                     </label>
-                                    <input type="number" class="input" x-model.number="xray[f.field]"
-                                           :min="f.min ?? 1" :max="f.max ?? 65535" :placeholder="f.label" :title="f.hint"
-                                           :disabled="!enabled[m.key]" :required="enabled[m.key]">
+                                    <template x-if="!f.options">
+                                        <input type="number" class="input" x-model.number="xray[f.field]"
+                                               :min="f.min ?? 1" :max="f.max ?? 65535" :placeholder="f.label" :title="f.hint"
+                                               :disabled="!enabled[m.key]" :required="enabled[m.key]">
+                                    </template>
+                                    <template x-if="f.options">
+                                        <select class="input" x-model.number="xray[f.field]" :title="f.hint"
+                                                :disabled="!enabled[m.key]" :required="enabled[m.key]">
+                                            <template x-for="o in f.options" :key="o">
+                                                <option :value="o" x-text="o"></option>
+                                            </template>
+                                        </select>
+                                    </template>
                                 </div>
                             </template>
                         </div>
@@ -193,7 +203,9 @@
                         <label class="label" title="Reality public key used by RR proxies.">Public Key</label>
                         <input type="text" class="input font-mono" x-model.trim="xray.reality_public_key" maxlength="255">
                     </div>
-                    <p class="text-[11px] text-zinc-400 sm:col-span-2 text-right">RR: VLESS / Raw (TCP) / Reality / XTLS-RPRX-VISION</p>
+                    <p class="text-[11px] text-zinc-400 sm:col-span-2 text-right">
+                RR: VLESS / Raw (TCP) / Reality / XTLS-RPRX-VISION · CXH: VLESS / XHTTP / TLS (Cloudflare Origin CA)
+            </p>
                 </div>
             </div>
 
@@ -284,6 +296,28 @@
                 </p>
             </div>
             <div>
+                <label class="label">
+                    <a class="underline" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">Cloudflare</a>
+                    API Token (empty to disable)
+                </label>
+                <input type="text" class="input font-mono" x-model.trim="main.cloudflare_token" maxlength="128"
+                       placeholder="Token with Zone Read, DNS Edit, SSL and Certificates Edit on the CDN domain" autocomplete="off">
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                    <label class="label" title="Apex domain of a zone on the Cloudflare account, with SSL mode Full (strict).">CDN Domain</label>
+                    <input type="text" class="input" x-model.trim="main.cdn_domain" maxlength="128" placeholder="example.com">
+                </div>
+                <div>
+                    <label class="label" title="How often every node gets a fresh subdomain; 0 keeps the first one.">Rotation (hours)</label>
+                    <input type="number" class="input" x-model.number="main.cdn_rotation_hours" min="0" max="720" required>
+                </div>
+            </div>
+            <p class="-mt-1 text-[11px] text-zinc-400">
+                Enables the Remote CXH method: P-Manager issues an Origin CA certificate for the domain, points a
+                proxied random subdomain at every node and rotates it; account links and subscriptions follow.
+            </p>
+            <div>
                 <button type="submit" class="btn btn-dark w-full" :disabled="busy">Save Integrations</button>
             </div>
         </form>
@@ -355,6 +389,15 @@
         {
             key: "remote", name: "Remote RR", flow: "[Client] -RR→ [P-Node] → [Internet]",
             fields: [{field: "remote_rr_port", label: "Client port", host: "node", port: true}],
+        },
+        {
+            key: "cdn", name: "Remote CXH", flow: "[Client] -CXH→ [Cloudflare] -CXH→ [P-Node] → [Internet]",
+            link: {label: "Cloudflare", url: "https://dash.cloudflare.com/"},
+            fields: [{
+                field: "remote_cxh_port", label: "Client port", host: "node", port: true,
+                options: [443, 2053, 2083, 2087, 2096, 8443], default: 2053,
+                hint: "One of the HTTPS ports Cloudflare proxies; the edge dials the node on the same port. Needs the Cloudflare token and CDN domain in Integrations.",
+            }],
         },
         {
             key: "reverse", name: "Reverse RR", flow: "[Client] -RR→ [P-Manager] ↪RR= [P-Node] → [Internet]",
@@ -455,8 +498,9 @@
             toggleMethod(m, on) {
                 this.enabled[m.key] = on
                 if (on) {
-                    // Clear zeros so the (now required) inputs show their placeholder.
-                    m.fields.filter(f => f.port && !(this.xray[f.field] > 0)).forEach(f => this.xray[f.field] = null)
+                    // Clear zeros so the (now required) inputs show their placeholder;
+                    // a select starts at its default.
+                    m.fields.filter(f => f.port && !(this.xray[f.field] > 0)).forEach(f => this.xray[f.field] = f.default ?? null)
                 }
             },
 
@@ -479,6 +523,7 @@
                         relay_rr_2_ssh_connections: this.xray.relay_rr_2_ssh_connections || 8,
                         relay_rr_2_pq_port: this.port("relay_rr_2_pq_port"),
                         relay_rr_2_pq_node_port: this.port("relay_rr_2_pq_node_port"),
+                        remote_cxh_port: this.port("remote_cxh_port"),
                         node_sni: this.xray.node_sni,
                         manager_sni: this.xray.manager_sni,
                         reality_private_key: this.xray.reality_private_key,
@@ -503,6 +548,9 @@
                         reset_policy: this.main.reset_policy,
                         subscription_enabled: !!this.main.subscription_enabled,
                         hetzner_token: this.main.hetzner_token || "",
+                        cloudflare_token: this.main.cloudflare_token || "",
+                        cdn_domain: this.main.cdn_domain || "",
+                        cdn_rotation_hours: this.main.cdn_rotation_hours ?? 6,
                     })
                     this.$store.toast.info(`${label} saved successfully.`)
                 } catch (e) {

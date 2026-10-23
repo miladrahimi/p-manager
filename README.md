@@ -54,6 +54,17 @@ on the `Nodes` tab. P-Manager creates the cheapest in-stock x86 server in German
 all SSH keys of the project), installs P-Node on it over SSH, and adds it as a node. Deleting such a node deletes
 its Hetzner server as well. The SSH key of the host running P-Manager must already be one of the project's keys.
 
+#### Remote CXH behind Cloudflare
+
+Remote CXH (VLESS / XHTTP / TLS) puts P-Nodes behind Cloudflare, so clients dial a subdomain of your domain and never a
+node IP. Put the domain on Cloudflare with SSL mode **Full (strict)**, create an API token scoped to that zone with
+**Zone → Zone → Read**, **Zone → DNS → Edit** and **Zone → SSL and Certificates → Edit**, and enter the token, the
+domain and a rotation interval in `System > Integrations`. Then enable `Remote CXH` in `System > Xray Settings` with
+one of the HTTPS ports Cloudflare proxies (443, 2053, 2083, 2087, 2096, 8443). P-Manager issues an Origin CA
+certificate, points a proxied random subdomain at every node, rotates it on the interval (the previous one keeps
+working for one more interval) and adds the links to the accounts and subscriptions. P-Nodes need a P-Node build
+that accepts inline certificates (2026-10 or newer).
+
 ### Configuration
 
 You can customize the web panel port and additional settings by modifying the configuration file found at:

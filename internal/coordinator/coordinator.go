@@ -31,6 +31,7 @@ type Coordinator struct {
 
 	sshSyncer    *sshSyncer
 	paqetSyncer  *paqetSyncer
+	cdnSyncer    *cdnSyncer
 	configSyncer *configSyncer
 	statsSyncer  *statsSyncer
 
@@ -64,6 +65,8 @@ func New(
 	cdr.sshSyncer = newSshSyncer(logger, db, sshManager, sshClient, cdr.state)
 	cdr.paqetSyncer = newPaqetSyncer(logger, db, cdr.state, root, c)
 	cdr.configSyncer = newConfigSyncer(logger, db, hc, xray, writer, cdr.state)
+	// A new certificate or path changes the node inbounds, so push them.
+	cdr.cdnSyncer = newCdnSyncer(logger, db, c.Cloudflare.BaseUrl, cdr.configSyncer.pushConfigToNodes)
 	cdr.statsSyncer = newStatsSyncer(logger, db, hc, xray, cdr.UpdateConfigs)
 
 	return cdr
@@ -89,6 +92,10 @@ func (c *Coordinator) Run(ctx context.Context) error {
 		c.updateMu.Lock()
 		defer c.updateMu.Unlock()
 		return errors.WithStack(c.paqetSyncer.syncPaqetClients())
+	}).Start(ctx)
+
+	worker.New("syncCdn", c.l, time.Second*20, func() error {
+		return errors.WithStack(c.cdnSyncer.syncCdn())
 	}).Start(ctx)
 
 	worker.New("pushConfigToStaleNodes", c.l, time.Second*10, func() error {

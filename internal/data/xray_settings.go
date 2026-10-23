@@ -14,6 +14,7 @@ type XraySettings struct {
 	RelayRr2SshConnections int    `json:"relay_rr_2_ssh_connections" validate:"min=1,max=32"`
 	RelayRr2PqPort         int    `json:"relay_rr_2_pq_port" validate:"min=0,max=65535"`
 	RelayRr2PqNodePort     int    `json:"relay_rr_2_pq_node_port" validate:"min=0,max=65535"`
+	RemoteCxhPort          int    `json:"remote_cxh_port" validate:"omitempty,oneof=443 2053 2083 2087 2096 8443"`
 	RealityPrivateKey      string `json:"reality_private_key"`
 	RealityPublicKey       string `json:"reality_public_key"`
 	NodeSni                string `json:"node_sni" validate:"required,hostname_rfc1123"`
@@ -37,6 +38,10 @@ func NewXraySettings(vlessPrivateKey string, vlessPublicKey string, nodeSni stri
 func (x *XraySettings) NodeRrShared() bool {
 	return x.RemoteRrPort > 0 && x.RelayRr2RrManagerPort > 0 && x.RelayRr2RrNodePort == x.RemoteRrPort
 }
+
+// CloudflareHttpsPorts are the ports Cloudflare proxies over HTTPS; Remote CXH
+// must use one of them because the edge dials the node on the client's port.
+var CloudflareHttpsPorts = []int{443, 2053, 2083, 2087, 2096, 8443}
 
 func DefaultXray() *XraySettings {
 	return NewXraySettings("", "", config.DefaultNodeSni, config.DefaultManagerSni)

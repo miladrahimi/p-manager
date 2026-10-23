@@ -17,5 +17,8 @@
     "interface": "",
     "address": "",
     "router_mac": ""
+  },
+  "cloudflare": {
+    "base_url": ""
   }
 }

@@ -42,6 +42,12 @@ type Config struct {
 	// Leave all three empty to detect the default-route interface, its IPv4
 	// address, and the gateway MAC at runtime.
 	Paqet PaqetNetwork `json:"paqet"`
+
+	// Cloudflare overrides the API base URL of Remote CXH (tests); empty
+	// means the real API.
+	Cloudflare struct {
+		BaseUrl string `json:"base_url" validate:"omitempty,url"`
+	} `json:"cloudflare"`
 }
 
 // PaqetNetwork is the optional paqet network override.

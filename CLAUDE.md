@@ -73,7 +73,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Build & Run
 - `make local-serve` — run locally (`go run main.go serve`)
 - `make build` — cross-compile the Linux amd64 `p-manager` binary
-- `make e2e` — end-to-end test (`e2e/`, build tag `e2e`): builds P-Manager and P-Node, runs both as processes in temp dirs, and fetches a local HTTP target through every proxy method via an Xray client; needs the local Xray binary (`make local-setup`) and `../p-node` (override with `P_NODE_DIR`); set `E2E_SSH=1` to include Relay RR2SSH (needs passwordless ssh to 127.0.0.1); set `E2E_PQ=1` to include Relay RR2PQ (needs root on Linux: the test creates a veth pair `pq0`/`pq1` for paqet)
+- `make e2e` — end-to-end test (`e2e/`, build tag `e2e`): builds P-Manager and P-Node, runs both as processes in temp dirs, and fetches a local HTTP target through every proxy method via an Xray client; needs the local Xray binary (`make local-setup`) and `../p-node` (override with `P_NODE_DIR`); set `E2E_SSH=1` to include Relay RR2SSH (needs passwordless ssh to 127.0.0.1); set `E2E_PQ=1` to include Relay RR2PQ (needs root on Linux: the test creates a veth pair `pq0`/`pq1` for paqet); set `E2E_CF_TOKEN` + `E2E_CF_DOMAIN` to run Remote CXH against the real Cloudflare API on that zone (certificate revoked and records deleted at the end) instead of the in-test fake; `CF_TOKEN` + `CF_DOMAIN` likewise run `pkg/cloudflare`'s `TestRealApi`
 - `make e2e-docker` — the same e2e with `E2E_PQ=1` inside a privileged Linux container (`e2e/Dockerfile`, `scripts/e2e-docker.sh`); downloads the Linux binaries for the container architecture into `third_party` on first use. This is the only way to run RR2PQ end to end on a Mac: paqet needs root and an Ethernet interface (no loopback)
 - `make web` — rebuild the admin UI stylesheet (`web/assets/css/app.css`) via the Tailwind standalone CLI (downloaded to `bin/` on first use); commit the regenerated CSS
 - `make local-setup` / `make setup` — local / server setup scripts
@@ -117,6 +117,10 @@ gateway MAC; overridable via the `paqet` block in `configs/main.json`), and on L
 rules a paqet server needs. Both ends must run as root (pcap); the systemd services do.
 
 ## Supported Methods
+Method names carry the transport: **RR** is VLESS over Raw (TCP) with Reality and the `xtls-rprx-vision` flow,
+dialled at a real IP; **CXH** is VLESS over XHTTP with TLS behind a CDN (Cloudflare), dialled at a CDN subdomain,
+no flow (vision needs raw). **SSH** and **PQ** (paqet) name the hop between the manager and a node.
+
 ### Direct RR
 P-Manager works as a proxy-server.
 It accepts direct VLESS Reality Raw requests from clients and forwards them to the Internet.
@@ -165,6 +169,32 @@ node learns its server port and key from the `_paqet` field carried inside the p
 `relay-rr2pq` inbound + balancer over `relay-rr2pq-<nodeId>` SOCKS outbounds. Node side: `coordinator.Apply` reconfigures
 Xray and the paqet server together (`storage/app/paqet.yaml`). KCP MTU is pinned to 1200 (`paqet.Mtu`) because Iranian
 carriers fragment larger raw packets.
+
+### Remote CXH
+P-Nodes work as proxy-servers behind Cloudflare. Clients dial a proxied subdomain of the CDN domain over
+VLESS XHTTP TLS; the Cloudflare edge terminates the client TLS and dials the node on the same port with a
+Cloudflare Origin CA certificate the manager issued. Clients never see a node IP, and the inbound accepts any
+`Host`, so a new subdomain needs no config push.
+```
+[ Client ] -(VLESS XHTTP TLS)-> [ Cloudflare ] -(VLESS XHTTP TLS)-> [ P-Node ] -> Internet
+```
+Enabled when `XraySettings.RemoteCxhPort` (one of `data.CloudflareHttpsPorts`: 443, 2053, 2083, 2087, 2096, 8443,
+the only ports the edge proxies; validated in `XraySettingsUpdate`, distinct from the other node ports) and
+`MainSettings.CloudflareToken` + `MainSettings.CdnDomain` (Integrations) are set, and the manager has issued the
+certificate. The token needs Zone Read, DNS Edit and SSL and Certificates Edit on that zone; the zone's SSL mode must
+be Full (strict). State the manager keeps itself lives in `data.Cdn` (`cxh_path`, zone id, certificate id + PEM
+certificate and key, `records`): `coordinator/cxh_syncer.go` (`syncCdn`, every 20s, `pkg/cloudflare`) looks the zone
+up, issues one 15-year Origin ECC certificate for `domain` + `*.domain` (`cloudflare.GenerateCsr`), creates a proxied
+record on a random `util.ShortId()` subdomain per node (A for an IP host, CNAME otherwise), rotates it every
+`MainSettings.CdnRotationHours` (0 = never) keeping the newest `cdnRecordsPerNode` (2) so older clients survive one
+interval, and deletes records of gone or re-hosted nodes. Turning the method off deletes the records and keeps the
+certificate; changing the domain revokes the certificate and starts over (the path is kept). A certificate or path
+change triggers a node push; a new record does not. The composer adds the `remote-cxh` inbound
+(`vless.MakeCxhInbound`, certificate inline as PEM lines, `xhttpSettings.mode: auto`) and one link per live record
+(`remote-cxh-<subdomain>@<host>`: `type=xhttp&security=tls&mode=packet-up&alpn=h2&fp=chrome`, SNI and `host` = the
+subdomain). Node usage counts the `remote-cxh` inbound like `remote-rr`. The e2e runs it against a fake Cloudflare
+(`configs/main.json` → `cloudflare.base_url`) that signs the CSR with a throwaway CA; the test client pins the leaf
+(`pinnedPeerCertSha256`; `allowInsecure` is gone in Xray 26) and dials the node in place of the edge.
 
 ### Reverse RR
 P-Manager is the reverse portal; each P-Node is a bridge that dials out to it, so P-Nodes work without a public/reachable inbound (only the P-Manager host must be reachable, which nodes learn from the pushed/pulled config). Accounts hit the same manager port and the portal load-balances them across all connected nodes (nodes share the `reverse-rr` domain).

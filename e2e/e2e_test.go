@@ -9,15 +9,26 @@
 // Set E2E_PQ=1 to include Relay RR2PQ, which needs root on Linux (paqet sends
 // raw packets over a veth pair the test creates): make e2e-docker runs the
 // whole test that way in a privileged container.
+// Remote CXH runs against a fake Cloudflare by default; set E2E_CF_TOKEN and
+// E2E_CF_DOMAIN to use the real API on that zone instead (it cleans up after
+// itself). The client dials the local node in place of the edge either way.
 package e2e
 
 import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -29,6 +40,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -143,10 +155,29 @@ func TestProxyMethods(t *testing.T) {
 	readJsonFile(t, filepath.Join(nodeRoot, "storage/database/data.json"), &nodeDb)
 
 	// --- P-Manager ---
+	// Remote CXH talks to a fake Cloudflare that signs the Origin CSR with a
+	// test CA, or to the real API when E2E_CF_TOKEN and E2E_CF_DOMAIN are set
+	// (the certificate is then revoked and the records deleted at the end).
+	// Either way the client dials the local node directly in place of the edge.
+	cfToken, cfBaseUrl := "e2e-token", ""
+	var cloudflare *fakeCloudflare
+	if realToken := os.Getenv("E2E_CF_TOKEN"); realToken != "" && os.Getenv("E2E_CF_DOMAIN") != "" {
+		cfToken, cdnDomain = realToken, os.Getenv("E2E_CF_DOMAIN")
+		// Cloudflare refuses a proxied record to 127.0.0.1, so the node goes in
+		// by name: the manager still reaches it, and the syncer makes a CNAME.
+		if !withPq {
+			nodeHost = "localhost"
+		}
+		t.Logf("Remote CXH against the real Cloudflare zone %s", cdnDomain)
+	} else {
+		cloudflare = startFakeCloudflare(t)
+		cfBaseUrl = cloudflare.URL
+	}
 	managerRoot := prepareRoot(t, managerRepo, filepath.Join(work, "manager"), xrayDir, paqetDir, map[string]any{
 		"http_server": map[string]any{"host": "127.0.0.1", "port": managerPort},
 		"logger":      map[string]any{"level": "debug", "format": "2006-01-02 15:04:05.000"},
 		"paqet":       managerPaqet,
+		"cloudflare":  map[string]any{"base_url": cfBaseUrl},
 	})
 	managerProc := startProcess(t, managerBin, managerRoot)
 	managerUrl := fmt.Sprintf("http://127.0.0.1:%d", managerPort)
@@ -179,7 +210,36 @@ func TestProxyMethods(t *testing.T) {
 	xs["relay_rr_2_ssh_connections"] = 1
 	xs["relay_rr_2_pq_port"] = relayRr2Pq
 	xs["relay_rr_2_pq_node_port"] = relayRr2PqNode
+	remoteCxh := freeCloudflarePort(t)
+	xs["remote_cxh_port"] = remoteCxh
 	admin.call(t, http.MethodPost, "/xray-settings", xs, nil)
+
+	// Main settings: the Cloudflare token and CDN domain enable Remote CXH.
+	var ms map[string]any
+	admin.call(t, http.MethodGet, "/main-settings", nil, &ms)
+	ms["cloudflare_token"] = cfToken
+	ms["cdn_domain"] = cdnDomain
+	admin.call(t, http.MethodPost, "/main-settings", ms, nil)
+	if cloudflare == nil {
+		// Real zone: turn the method off and drop the domain at the end so the
+		// syncer deletes the records and revokes the certificate it made.
+		t.Cleanup(func() {
+			xs["remote_cxh_port"] = 0
+			ms["cdn_domain"] = ""
+			admin.call(t, http.MethodPost, "/xray-settings", xs, nil)
+			admin.call(t, http.MethodPost, "/main-settings", ms, nil)
+			waitFor(t, 90*time.Second, "cdn records deleted and certificate revoked", func() bool {
+				var db struct {
+					Cdn struct {
+						Certificate string `json:"certificate"`
+						Records     []any  `json:"records"`
+					} `json:"cdn"`
+				}
+				return readJson(filepath.Join(managerRoot, "storage/database/data.json"), &db) == nil &&
+					db.Cdn.Certificate == "" && len(db.Cdn.Records) == 0
+			})
+		})
+	}
 
 	// Node: pushed over HTTP; SSH only when the environment provides it.
 	sshUser := "root"
@@ -214,8 +274,9 @@ func TestProxyMethods(t *testing.T) {
 		"name": "e2e", "enabled": true, "quota": 0,
 	}, &account)
 
-	// Wait until the node runs the account's inbound, i.e. the config arrived.
-	waitFor(t, 60*time.Second, "node to receive the remote-rr inbound", func() bool {
+	// Wait until the node runs the account's inbounds, i.e. the config arrived
+	// (the CDN one needs the certificate from the fake Cloudflare first).
+	waitFor(t, 90*time.Second, "node to receive the remote-rr and remote-cxh inbounds", func() bool {
 		var xc struct {
 			Inbounds []struct {
 				Tag string `json:"tag"`
@@ -224,12 +285,11 @@ func TestProxyMethods(t *testing.T) {
 		if err := readJson(filepath.Join(nodeRoot, "storage/app/xray.json"), &xc); err != nil {
 			return false
 		}
+		got := map[string]bool{}
 		for _, in := range xc.Inbounds {
-			if in.Tag == "remote-rr" {
-				return true
-			}
+			got[in.Tag] = true
 		}
-		return false
+		return got["remote-rr"] && got["remote-cxh"]
 	})
 
 	var shown struct {
@@ -237,7 +297,35 @@ func TestProxyMethods(t *testing.T) {
 	}
 	(&apiClient{base: managerUrl + "/api/user"}).call(t, http.MethodGet, "/account/"+account.Id, nil, &shown)
 
-	want := []string{"direct-rr", "remote-rr-" + nodeHost, "relay-rr2rr", "reverse-rr"}
+	// The CDN link is named after its random subdomain; find it by prefix.
+	cxhMethod := ""
+	for name := range shown.Proxies {
+		if strings.HasPrefix(name, "remote-cxh-") && strings.HasSuffix(name, "."+cdnDomain+"@127.0.0.1") {
+			cxhMethod = strings.TrimSuffix(name, "@127.0.0.1")
+		}
+	}
+	if cxhMethod == "" {
+		t.Fatalf("no remote-cxh link in %v", keys(shown.Proxies))
+	}
+	// The client pins the issued leaf: the fake's CA is not trusted, and a real
+	// Origin CA certificate is trusted by the Cloudflare edge only.
+	var pin string
+	if cloudflare != nil {
+		if n := cloudflare.recordCount(); n != 1 {
+			t.Fatalf("want one DNS record at cloudflare, got %d", n)
+		}
+		pin = cloudflare.pin()
+	} else {
+		var db struct {
+			Cdn struct {
+				Certificate string `json:"certificate"`
+			} `json:"cdn"`
+		}
+		readJsonFile(t, filepath.Join(managerRoot, "storage/database/data.json"), &db)
+		pin = leafSha256(t, db.Cdn.Certificate)
+	}
+
+	want := []string{"direct-rr", "remote-rr-" + nodeHost, "relay-rr2rr", "reverse-rr", cxhMethod}
 	if withSsh {
 		want = append(want, "relay-rr2ssh")
 	}
@@ -252,7 +340,7 @@ func TestProxyMethods(t *testing.T) {
 			continue
 		}
 		t.Run(method, func(t *testing.T) {
-			got := fetchThroughLink(t, xrayBinary, filepath.Join(work, "client-"+method), link, target.URL)
+			got := fetchThroughLink(t, xrayBinary, filepath.Join(work, "client-"+method), link, target.URL, pin)
 			if got != body {
 				t.Fatalf("got %q through %s, want %q", got, method, body)
 			}
@@ -327,7 +415,7 @@ func TestProxyMethods(t *testing.T) {
 			method := method
 			link := shown.Proxies[method+"@127.0.0.1"]
 			t.Run(method, func(t *testing.T) {
-				got := fetchThroughLink(t, xrayBinary, filepath.Join(work, "client-shared-"+method), link, target.URL)
+				got := fetchThroughLink(t, xrayBinary, filepath.Join(work, "client-shared-"+method), link, target.URL, "")
 				if got != body {
 					t.Fatalf("got %q through %s on the shared node port, want %q", got, method, body)
 				}
@@ -365,7 +453,7 @@ func setupVeth(t *testing.T) (managerMac, nodeMac string) {
 }
 
 // fetchThroughLink runs an Xray client for the share link and fetches the target through it.
-func fetchThroughLink(t *testing.T, xrayBinary, dir, link, targetUrl string) string {
+func fetchThroughLink(t *testing.T, xrayBinary, dir, link, targetUrl, pin string) string {
 	t.Helper()
 
 	u, err := url.Parse(link)
@@ -375,6 +463,35 @@ func fetchThroughLink(t *testing.T, xrayBinary, dir, link, targetUrl string) str
 	port, _ := strconv.Atoi(u.Port())
 	q := u.Query()
 	httpPort := freePorts(t, 1)[0]
+
+	// A CDN link names a subdomain that only the fake Cloudflare knows; dial the
+	// node in its place (as the edge would) and keep SNI/Host from the link.
+	address := u.Hostname()
+	if strings.HasSuffix(address, "."+cdnDomain) {
+		address = "127.0.0.1"
+	}
+	streamSettings := map[string]any{
+		"network":  q.Get("type"),
+		"security": q.Get("security"),
+	}
+	switch q.Get("security") {
+	case "reality":
+		streamSettings["realitySettings"] = map[string]any{
+			"serverName": q.Get("sni"), "publicKey": q.Get("pbk"), "shortId": "", "fingerprint": "chrome",
+		}
+	case "tls":
+		// The test CA is not trusted, so pin the leaf; the real edge checks the
+		// Origin CA itself.
+		streamSettings["tlsSettings"] = map[string]any{
+			"serverName": q.Get("sni"), "fingerprint": q.Get("fp"), "pinnedPeerCertSha256": pin,
+			"alpn": strings.Split(q.Get("alpn"), ","),
+		}
+	}
+	if q.Get("type") == "xhttp" {
+		streamSettings["xhttpSettings"] = map[string]any{
+			"path": q.Get("path"), "host": q.Get("host"), "mode": q.Get("mode"),
+		}
+	}
 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
@@ -388,18 +505,12 @@ func fetchThroughLink(t *testing.T, xrayBinary, dir, link, targetUrl string) str
 			"tag":      "out",
 			"protocol": "vless",
 			"settings": map[string]any{"vnext": []any{map[string]any{
-				"address": u.Hostname(), "port": port,
+				"address": address, "port": port,
 				"users": []any{map[string]any{
 					"id": u.User.Username(), "flow": q.Get("flow"), "encryption": "none",
 				}},
 			}}},
-			"streamSettings": map[string]any{
-				"network":  q.Get("type"),
-				"security": q.Get("security"),
-				"realitySettings": map[string]any{
-					"serverName": q.Get("sni"), "publicKey": q.Get("pbk"), "shortId": "", "fingerprint": "chrome",
-				},
-			},
+			"streamSettings": streamSettings,
 		}},
 	}
 	configPath := filepath.Join(dir, "config.json")
@@ -688,4 +799,147 @@ func keys(m map[string]string) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// cdnDomain is the Cloudflare zone the fake serves, or the real one from
+// E2E_CF_DOMAIN.
+var cdnDomain = "e2e.example"
+
+// leafSha256 returns the hex SHA-256 of the DER of the last certificate in a
+// PEM chain, the value Xray's pinnedPeerCertSha256 takes.
+func leafSha256(t *testing.T, chain string) string {
+	t.Helper()
+	var leaf []byte
+	rest := []byte(chain)
+	for {
+		block, remain := pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		leaf, rest = block.Bytes, remain
+	}
+	if leaf == nil {
+		t.Fatal("no certificate in the stored chain")
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(leaf))
+}
+
+// fakeCloudflare stands in for the Cloudflare API: one zone, Origin CA
+// certificates signed by a throwaway CA, and an in-memory DNS record list.
+type fakeCloudflare struct {
+	*httptest.Server
+	mu      sync.Mutex
+	records map[string]bool
+	// leafSha256 is the hex SHA-256 of the issued certificate's DER, which the
+	// test client pins since the test CA is not trusted.
+	leafSha256 string
+}
+
+func (f *fakeCloudflare) pin() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.leafSha256
+}
+
+func (f *fakeCloudflare) recordCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.records)
+}
+
+func startFakeCloudflare(t *testing.T) *fakeCloudflare {
+	t.Helper()
+	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "e2e origin ca"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(24 * time.Hour),
+		IsCA: true, KeyUsage: x509.KeyUsageCertSign, BasicConstraintsValid: true,
+	}
+	caDer, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, &caKey.PublicKey, caKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ca, _ := x509.ParseCertificate(caDer)
+
+	f := &fakeCloudflare{records: map[string]bool{}}
+	ok := func(w http.ResponseWriter, result any) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "errors": []any{}, "result": result})
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /zones", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("name") != cdnDomain {
+			ok(w, []any{})
+			return
+		}
+		ok(w, []any{map[string]any{"id": "zone-e2e", "name": cdnDomain}})
+	})
+	mux.HandleFunc("POST /certificates", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Csr       string   `json:"csr"`
+			Hostnames []string `json:"hostnames"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		block, _ := pem.Decode([]byte(body.Csr))
+		csr, err := x509.ParseCertificateRequest(block.Bytes)
+		if err != nil || csr.CheckSignature() != nil {
+			http.Error(w, "bad csr", http.StatusBadRequest)
+			return
+		}
+		template := &x509.Certificate{
+			SerialNumber: big.NewInt(2), Subject: csr.Subject, DNSNames: body.Hostnames,
+			NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(24 * time.Hour),
+			KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		}
+		der, err := x509.CreateCertificate(rand.Reader, template, ca, csr.PublicKey, caKey)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		certificate := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
+		f.mu.Lock()
+		f.leafSha256 = fmt.Sprintf("%x", sha256.Sum256(der))
+		f.mu.Unlock()
+		ok(w, map[string]any{"id": "cert-e2e", "certificate": certificate, "expires_on": template.NotAfter.Format(time.RFC3339)})
+	})
+	mux.HandleFunc("DELETE /certificates/{id}", func(w http.ResponseWriter, r *http.Request) {
+		ok(w, map[string]any{"id": r.PathValue("id")})
+	})
+	mux.HandleFunc("POST /zones/{zone}/dns_records", func(w http.ResponseWriter, r *http.Request) {
+		var record map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&record)
+		f.mu.Lock()
+		id := fmt.Sprintf("rec-%d", len(f.records)+1)
+		f.records[id] = true
+		f.mu.Unlock()
+		record["id"] = id
+		ok(w, record)
+	})
+	mux.HandleFunc("DELETE /zones/{zone}/dns_records/{id}", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		delete(f.records, r.PathValue("id"))
+		f.mu.Unlock()
+		ok(w, map[string]any{"id": r.PathValue("id")})
+	})
+	f.Server = httptest.NewServer(mux)
+	t.Cleanup(f.Close)
+	return f
+}
+
+// freeCloudflarePort returns a free port among those Cloudflare proxies (the
+// only ones Remote CXH accepts), or skips the test when all are taken.
+func freeCloudflarePort(t *testing.T) int {
+	t.Helper()
+	for _, port := range []int{2053, 2083, 2087, 2096, 8443, 443} {
+		l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err != nil {
+			continue
+		}
+		_ = l.Close()
+		return port
+	}
+	t.Skip("no free Cloudflare HTTPS port for Remote CXH")
+	return 0
 }

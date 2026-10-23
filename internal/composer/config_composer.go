@@ -318,6 +318,26 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 		)
 	}
 
+	// Remote CXH: clients reach the node through Cloudflare, which connects
+	// to this port with the Origin CA certificate the manager issued.
+	if xs.RemoteCxhPort > 0 && d.Cdn.Ready() {
+		xc.Inbounds = append(xc.Inbounds, vless.MakeCxhInbound(
+			"remote-cxh",
+			xs.RemoteCxhPort,
+			d.Cdn.CxhPath,
+			d.Cdn.Certificate,
+			d.Cdn.PrivateKey,
+			c.cxhClients(d),
+		))
+		xc.Routing.Rules = append(
+			xc.Routing.Rules,
+			&component.Rule{
+				InboundTag:  []string{"remote-cxh"},
+				OutboundTag: "out",
+			},
+		)
+	}
+
 	return xc
 }
 
@@ -352,6 +372,19 @@ func (c *Composer) rrClients(d *data.Data) []*component.Client {
 			continue
 		}
 		clients = append(clients, vless.MakeUser(u.ProxyId, vless.FlowVision, vless.EncryptionEmpty))
+	}
+	return clients
+}
+
+// cxhClients returns the XHTTP client list (no flow). The caller must hold the
+// store read lock.
+func (c *Composer) cxhClients(d *data.Data) []*component.Client {
+	var clients []*component.Client
+	for _, u := range d.Accounts {
+		if !u.Enabled {
+			continue
+		}
+		clients = append(clients, vless.MakeUser(u.ProxyId, vless.FlowNone, vless.EncryptionEmpty))
 	}
 	return clients
 }

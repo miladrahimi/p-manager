@@ -1,8 +1,11 @@
 package composer
 
 import (
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 
 	"github.com/miladrahimi/p-manager/internal/config"
 	"github.com/miladrahimi/p-manager/internal/data"
@@ -115,5 +118,68 @@ func TestNodeConfigSharedPortRelayDisabled(t *testing.T) {
 	}
 	if ids := clientIds(remote); len(ids) != 1 || ids[0] != "proxy-1" {
 		t.Fatalf("remote-rr clients: %v", ids)
+	}
+}
+
+func TestNodeConfigRemoteCxh(t *testing.T) {
+	c, node := newTestComposer(t, func(xs *data.XraySettings) {
+		xs.RemoteCxhPort = 2053
+	})
+	// Not ready without a certificate: no inbound and no links.
+	if in := inboundByTag(c.NodeConfig(node, time.Now()).Inbounds, "remote-cxh"); in != nil {
+		t.Fatal("remote-cxh inbound without a certificate")
+	}
+
+	c.db.Write(func(d *data.Data) {
+		d.Cdn.CxhPath = "/abc"
+		d.Cdn.Domain = "example.com"
+		d.Cdn.Certificate = "-----BEGIN CERTIFICATE-----\nAAA\nBBB\n-----END CERTIFICATE-----\n"
+		d.Cdn.PrivateKey = "-----BEGIN EC PRIVATE KEY-----\nKKK\n-----END EC PRIVATE KEY-----\n"
+		d.Cdn.Records = []*data.CdnRecord{
+			{Id: "r1", NodeId: node.Id, Name: "old.example.com", Content: node.Host},
+			{Id: "r2", NodeId: node.Id, Name: "new.example.com", Content: node.Host},
+			{Id: "r3", NodeId: "other", Name: "x.example.com", Content: "10.0.0.2"},
+		}
+	})
+
+	xc := c.NodeConfig(node, time.Now())
+	in := inboundByTag(xc.Inbounds, "remote-cxh")
+	if in == nil {
+		t.Fatalf("no remote-cxh inbound in %d inbounds", len(xc.Inbounds))
+	}
+	if err := validator.New(validator.WithRequiredStructEnabled()).Struct(in); err != nil {
+		t.Fatal(err)
+	}
+	ss := in.StreamSettings
+	if in.Port != 2053 || ss.Network != "xhttp" || ss.Security != "tls" || ss.XhttpSettings.Path != "/abc" {
+		t.Fatalf("unexpected inbound: port %d, %s/%s, path %q", in.Port, ss.Network, ss.Security, ss.XhttpSettings.Path)
+	}
+	cert := ss.TlsSettings.Certificates[0]
+	if len(cert.Certificate) != 4 || cert.Certificate[1] != "AAA" || len(cert.Key) != 3 || cert.CertificateFile != "" {
+		t.Fatalf("certificate not inlined as PEM lines: %+v", cert)
+	}
+	if ids := clientIds(in); len(ids) != 1 || ids[0] != "proxy-1" || in.Settings.Clients[0].Flow != "" {
+		t.Fatalf("want the account without a flow, got %+v", in.Settings.Clients)
+	}
+
+	var account *data.Account
+	c.db.Read(func(d *data.Data) { account = d.Accounts[0] })
+	links := c.AccountLinks(account)
+	for _, name := range []string{"remote-cxh-old.example.com@127.0.0.1", "remote-cxh-new.example.com@127.0.0.1"} {
+		link, ok := links[name]
+		if !ok {
+			t.Fatalf("no %s link in %v", name, links)
+		}
+		for _, want := range []string{"@old.example.com:2053", "type=xhttp", "security=tls", "path=%2Fabc", "mode=packet-up", "sni=old.example.com", "host=old.example.com", "fp=chrome", "alpn=h2"} {
+			if name[len("remote-cxh-"):][:3] == "old" && !strings.Contains(link, want) {
+				t.Errorf("link %s lacks %q: %s", name, want, link)
+			}
+		}
+		if strings.Contains(link, "flow=") || strings.Contains(link, "pbk=") {
+			t.Errorf("link %s carries Reality fields: %s", name, link)
+		}
+	}
+	if _, ok := links["remote-cxh-x.example.com@127.0.0.1"]; ok {
+		t.Fatal("link for another node's record")
 	}
 }

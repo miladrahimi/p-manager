@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/cockroachdb/errors"
 	"github.com/go-playground/validator/v10"
@@ -38,6 +39,11 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 				"message": fmt.Sprintf("Validation error: %v", err.Error()),
 			})
 		}
+		if r.RemoteCxhPort > 0 && !slices.Contains(data.CloudflareHttpsPorts, r.RemoteCxhPort) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": fmt.Sprintf("Remote CXH port must be one Cloudflare proxies: %v.", data.CloudflareHttpsPorts),
+			})
+		}
 
 		// Manager and node ports listen on different hosts, so each group only
 		// needs to be distinct within itself.
@@ -54,8 +60,8 @@ func XraySettingsUpdate(coordinator *coordinator.Coordinator, db *data.Store) ec
 			})
 		}
 		// Remote RR and Relay RR2RR may share the node port (one inbound serves
-		// both); paqet needs its own.
-		nodePorts := []int{r.RemoteRrPort, r.RelayRr2PqNodePort}
+		// both); paqet and CXH need their own.
+		nodePorts := []int{r.RemoteRrPort, r.RelayRr2PqNodePort, r.RemoteCxhPort}
 		if r.RelayRr2RrNodePort != r.RemoteRrPort {
 			nodePorts = append(nodePorts, r.RelayRr2RrNodePort)
 		}

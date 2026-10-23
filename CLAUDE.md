@@ -188,7 +188,9 @@ up, issues one 15-year Origin ECC certificate for `domain` + `*.domain` (`cloudf
 record on a random `util.ShortId()` subdomain per node (A for an IP host, CNAME otherwise), rotates it every
 `MainSettings.CdnRotationHours` (0 = never) keeping the newest `cdnRecordsPerNode` (2) so older clients survive one
 interval, and deletes records of gone or re-hosted nodes. Turning the method off deletes the records and keeps the
-certificate; changing the domain revokes the certificate and starts over (the path is kept). A certificate or path
+certificate; changing the domain revokes the certificate and starts over (the path is kept). Cleanup forgets only
+what Cloudflare confirmed deleted: failed deletes/revokes stay stored and are retried on the next run, a domain
+switch waits until the old domain is clean, and without a token the state is kept for when one is set again. A certificate or path
 change triggers a node push; a new record does not. The composer adds the `remote-cxh` inbound
 (`vless.MakeCxhInbound`, certificate inline as PEM lines, `xhttpSettings.mode: auto`) and one link per live record
 (`remote-cxh-<subdomain>@<host>`: `type=xhttp&security=tls&mode=packet-up&alpn=h2&fp=chrome`, SNI and `host` = the

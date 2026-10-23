@@ -78,21 +78,33 @@ func (s *cdnSyncer) syncCdn() error {
 	var errList error
 
 	// Method off, or the domain changed: drop the records (and on a domain
-	// change the certificate) made for the old domain. Without a token the
-	// records can only be forgotten, not deleted.
+	// change the certificate) made for the old domain. Only what Cloudflare
+	// confirmed gone is forgotten; the rest stays stored and is retried on the
+	// next run, and a domain change waits until the old domain is clean. With
+	// no token nothing can be deleted, so the state is kept for when one is set.
 	if !enabled || cdn.Domain != domain {
-		if client != nil && cdn.ZoneId != "" {
-			for _, r := range cdn.Records {
-				errList = errors.Join(errList, s.deleteRecord(ctx, client, cdn.ZoneId, r))
+		if client == nil || (cdn.ZoneId == "" && len(cdn.Records) > 0) {
+			return errors.WithStack(s.store(cdn, false))
+		}
+		kept := make([]*data.CdnRecord, 0, len(cdn.Records))
+		for _, r := range cdn.Records {
+			if err := s.deleteRecord(ctx, client, cdn.ZoneId, r); err != nil {
+				errList = errors.Join(errList, err)
+				kept = append(kept, r)
 			}
 		}
-		cdn.Records = []*data.CdnRecord{}
-		if cdn.Domain != domain {
-			if client != nil && cdn.CertificateId != "" {
-				if err := client.RevokeOriginCertificate(ctx, cdn.CertificateId); err != nil && !cloudflare.IsNotFound(err) {
-					errList = errors.Join(errList, err)
-				}
+		cdn.Records = kept
+		if cdn.Domain != domain && cdn.CertificateId != "" {
+			if err := client.RevokeOriginCertificate(ctx, cdn.CertificateId); err != nil && !cloudflare.IsNotFound(err) {
+				errList = errors.Join(errList, err)
+			} else {
+				cdn.CertificateId = ""
 			}
+		}
+		if len(cdn.Records) > 0 || (cdn.Domain != domain && cdn.CertificateId != "") {
+			return errors.Join(errList, s.store(cdn, false))
+		}
+		if cdn.Domain != domain {
 			cdn = data.Cdn{CxhPath: cdn.CxhPath, Domain: domain, Records: []*data.CdnRecord{}}
 			certificateChanged = true
 		}

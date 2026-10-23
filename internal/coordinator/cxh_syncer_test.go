@@ -25,6 +25,7 @@ type fakeCloudflare struct {
 	nextId      int
 	revoked     []string
 	certsIssued int
+	failDeletes bool // DELETE answers 500, as a Cloudflare outage would
 }
 
 func newFakeCloudflare(t *testing.T) (*fakeCloudflare, *httptest.Server) {
@@ -70,6 +71,12 @@ func newFakeCloudflare(t *testing.T) (*fakeCloudflare, *httptest.Server) {
 	})
 	mux.HandleFunc("DELETE /zones/{zone}/dns_records/{id}", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
+		if f.failDeletes {
+			f.mu.Unlock()
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "errors": []any{map[string]any{"code": 10000, "message": "Internal error."}}})
+			return
+		}
 		_, found := f.records[r.PathValue("id")]
 		delete(f.records, r.PathValue("id"))
 		f.mu.Unlock()
@@ -256,5 +263,82 @@ func TestCdnSyncerDisableAndDomainChange(t *testing.T) {
 	}
 	if pushed != 2 {
 		t.Fatalf("want a push for the dropped certificate, got %d pushes", pushed)
+	}
+}
+
+func TestCdnSyncerRetriesFailedDeletes(t *testing.T) {
+	fake, server := newFakeCloudflare(t)
+	s, store := newTestCdnSyncer(t, server.URL, nil)
+	if err := s.syncCdn(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Cloudflare down while the method is turned off: nothing is forgotten.
+	fake.mu.Lock()
+	fake.failDeletes = true
+	fake.mu.Unlock()
+	_ = store.Write(func(d *data.Data) { d.XraySettings.RemoteCxhPort = 0 })
+	if err := s.syncCdn(); err == nil {
+		t.Fatal("want an error while deletes fail")
+	}
+	var cdn data.Cdn
+	store.Read(func(d *data.Data) { cdn = *d.Cdn })
+	if len(cdn.Records) != 2 || fake.count() != 2 {
+		t.Fatalf("records forgotten during the outage: %d stored, %d at cloudflare", len(cdn.Records), fake.count())
+	}
+
+	// Domain change during the outage: the old zone, certificate and records stay until cleaned.
+	_ = store.Write(func(d *data.Data) { d.MainSettings.CdnDomain = "other.com" })
+	if err := s.syncCdn(); err == nil {
+		t.Fatal("want an error while deletes fail")
+	}
+	store.Read(func(d *data.Data) { cdn = *d.Cdn })
+	if cdn.Domain != "example.com" || cdn.ZoneId != "zone-1" || len(cdn.Records) != 2 || len(fake.revoked) != 1 || cdn.CertificateId != "" {
+		t.Fatalf("domain switched before the old one was clean: %+v (revoked %v)", cdn, fake.revoked)
+	}
+
+	// Cloudflare back: the old records go, then the switch happens (the method
+	// is off, so the new zone is not looked up yet).
+	fake.mu.Lock()
+	fake.failDeletes = false
+	fake.mu.Unlock()
+	if err := s.syncCdn(); err != nil {
+		t.Fatal(err)
+	}
+	store.Read(func(d *data.Data) { cdn = *d.Cdn })
+	if fake.count() != 0 || len(cdn.Records) != 0 || cdn.Domain != "other.com" || cdn.Certificate != "" {
+		t.Fatalf("old domain not cleaned up: %d at cloudflare, state %+v", fake.count(), cdn)
+	}
+}
+
+func TestCdnSyncerKeepsStateWithoutToken(t *testing.T) {
+	fake, server := newFakeCloudflare(t)
+	s, store := newTestCdnSyncer(t, server.URL, nil)
+	if err := s.syncCdn(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Token removed: nothing can be deleted, so nothing is forgotten either.
+	_ = store.Write(func(d *data.Data) { d.MainSettings.CloudflareToken = "" })
+	if err := s.syncCdn(); err != nil {
+		t.Fatal(err)
+	}
+	var cdn data.Cdn
+	store.Read(func(d *data.Data) { cdn = *d.Cdn })
+	if len(cdn.Records) != 2 || fake.count() != 2 || !cdn.Ready() {
+		t.Fatalf("state lost without a token: %+v (%d at cloudflare)", cdn, fake.count())
+	}
+
+	// Token back, method still off: now the records are deleted.
+	_ = store.Write(func(d *data.Data) {
+		d.MainSettings.CloudflareToken = "token"
+		d.XraySettings.RemoteCxhPort = 0
+	})
+	if err := s.syncCdn(); err != nil {
+		t.Fatal(err)
+	}
+	store.Read(func(d *data.Data) { cdn = *d.Cdn })
+	if len(cdn.Records) != 0 || fake.count() != 0 {
+		t.Fatalf("records not deleted once the token was back: %d stored, %d at cloudflare", len(cdn.Records), fake.count())
 	}
 }

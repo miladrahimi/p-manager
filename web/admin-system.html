@@ -282,23 +282,24 @@
             </svg>
         </button>
         <form x-show="open" class="grid grid-cols-1 gap-3 px-5 pb-5" @submit.prevent="saveMainSettings('Integrations')">
-            <!-- One collapsible block per provider; the header tag says whether it is set up -->
+            <!-- One collapsible block per provider, headed like the method rows: name,
+                 one-line purpose, and a status chip; the fields are inside -->
             <template x-for="p in integrations" :key="p.key">
                 <div class="rounded-lg border border-zinc-200" x-data="{ show: false }">
                     <button type="button" @click="show = !show"
-                            class="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left">
-                        <span class="flex items-center gap-2">
-                            <span class="text-xs font-medium tracking-wide text-zinc-400 uppercase" x-text="p.name"></span>
-                            <span class="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                  :class="integrationOn(p) ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-400'"
-                                  x-text="integrationOn(p) ? 'configured' : 'off'"></span>
+                            class="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left">
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-medium" x-text="p.name"></span>
+                            <span class="block truncate text-[11px] text-zinc-400" x-text="p.purpose"></span>
                         </span>
+                        <span class="chip" :class="integrationOn(p) ? 'chip-green' : 'chip-zinc'"
+                              x-text="integrationOn(p) ? 'Configured' : 'Off'"></span>
                         <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="show && 'rotate-180'"
                              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
                         </svg>
                     </button>
-                    <div x-show="show" class="border-t border-zinc-100 px-4 pt-3 pb-4">
+                    <div x-show="show" class="border-t border-zinc-100 px-3 pt-3 pb-4">
                         <template x-if="p.key === 'hetzner'">
                             <div>
                                 <label class="label">
@@ -463,8 +464,14 @@
     // Third-party integrations shown as collapsible blocks in the Integrations form,
     // each "configured" when its token (and, for Cloudflare, domain) is set.
     const integrations = [
-        {key: "hetzner", name: "Hetzner Cloud", fields: ["hetzner_token"]},
-        {key: "cloudflare", name: "Cloudflare", fields: ["cloudflare_token", "cdn_domain"]},
+        {
+            key: "hetzner", name: "Hetzner Cloud", fields: ["hetzner_token"],
+            purpose: "Create P-Node servers from the nodes page",
+        },
+        {
+            key: "cloudflare", name: "Cloudflare", fields: ["cloudflare_token", "cdn_domain"],
+            purpose: "Put P-Nodes behind the CDN for Remote CXH",
+        },
     ]
 
     function systemPage() {

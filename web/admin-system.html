@@ -429,10 +429,11 @@
     // Proxy methods shown in the Xray settings form. A method is enabled when
     // all of its port fields are non-zero; the backend keeps zero as "disabled".
     // tag is the method's inbound tag (the key of the usage stats) and color its
-    // one color, used by the settings rows and the usage overview alike.
+    // one color, used by the settings rows and the usage overview alike. No
+    // green, red, yellow, grey or dark: those mean status elsewhere in the UI.
     const methods = [
         {
-            key: "direct", tag: "direct-rr", color: "bg-orange-500", name: "Direct RR", flow: "[Client] -RR→ [P-Manager] → [Internet]",
+            key: "direct", tag: "direct-rr", color: "bg-amber-700", name: "Direct RR", flow: "[Client] -RR→ [P-Manager] → [Internet]",
             fields: [{field: "direct_rr_port", label: "Client port", host: "manager", port: true}],
         },
         {
@@ -440,7 +441,7 @@
             fields: [{field: "remote_rr_port", label: "Client port", host: "node", port: true}],
         },
         {
-            key: "cdn", tag: "remote-cxh", color: "bg-emerald-500", name: "Remote CXH", flow: "[Client] -CXH→ [Cloudflare] -CXH→ [P-Node] → [Internet]",
+            key: "cdn", tag: "remote-cxh", color: "bg-orange-500", name: "Remote CXH", flow: "[Client] -CXH→ [Cloudflare] -CXH→ [P-Node] → [Internet]",
             link: {label: "Cloudflare", url: "https://dash.cloudflare.com/"},
             fields: [{
                 field: "remote_cxh_port", label: "Client port", host: "node", port: true,
@@ -456,7 +457,7 @@
             ],
         },
         {
-            key: "relay", tag: "relay-rr2rr", color: "bg-yellow-400", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
+            key: "relay", tag: "relay-rr2rr", color: "bg-pink-400", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
             fields: [
                 {field: "relay_rr_2_rr_manager_port", label: "Client port", host: "manager", port: true},
                 {
@@ -466,7 +467,7 @@
             ],
         },
         {
-            key: "ssh", tag: "relay-rr2ssh", color: "bg-rose-500", name: "Relay RR→SSH", flow: "[Client] -RR→ [P-Manager] -SSH→ [P-Node] → [Internet]",
+            key: "ssh", tag: "relay-rr2ssh", color: "bg-fuchsia-600", name: "Relay RR→SSH", flow: "[Client] -RR→ [P-Manager] -SSH→ [P-Node] → [Internet]",
             fields: [
                 {field: "relay_rr_2_ssh_port", label: "Client port", host: "manager", port: true},
                 {field: "relay_rr_2_ssh_connections", label: "Connections", min: 1, max: 32},

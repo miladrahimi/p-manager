@@ -28,17 +28,6 @@
         </nav>
     </header>
 
-    <!-- Quick actions -->
-    <div class="mb-4 flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div class="flex flex-col gap-2 sm:flex-row">
-            <button class="btn btn-outline-amber w-full sm:w-auto" :disabled="busy"
-                    @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
-                Restart Xray Core
-            </button>
-            <a class="btn btn-outline w-full sm:w-auto" href="admin-logs.html">View Logs</a>
-        </div>
-    </div>
-
     <!-- Overview: usage (total and the share of each method, from the inbound counters:
          manager methods locally, Remote RR/CXH from the nodes) and accounts, side by side -->
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
@@ -404,6 +393,21 @@
             </div>
         </form>
     </section>
+
+    <!-- Xray core: restart and logs -->
+    <div class="card mt-4 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <span class="min-w-0">
+            <span class="block text-sm font-semibold">Xray Core</span>
+            <span class="block text-[11px] text-zinc-400">Restart the local Xray process or follow the manager and node logs.</span>
+        </span>
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <a class="btn btn-outline w-full sm:w-auto" href="admin-logs.html">View Logs</a>
+            <button class="btn btn-outline-amber w-full sm:w-auto" :disabled="busy"
+                    @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
+                Restart Xray Core
+            </button>
+        </div>
+    </div>
 
     <!-- Platform -->
     <p class="mt-6 text-center text-xs text-zinc-400" x-show="platform.app_name" x-cloak

@@ -115,9 +115,15 @@ func TestProxyMethods(t *testing.T) {
 		nodePaqet = map[string]any{"interface": pqNodeIface, "address": pqNodeAddr, "router_mac": managerMac}
 	}
 
-	// The target the proxied requests must reach.
+	// The target the proxied requests must reach; /big serves a payload large
+	// enough to show up unmistakably in the usage stats.
 	const body = "p-manager e2e ok"
-	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	const bigSize = 1 << 20
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/big" {
+			_, _ = w.Write(bytes.Repeat([]byte("x"), bigSize))
+			return
+		}
 		_, _ = io.WriteString(w, body)
 	}))
 	defer target.Close()
@@ -344,8 +350,41 @@ func TestProxyMethods(t *testing.T) {
 			if got != body {
 				t.Fatalf("got %q through %s, want %q", got, method, body)
 			}
+			// Only the CXH link moves the big payload, so the usage check below
+			// is about CXH traffic: the other methods add a few bytes each.
+			if method == cxhMethod {
+				big := fetchThroughLink(t, xrayBinary, filepath.Join(work, "client-big-"+method), link, target.URL+"/big", pin)
+				if len(big) != bigSize {
+					t.Fatalf("got %d bytes through %s, want %d", len(big), method, bigSize)
+				}
+			}
 		})
 	}
+
+	// Usage: the manager pulls the node's Xray stats once a minute; the CXH
+	// payload must land on the account and on the node.
+	t.Run("usage", func(t *testing.T) {
+		waitFor(t, 150*time.Second, "cxh traffic counted on the account and the node", func() bool {
+			var accounts []struct {
+				Id         string `json:"id"`
+				UsageBytes int64  `json:"usage_bytes"`
+			}
+			var nodes []struct {
+				Id         string `json:"id"`
+				UsageBytes int64  `json:"usage_bytes"`
+			}
+			admin.call(t, http.MethodGet, "/accounts", nil, &accounts)
+			admin.call(t, http.MethodGet, "/nodes", nil, &nodes)
+			accountOk, nodeOk := false, false
+			for _, a := range accounts {
+				accountOk = accountOk || (a.Id == account.Id && a.UsageBytes >= bigSize)
+			}
+			for _, n := range nodes {
+				nodeOk = nodeOk || (n.Id == node.Id && n.UsageBytes >= bigSize)
+			}
+			return accountOk && nodeOk
+		})
+	})
 	if !withSsh {
 		t.Log("relay-rr2ssh skipped; set E2E_SSH=1 to include it")
 	}

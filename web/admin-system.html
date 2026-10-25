@@ -39,93 +39,97 @@
         </div>
     </div>
 
-    <!-- Overview: total usage, accounts, and the share of each method (inbound counters:
-         manager methods locally, Remote RR/CXH from the nodes) -->
-    <div class="card px-5 py-4">
-        <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-            <div>
-                <p class="text-xs text-zinc-500">
-                    Total usage <span class="text-zinc-400" x-text="`(since ${ts2date(stats.total_usage_reset_at)})`"></span>
+    <!-- Overview: usage (total and the share of each method, from the inbound counters:
+         manager methods locally, Remote RR/CXH from the nodes) and accounts, side by side -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <!-- Usage -->
+        <div class="card flex flex-col px-5 py-4 lg:col-span-2" x-data="{ reset: false }">
+            <p class="text-xs text-zinc-500">
+                Total usage <span class="text-zinc-400" x-text="`(since ${ts2date(stats.total_usage_reset_at)})`"></span>
+            </p>
+            <p class="mt-0.5 text-2xl font-semibold tabular-nums"
+               x-text="`${parseFloat(stats.total_usage || 0).toFixed(2)} GB`"></p>
+
+            <!-- Share per method: a stacked bar and its legend -->
+            <div class="mt-4">
+                <div class="flex h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+                    <template x-for="m in methodUsage()" :key="m.tag">
+                        <div class="h-full" :class="m.color" :style="`width: ${m.share}%`" :title="`${m.name}: ${fmtBytes(m.bytes)}`"></div>
+                    </template>
+                </div>
+                <!-- Legend: one aligned row per method on phones, a wrapping line from sm up -->
+                <div class="mt-2 grid grid-cols-1 gap-y-1 text-xs sm:flex sm:flex-wrap sm:gap-x-5" x-show="methodUsage().length">
+                    <template x-for="m in methodUsage()" :key="m.tag">
+                        <span class="flex items-center gap-1.5">
+                            <span class="h-2 w-2 flex-none rounded-full" :class="m.color"></span>
+                            <span class="flex-1 sm:flex-none" x-text="m.name"></span>
+                            <span class="font-medium tabular-nums" x-text="fmtBytes(m.bytes)"></span>
+                        </span>
+                    </template>
+                </div>
+                <p class="mt-2 text-[11px] text-zinc-400" x-show="!methodUsage().length">
+                    No traffic counted yet: methods appear here after their first traffic (counters are read every minute).
                 </p>
-                <p class="mt-0.5 text-2xl font-semibold tabular-nums"
-                   x-text="`${parseFloat(stats.total_usage || 0).toFixed(2)} GB`"></p>
             </div>
-            <div class="flex flex-wrap gap-2 text-xs">
-                <span class="chip chip-outline"><b class="tabular-nums" x-text="stats.total_accounts ?? '-'"></b> accounts</span>
+
+            <!-- Reset tools behind a toggle -->
+            <div class="mt-auto flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
+                <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
+                        @click="reset = !reset">
+                    <span x-text="reset ? 'Hide reset tools' : 'Reset usage'"></span>
+                    <svg class="h-3 w-3 transition-transform" :class="reset && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <div x-show="reset" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                    <span class="hidden text-[11px] text-zinc-400 sm:inline">Reset</span>
+                    <button class="btn btn-xs btn-outline-green" :disabled="busy"
+                            @click="action('Reset the total usage?', 'PATCH', '/api/admin/stats', {total_usage: 0}, true)">
+                        Total usage
+                    </button>
+                    <button class="btn btn-xs btn-outline-green" :disabled="busy"
+                            @click="action('Reset usage for all nodes?', 'PATCH', '/api/admin/nodes', {usage: 0})">
+                        Node usages
+                    </button>
+                    <button class="btn btn-xs btn-outline-green" :disabled="busy"
+                            @click="action('Reset usage for all accounts and activate them?', 'PATCH', '/api/admin/accounts', {usage: 0, enabled: true})">
+                        Account usages
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accounts -->
+        <div class="card flex flex-col px-5 py-4" x-data="{ danger: false }">
+            <p class="text-xs text-zinc-500">Accounts</p>
+            <p class="mt-0.5 text-2xl font-semibold tabular-nums" x-text="stats.total_accounts ?? '-'"></p>
+            <div class="mt-3 flex flex-wrap gap-2 text-xs">
                 <span class="chip chip-green"><b class="tabular-nums" x-text="stats.active_accounts ?? '-'"></b> active</span>
                 <span class="chip" :class="disabledAccounts() > 0 ? 'chip-red' : 'chip-zinc'">
                     <b class="tabular-nums" x-text="disabledAccounts()"></b> disabled
                 </span>
             </div>
-        </div>
 
-        <!-- Share per method: a stacked bar and its legend -->
-        <div class="mt-4">
-            <div class="flex h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-                <template x-for="m in methodUsage()" :key="m.tag">
-                    <div class="h-full" :class="m.color" :style="`width: ${m.share}%`" :title="`${m.name}: ${fmtBytes(m.bytes)}`"></div>
-                </template>
-            </div>
-            <!-- Legend: one aligned row per method on phones, a wrapping line from sm up -->
-            <div class="mt-2 grid grid-cols-1 gap-y-1 text-xs sm:flex sm:flex-wrap sm:gap-x-5" x-show="methodUsage().length">
-                <template x-for="m in methodUsage()" :key="m.tag">
-                    <span class="flex items-center gap-1.5">
-                        <span class="h-2 w-2 flex-none rounded-full" :class="m.color"></span>
-                        <span class="flex-1 sm:flex-none" x-text="m.name"></span>
-                        <span class="font-medium tabular-nums" x-text="fmtBytes(m.bytes)"></span>
-                    </span>
-                </template>
-            </div>
-            <p class="mt-2 text-[11px] text-zinc-400" x-show="!methodUsage().length">
-                No traffic counted yet: methods appear here after their first traffic (counters are read every minute).
-            </p>
-        </div>
-
-        <!-- Actions: usage resets and account tools, each behind its own toggle -->
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3"
-             x-data="{ reset: false, danger: false }">
-            <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
-                    @click="reset = !reset">
-                <span x-text="reset ? 'Hide reset tools' : 'Reset usage'"></span>
-                <svg class="h-3 w-3 transition-transform" :class="reset && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-            <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
-                    @click="danger = !danger">
-                <span x-text="danger ? 'Hide account tools' : 'Manage accounts'"></span>
-                <svg class="h-3 w-3 transition-transform" :class="danger && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-            <!-- Reset tools -->
-            <div x-show="reset" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-                <span class="hidden text-[11px] text-zinc-400 sm:inline">Reset</span>
-                <button class="btn btn-xs btn-outline-green" :disabled="busy"
-                        @click="action('Reset the total usage?', 'PATCH', '/api/admin/stats', {total_usage: 0}, true)">
-                    Total usage
+            <!-- Account tools behind a toggle: import from another manager, and the bulk deletes -->
+            <div class="mt-auto flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
+                <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
+                        @click="danger = !danger">
+                    <span x-text="danger ? 'Hide account tools' : 'Manage accounts'"></span>
+                    <svg class="h-3 w-3 transition-transform" :class="danger && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                    </svg>
                 </button>
-                <button class="btn btn-xs btn-outline-green" :disabled="busy"
-                        @click="action('Reset usage for all nodes?', 'PATCH', '/api/admin/nodes', {usage: 0})">
-                    Node usages
-                </button>
-                <button class="btn btn-xs btn-outline-green" :disabled="busy"
-                        @click="action('Reset usage for all accounts and activate them?', 'PATCH', '/api/admin/accounts', {usage: 0, enabled: true})">
-                    Account usages
-                </button>
-            </div>
-            <!-- Account tools: import from another manager, and the bulk deletes -->
-            <div x-show="danger" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-                <button class="btn btn-xs btn-outline" :disabled="busy" @click="importOpen = true">Import accounts…</button>
-                <span class="mx-1 hidden h-4 w-px bg-zinc-200 sm:block"></span>
-                <button class="btn btn-xs btn-outline-danger" :disabled="busy"
-                        @click="action('Delete all disabled accounts?', 'DELETE', '/api/admin/accounts?enabled=false')">
-                    Delete disabled accounts
-                </button>
-                <button class="btn btn-xs btn-danger" :disabled="busy"
-                        @click="action('Delete ALL accounts?', 'DELETE', '/api/admin/accounts')">
-                    Delete all accounts
-                </button>
+                <div x-show="danger" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                    <button class="btn btn-xs btn-outline" :disabled="busy" @click="importOpen = true">Import accounts…</button>
+                    <button class="btn btn-xs btn-outline-danger" :disabled="busy"
+                            @click="action('Delete all disabled accounts?', 'DELETE', '/api/admin/accounts?enabled=false')">
+                        Delete disabled
+                    </button>
+                    <button class="btn btn-xs btn-danger" :disabled="busy"
+                            @click="action('Delete ALL accounts?', 'DELETE', '/api/admin/accounts')">
+                        Delete all
+                    </button>
+                </div>
             </div>
         </div>
     </div>

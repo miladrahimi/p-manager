@@ -44,12 +44,19 @@ func newStatsSyncer(
 	}
 }
 
+// nodeStatsEnabled reports whether nodes carry account traffic the manager does
+// not see itself: the client inbounds Remote RR and Remote CXH. Relayed and
+// reversed traffic is already counted on the manager.
+func nodeStatsEnabled(xs *data.XraySettings) bool {
+	return xs.RemoteRrPort != 0 || xs.RemoteCxhPort != 0
+}
+
 // pullStatsFromNodes pulls the stats of all nodes.
 func (s *statsSyncer) pullStatsFromNodes() {
 	var enabled bool
 	var nodes []*data.Node
 	s.db.Read(func(d *data.Data) {
-		enabled = d.XraySettings.RemoteRrPort != 0
+		enabled = nodeStatsEnabled(d.XraySettings)
 		if enabled {
 			nodes = append(nodes, d.Nodes...)
 		}

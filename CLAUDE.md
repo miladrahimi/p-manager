@@ -194,7 +194,9 @@ switch waits until the old domain is clean, and without a token the state is kep
 change triggers a node push; a new record does not. The composer adds the `remote-cxh` inbound
 (`vless.MakeCxhInbound`, certificate inline as PEM lines, `xhttpSettings.mode: auto`) and one link per live record
 (`remote-cxh-<subdomain>@<host>`: `type=xhttp&security=tls&mode=packet-up&alpn=h2&fp=chrome`, SNI and `host` = the
-subdomain). Node usage counts the `remote-cxh` inbound like `remote-rr`. The e2e runs it against a fake Cloudflare
+subdomain). Node usage counts the `remote-cxh` inbound like `remote-rr`, and node stats are pulled whenever Remote RR or
+Remote CXH is on (`nodeStatsEnabled`; before CXH the pull was gated on Remote RR alone, so a CXH-only setup counted
+nothing). The e2e runs it against a fake Cloudflare
 (`configs/main.json` → `cloudflare.base_url`) that signs the CSR with a throwaway CA; the test client pins the leaf
 (`pinnedPeerCertSha256`; `allowInsecure` is gone in Xray 26) and dials the node in place of the edge.
 

@@ -84,6 +84,15 @@ For earlier updates, run the command below:
 make update
 ```
 
+If the server's own route to GitHub is slow (a manager in Iran, say), pull through one of its nodes: open a SOCKS
+tunnel over SSH and let git use it, then update as usual.
+
+```shell
+ssh -fN -D 127.0.0.1:1089 root@<node-ip>
+git -c http.proxy=socks5h://127.0.0.1:1089 pull
+make update
+```
+
 ### Uninstall
 
 The command below uninstalls the P-Manager service, update cron job, and application directory.

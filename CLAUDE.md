@@ -83,7 +83,13 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 ## Key Behavior Notes / Gotchas
 - Admin panel username is `admin`; the password is the `AdminPassword` setting (`internal/data/main_settings.go`).
 - Default admin password is `password` (`defaultAdminPassword`); change it after first login. Validation requires 8–32 chars.
-- `make update` is destructive (`git reset --hard` + `git clean -fd`).
+- `make update` is destructive (`git reset --hard` + `git clean -fd`). On a server with a slow route to GitHub
+  (Iran: ~14 KB/s, the 27 MB binary blob gets cut off) pull through a node first: `ssh -fN -D 127.0.0.1:1089
+  root@<node>` + `git -c http.proxy=socks5h://127.0.0.1:1089 pull` (README → Update). A `make update` killed
+  mid-pull leaves an orphaned `git merge` holding `.git/index.lock`; stop it with `pkill -x git`, never
+  `pkill -f "make update"` from a remote command line that itself contains those words.
+- Every manager restart pushes node configs with a new `_metadata.updatedAt`, so P-Node restarts Xray and its
+  stats counters go back to zero: up to a minute of unpulled node traffic is lost per manager restart.
 - The built `p-manager` binary is tracked and should be committed when updated.
 - `go.mod` uses `replace github.com/miladrahimi/p-node => ../p-node` to develop against a local P-Node checkout.
 - Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` instead of `clientID`, etc.).

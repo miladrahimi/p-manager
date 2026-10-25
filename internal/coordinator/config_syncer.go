@@ -24,6 +24,10 @@ type configSyncer struct {
 	composer *composer.Composer
 	state    *State
 	pushing  sync.Map
+	// beforeReconfigure and beforePush read the Xray counters that the
+	// reconfigure / push is about to zero (set by the coordinator).
+	beforeReconfigure func()
+	beforePush        func(*data.Node)
 }
 
 // newConfigSyncer creates a new config syncer.
@@ -50,6 +54,9 @@ func (c *configSyncer) updateLocalConfig() error {
 	c.l.Info("coordinator: updating local configs...")
 
 	localConfig := c.composer.ManagerConfig(c.state.SshConfigsByNode(), c.state.PaqetPortsByNode())
+	if c.beforeReconfigure != nil {
+		c.beforeReconfigure()
+	}
 	if err := c.xray.Reconfigure(localConfig); err != nil {
 		return errors.WithStack(err)
 	}
@@ -109,6 +116,9 @@ func (c *configSyncer) pushConfigToNode(n *data.Node) {
 		token = n.HttpToken
 		proxy = d.MainSettings.SingetServer
 	})
+	if c.beforePush != nil {
+		c.beforePush(n)
+	}
 	nc := c.composer.NodeConfig(n, c.state.XrayUpdatedAt())
 
 	proxied := false

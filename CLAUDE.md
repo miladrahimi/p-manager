@@ -88,8 +88,18 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
   root@<node>` + `git -c http.proxy=socks5h://127.0.0.1:1089 pull` (README → Update). A `make update` killed
   mid-pull leaves an orphaned `git merge` holding `.git/index.lock`; stop it with `pkill -x git`, never
   `pkill -f "make update"` from a remote command line that itself contains those words.
-- Every manager restart pushes node configs with a new `_metadata.updatedAt`, so P-Node restarts Xray and its
-  stats counters go back to zero: up to a minute of unpulled node traffic is lost per manager restart.
+- Xray zeroes its counters on restart, and every manager restart pushes node configs with a new
+  `_metadata.updatedAt` that makes P-Node restart Xray. So the config syncer reads the counters first:
+  `beforeReconfigure` (local `loadLocalStats`) and `beforePush` (`pullStatsBeforePush`, reachable nodes only, when
+  Remote RR or CXH is on).
+- **Usage accounting** (`coordinator/stats_aggregate.go`, pure functions with tests): `aggregateLocalStats` reads the
+  manager's counters — accounts from `user>>>` (except reverse bridge ids, which are attributed to their node), nodes
+  from the `relay-*` outbounds plus the bridge users, total and per-method from the client inbounds `direct-rr`,
+  `relay-rr2rr`, `relay-rr2ssh`, `relay-rr2pq`, `reverse-rr` (counted once; `reverse-rr-tunnel` carries the same
+  bytes). `aggregateNodeStats` reads a node's counters — accounts from `user>>>`, node and per-method from the client
+  inbounds `remote-rr` and `remote-cxh`, minus the relay client's bytes on a shared port. Per-method totals live in
+  `Stats.MethodUsageBytes` (keyed by inbound tag, reset together with the total via `PATCH /api/admin/stats`), served
+  as `method_usage_bytes` and shown as "Usage by method" on the System page.
 - The built `p-manager` binary is tracked and should be committed when updated.
 - `go.mod` uses `replace github.com/miladrahimi/p-node => ../p-node` to develop against a local P-Node checkout.
 - Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` instead of `clientID`, etc.).

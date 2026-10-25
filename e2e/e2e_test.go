@@ -361,10 +361,11 @@ func TestProxyMethods(t *testing.T) {
 		})
 	}
 
-	// Usage: the manager pulls the node's Xray stats once a minute; the CXH
-	// payload must land on the account and on the node.
+	// Usage: the manager reads its own Xray counters and pulls the node's once
+	// a minute. The CXH payload must land on the account, the node and the
+	// remote-cxh method; every other method used above must show up too.
 	t.Run("usage", func(t *testing.T) {
-		waitFor(t, 150*time.Second, "cxh traffic counted on the account and the node", func() bool {
+		waitFor(t, 150*time.Second, "traffic counted on the account, the node and the methods", func() bool {
 			var accounts []struct {
 				Id         string `json:"id"`
 				UsageBytes int64  `json:"usage_bytes"`
@@ -373,8 +374,12 @@ func TestProxyMethods(t *testing.T) {
 				Id         string `json:"id"`
 				UsageBytes int64  `json:"usage_bytes"`
 			}
+			var stats struct {
+				MethodUsageBytes map[string]int64 `json:"method_usage_bytes"`
+			}
 			admin.call(t, http.MethodGet, "/accounts", nil, &accounts)
 			admin.call(t, http.MethodGet, "/nodes", nil, &nodes)
+			admin.call(t, http.MethodGet, "/stats", nil, &stats)
 			accountOk, nodeOk := false, false
 			for _, a := range accounts {
 				accountOk = accountOk || (a.Id == account.Id && a.UsageBytes >= bigSize)
@@ -382,7 +387,11 @@ func TestProxyMethods(t *testing.T) {
 			for _, n := range nodes {
 				nodeOk = nodeOk || (n.Id == node.Id && n.UsageBytes >= bigSize)
 			}
-			return accountOk && nodeOk
+			methodsOk := stats.MethodUsageBytes["remote-cxh"] >= bigSize
+			for _, method := range []string{"direct-rr", "remote-rr", "relay-rr2rr", "reverse-rr"} {
+				methodsOk = methodsOk && stats.MethodUsageBytes[method] > 0
+			}
+			return accountOk && nodeOk && methodsOk
 		})
 	})
 	if !withSsh {

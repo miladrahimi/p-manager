@@ -21,6 +21,8 @@ type StatsResponse struct {
 	TotalUsage        float64 `json:"total_usage"`
 	TotalAccounts     int     `json:"total_accounts"`
 	ActiveAccounts    int     `json:"active_accounts"`
+	// MethodUsageBytes is the traffic per proxy method, keyed by inbound tag.
+	MethodUsageBytes map[string]int64 `json:"method_usage_bytes"`
 }
 
 // StatsIndex returns the statistics of the platform.
@@ -55,6 +57,7 @@ func StatsUpdatePartial(db *data.Store) echo.HandlerFunc {
 				d.Stats.TotalUsage = *request.TotalUsage
 				d.Stats.TotalUsageBytes = util.GB2Bytes(*request.TotalUsage)
 				d.Stats.TotalUsageResetAt = time.Now().UnixMilli()
+				d.Stats.MethodUsageBytes = map[string]int64{}
 			}
 			response = newStatsResponse(d)
 		})
@@ -73,5 +76,6 @@ func newStatsResponse(d *data.Data) StatsResponse {
 		TotalUsage:        d.Stats.TotalUsage,
 		TotalAccounts:     len(d.Accounts),
 		ActiveAccounts:    d.CountActiveAccounts(),
+		MethodUsageBytes:  d.Stats.MethodUsageBytes,
 	}
 }

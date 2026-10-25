@@ -150,7 +150,7 @@ func (c *Composer) composeManagerConfig(
 		for _, n := range d.Nodes {
 			// No flow: the bridge tunnel carries mux, incompatible with vision.
 			bridges = append(bridges, vless.MakeUser(
-				reverseRrBridgeId(n.Id, xs.RealityPrivateKey),
+				ReverseRrBridgeId(n.Id, xs.RealityPrivateKey),
 				vless.FlowNone,
 				vless.EncryptionEmpty,
 			))
@@ -257,7 +257,7 @@ func (c *Composer) composeNodeConfig(d *data.Data, node *data.Node, lastUpdate t
 	// Reverse RR: P-Node is the bridge; it dials out to the manager portal, so
 	// it needs only the manager host (delivered with this config), not its own.
 	if len(c.rrClients(d)) > 0 && xs.ReverseRrManagerPort > 0 && xs.ReverseRrPortalPort > 0 && d.MainSettings.Host != "" {
-		bridgeId := reverseRrBridgeId(node.Id, xs.RealityPrivateKey)
+		bridgeId := ReverseRrBridgeId(node.Id, xs.RealityPrivateKey)
 		// No flow: the reverse tunnel carries mux, incompatible with vision.
 		xc.Outbounds = append(xc.Outbounds, vless.MakeRrOutbound(
 			"reverse-rr-tunnel",
@@ -351,9 +351,9 @@ func RelayRr2RrClientId(nodeId, realityPrivateKey string) string {
 	return util.StableUuid("relay-rr2rr|" + nodeId + "|" + realityPrivateKey)
 }
 
-// reverseRrBridgeId is the stable reverse-tunnel client id shared by the manager
+// ReverseRrBridgeId is the stable reverse-tunnel client id shared by the manager
 // inbound and the node outbound (each derives it independently).
-func reverseRrBridgeId(nodeId, realityPrivateKey string) string {
+func ReverseRrBridgeId(nodeId, realityPrivateKey string) string {
 	return util.StableUuid("reverse-rr|" + nodeId + "|" + realityPrivateKey)
 }
 
@@ -405,7 +405,7 @@ func (c *Composer) LogLabels() map[string]string {
 			labels[n.Id] = n.Host
 			// The relay client shows up in node logs as the manager's connection.
 			labels[RelayRr2RrClientId(n.Id, d.XraySettings.RealityPrivateKey)] = "relay from P-Manager"
-			labels[reverseRrBridgeId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
+			labels[ReverseRrBridgeId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Host
 		}
 	})
 	return labels

@@ -68,6 +68,14 @@ func New(
 	// A new certificate or path changes the node inbounds, so push them.
 	cdr.cdnSyncer = newCdnSyncer(logger, db, c.Cloudflare.BaseUrl, cdr.configSyncer.pushConfigToNodes)
 	cdr.statsSyncer = newStatsSyncer(logger, db, hc, xray, cdr.UpdateConfigs)
+	// Xray zeroes its counters on restart, so read them before any reconfigure
+	// or node push. The local read fails harmlessly before Xray's first start.
+	cdr.configSyncer.beforeReconfigure = func() {
+		if err := cdr.statsSyncer.loadLocalStats(); err != nil {
+			logger.Debug("coordinator: no local stats before reconfigure", zap.Error(err))
+		}
+	}
+	cdr.configSyncer.beforePush = cdr.statsSyncer.pullStatsBeforePush
 
 	return cdr
 }

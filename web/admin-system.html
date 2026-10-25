@@ -76,6 +76,19 @@
         </div>
     </div>
 
+    <!-- Usage by method (inbound counters: manager methods locally, Remote RR/CXH from the nodes) -->
+    <div class="card mt-3 px-4 py-3" x-show="methodUsage().length" x-cloak>
+        <p class="text-xs text-zinc-500">Usage by method</p>
+        <div class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
+            <template x-for="m in methodUsage()" :key="m.tag">
+                <div class="flex items-baseline justify-between gap-2 border-b border-zinc-100 pb-1">
+                    <span class="truncate text-xs" :class="m.bytes > 0 ? 'text-zinc-700' : 'text-zinc-400'" x-text="m.name"></span>
+                    <span class="text-xs font-medium tabular-nums" :class="m.bytes > 0 ? '' : 'text-zinc-400'" x-text="fmtBytes(m.bytes)"></span>
+                </div>
+            </template>
+        </div>
+    </div>
+
     <!-- Actions -->
     <section class="card mt-4" x-data="{ open: false }">
         <button type="button" @click="open = !open"
@@ -530,6 +543,26 @@
 
             integrationOn(p) {
                 return p.fields.every(f => !!this.main[f])
+            },
+
+            // Usage per method from the stats, labelled by the method list and
+            // sorted by traffic; methods never used are not listed.
+            methodUsage() {
+                const names = {
+                    "direct-rr": "Direct RR", "remote-rr": "Remote RR", "remote-cxh": "Remote CXH",
+                    "reverse-rr": "Reverse RR", "relay-rr2rr": "Relay RR→RR", "relay-rr2ssh": "Relay RR→SSH",
+                    "relay-rr2pq": "Relay RR→Paqet",
+                }
+                return Object.entries(this.stats.method_usage_bytes || {})
+                    .map(([tag, bytes]) => ({tag, bytes, name: names[tag] || tag}))
+                    .sort((a, b) => b.bytes - a.bytes)
+            },
+
+            // Bytes as GB, MB or KB, whichever reads best.
+            fmtBytes(bytes) {
+                if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(2)} GB`
+                if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`
+                return `${Math.round(bytes / 1e3)} KB`
             },
 
             // The flow line, with the method's link (if any) wrapped around its label.

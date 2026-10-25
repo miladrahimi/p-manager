@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -49,6 +48,19 @@ func newStatsSyncer(
 // reversed traffic is already counted on the manager.
 func nodeStatsEnabled(xs *data.XraySettings) bool {
 	return xs.RemoteRrPort != 0 || xs.RemoteCxhPort != 0
+}
+
+// pullStatsBeforePush pulls a node's stats right before a config push, since
+// P-Node restarts Xray on a changed config and that zeroes its counters.
+// Unreachable nodes are skipped: the stale-node retry would only add noise.
+func (s *statsSyncer) pullStatsBeforePush(node *data.Node) {
+	var enabled bool
+	s.db.Read(func(d *data.Data) {
+		enabled = nodeStatsEnabled(d.XraySettings) && node.PushStatus == data.NodeStatusAvailable
+	})
+	if enabled {
+		s.pullStatsFromNode(node)
+	}
 }
 
 // pullStatsFromNodes pulls the stats of all nodes.
@@ -96,34 +108,8 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 		return
 	}
 
-	users := map[string]int64{}
-	var nodeUsageBytes int64
-
-	for _, qs := range queryStats {
-		kind, tag, ok := parseTrafficStat(qs.GetName())
-		if !ok {
-			continue
-		}
-
-		value := qs.GetValue()
-		switch kind {
-		case "user":
-			if tag != "" {
-				users[tag] += value
-			}
-		case "inbound":
-			// Only client inbounds; relay-rr2rr is already counted by the manager's loadLocalStats (no double-count).
-			if tag == "remote-rr" || tag == "remote-cxh" {
-				nodeUsageBytes += value
-			}
-		}
-	}
-
-	// With a shared node port the remote-rr inbound also carries the manager's
-	// relay traffic, which loadLocalStats already counts via the relay outbound.
-	if relayClientId != "" {
-		nodeUsageBytes = max(nodeUsageBytes-users[relayClientId], 0)
-	}
+	traffic := aggregateNodeStats(queryStats, relayClientId)
+	users, nodeUsageBytes := traffic.users, traffic.node
 
 	shouldSync := false
 	err = s.db.Write(func(db *data.Data) {
@@ -145,6 +131,9 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 
 			db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, nodeUsageBytes)
 			db.Stats.TotalUsage = util.Bytes2GB(db.Stats.TotalUsageBytes)
+			for method, bytes := range traffic.methods {
+				db.Stats.AddMethodUsage(method, bytes)
+			}
 		}
 	})
 	if err != nil {
@@ -170,42 +159,23 @@ func (s *statsSyncer) loadLocalStats() error {
 		s.l.Debug("coordinator: local stats response", zap.String("stats", string(payload)))
 	}
 
-	nodes := map[string]int64{}
-	users := map[string]int64{}
-	var totalBytes int64
-
-	for _, qs := range queryStats {
-		kind, tag, ok := parseTrafficStat(qs.GetName())
-		if !ok {
-			continue
+	// Reverse bridges show up as users of the reverse tunnel; map them to nodes.
+	bridgeIdToNode := map[string]string{}
+	s.db.Read(func(d *data.Data) {
+		for _, n := range d.Nodes {
+			bridgeIdToNode[composer.ReverseRrBridgeId(n.Id, d.XraySettings.RealityPrivateKey)] = n.Id
 		}
-
-		value := qs.GetValue()
-		switch kind {
-		case "user":
-			if tag != "" {
-				users[tag] += value
-			}
-		case "outbound":
-			if rest, ok := strings.CutPrefix(tag, "relay-rr2rr-"); ok {
-				nodes[rest] += value
-			} else if rest, ok := strings.CutPrefix(tag, "relay-rr2ssh-"); ok {
-				nodes[rest] += value
-			} else if rest, ok := strings.CutPrefix(tag, "relay-rr2pq-"); ok {
-				nodes[rest] += value
-			}
-		case "inbound":
-			switch tag {
-			case "direct-rr", "relay-rr2rr", "relay-rr2ssh", "relay-rr2pq":
-				totalBytes += value
-			}
-		}
-	}
+	})
+	traffic := aggregateLocalStats(queryStats, bridgeIdToNode)
+	nodes, users, totalBytes := traffic.nodes, traffic.users, traffic.total
 
 	shouldSync := false
 	err = s.db.Write(func(db *data.Data) {
 		if totalBytes > 0 {
 			db.Stats.TotalUsageBytes = util.SafeSumI64(db.Stats.TotalUsageBytes, totalBytes)
+		}
+		for method, bytes := range traffic.methods {
+			db.Stats.AddMethodUsage(method, bytes)
 		}
 
 		for _, n := range db.Nodes {
@@ -273,21 +243,4 @@ func (s *statsSyncer) resetUsageForAccounts() error {
 	}
 
 	return nil
-}
-
-// parseTrafficStat parses an Xray traffic stat name of the form
-// "<kind>>>><tag>>>>traffic>>><uplink|downlink>" and returns the kind and tag.
-// ok is false for stats that are not uplink/downlink traffic counters.
-func parseTrafficStat(name string) (kind string, tag string, ok bool) {
-	parts := strings.Split(name, ">>>")
-	if len(parts) != 4 {
-		return "", "", false
-	}
-	if parts[2] != "traffic" {
-		return "", "", false
-	}
-	if parts[3] != "uplink" && parts[3] != "downlink" {
-		return "", "", false
-	}
-	return parts[0], parts[1], true
 }

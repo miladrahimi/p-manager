@@ -93,10 +93,7 @@
             <div class="divide-y divide-zinc-100 rounded-lg border border-zinc-200" x-show="methodUsage().length">
                 <template x-for="m in methodUsage()" :key="m.tag">
                     <div class="flex items-center justify-between gap-4 px-3 py-2.5">
-                        <span class="min-w-0">
-                            <span class="block text-sm font-medium" :class="!m.bytes && 'text-zinc-400'" x-text="m.name"></span>
-                            <code class="block truncate text-[11px] text-zinc-400" x-text="m.tag"></code>
-                        </span>
+                        <span class="truncate text-sm font-medium" :class="!m.bytes && 'text-zinc-400'" x-text="m.name"></span>
                         <span class="text-sm font-medium tabular-nums" :class="!m.bytes && 'text-zinc-400'" x-text="fmtBytes(m.bytes)"></span>
                     </div>
                 </template>

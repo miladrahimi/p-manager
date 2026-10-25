@@ -63,7 +63,7 @@
                 <p class="text-[11px] text-zinc-400" x-text="`since ${ts2date(stats.total_usage_reset_at)}`"></p>
             </div>
             <div class="flex flex-wrap gap-2 text-xs">
-                <span class="chip chip-dark"><b class="tabular-nums" x-text="stats.total_accounts ?? '-'"></b> accounts</span>
+                <span class="chip chip-outline"><b class="tabular-nums" x-text="stats.total_accounts ?? '-'"></b> accounts</span>
                 <span class="chip chip-green"><b class="tabular-nums" x-text="stats.active_accounts ?? '-'"></b> active</span>
                 <span class="chip" :class="disabledAccounts() > 0 ? 'chip-red' : 'chip-zinc'">
                     <b class="tabular-nums" x-text="disabledAccounts()"></b> disabled
@@ -159,8 +159,10 @@
                             <input type="checkbox" class="switch" :checked="enabled[m.key]"
                                    @change="toggleMethod(m, $event.target.checked)">
                             <span class="min-w-0">
-                                <span class="block text-sm font-medium" :class="!enabled[m.key] && 'text-zinc-400'"
-                                      x-text="m.name"></span>
+                                <span class="flex items-center gap-2 text-sm font-medium" :class="!enabled[m.key] && 'text-zinc-400'">
+                                    <span class="h-2 w-2 flex-none rounded-full" :class="enabled[m.key] ? m.color : 'bg-zinc-300'"></span>
+                                    <span x-text="m.name"></span>
+                                </span>
                                 <code class="block truncate text-[11px] text-zinc-400" x-html="flowHtml(m)"></code>
                             </span>
                         </label>
@@ -426,17 +428,19 @@
 <script>
     // Proxy methods shown in the Xray settings form. A method is enabled when
     // all of its port fields are non-zero; the backend keeps zero as "disabled".
+    // tag is the method's inbound tag (the key of the usage stats) and color its
+    // one color, used by the settings rows and the usage overview alike.
     const methods = [
         {
-            key: "direct", name: "Direct RR", flow: "[Client] -RR→ [P-Manager] → [Internet]",
+            key: "direct", tag: "direct-rr", color: "bg-orange-500", name: "Direct RR", flow: "[Client] -RR→ [P-Manager] → [Internet]",
             fields: [{field: "direct_rr_port", label: "Client port", host: "manager", port: true}],
         },
         {
-            key: "remote", name: "Remote RR", flow: "[Client] -RR→ [P-Node] → [Internet]",
+            key: "remote", tag: "remote-rr", color: "bg-blue-600", name: "Remote RR", flow: "[Client] -RR→ [P-Node] → [Internet]",
             fields: [{field: "remote_rr_port", label: "Client port", host: "node", port: true}],
         },
         {
-            key: "cdn", name: "Remote CXH", flow: "[Client] -CXH→ [Cloudflare] -CXH→ [P-Node] → [Internet]",
+            key: "cdn", tag: "remote-cxh", color: "bg-emerald-500", name: "Remote CXH", flow: "[Client] -CXH→ [Cloudflare] -CXH→ [P-Node] → [Internet]",
             link: {label: "Cloudflare", url: "https://dash.cloudflare.com/"},
             fields: [{
                 field: "remote_cxh_port", label: "Client port", host: "node", port: true,
@@ -445,14 +449,14 @@
             }],
         },
         {
-            key: "reverse", name: "Reverse RR", flow: "[Client] -RR→ [P-Manager] ↪RR= [P-Node] → [Internet]",
+            key: "reverse", tag: "reverse-rr", color: "bg-violet-500", name: "Reverse RR", flow: "[Client] -RR→ [P-Manager] ↪RR= [P-Node] → [Internet]",
             fields: [
                 {field: "reverse_rr_manager_port", label: "Client port", host: "manager", port: true},
                 {field: "reverse_rr_portal_port", label: "Portal port", host: "manager", port: true},
             ],
         },
         {
-            key: "relay", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
+            key: "relay", tag: "relay-rr2rr", color: "bg-yellow-400", name: "Relay RR→RR", flow: "[Client] -RR→ [P-Manager] -RR→ [P-Node] → [Internet]",
             fields: [
                 {field: "relay_rr_2_rr_manager_port", label: "Client port", host: "manager", port: true},
                 {
@@ -462,14 +466,14 @@
             ],
         },
         {
-            key: "ssh", name: "Relay RR→SSH", flow: "[Client] -RR→ [P-Manager] -SSH→ [P-Node] → [Internet]",
+            key: "ssh", tag: "relay-rr2ssh", color: "bg-rose-500", name: "Relay RR→SSH", flow: "[Client] -RR→ [P-Manager] -SSH→ [P-Node] → [Internet]",
             fields: [
                 {field: "relay_rr_2_ssh_port", label: "Client port", host: "manager", port: true},
                 {field: "relay_rr_2_ssh_connections", label: "Connections", min: 1, max: 32},
             ],
         },
         {
-            key: "pq", name: "Relay RR→Paqet", flow: "[Client] -RR→ [P-Manager] -Paqet→ [P-Node] → [Internet]",
+            key: "pq", tag: "relay-rr2pq", color: "bg-cyan-400", name: "Relay RR→Paqet", flow: "[Client] -RR→ [P-Manager] -Paqet→ [P-Node] → [Internet]",
             link: {label: "Paqet", url: "https://github.com/hanselime/paqet"},
             fields: [
                 {field: "relay_rr_2_pq_port", label: "Client port", host: "manager", port: true},
@@ -549,27 +553,20 @@
                 return p.fields.every(f => !!this.main[f])
             },
 
-            // Usage per method from the stats, sorted by traffic, each with its
-            // share of the total and a fixed color. Xray reports a counter for every
+            // Usage per method from the stats, sorted by traffic, each with its share
+            // of the total and the method's color. Xray reports a counter for every
             // enabled inbound, even at zero, so only methods with traffic are listed.
             methodUsage() {
-                const names = {
-                    "direct-rr": "Direct RR", "remote-rr": "Remote RR", "remote-cxh": "Remote CXH",
-                    "reverse-rr": "Reverse RR", "relay-rr2rr": "Relay RR→RR", "relay-rr2ssh": "Relay RR→SSH",
-                    "relay-rr2pq": "Relay RR→Paqet",
-                }
-                const colors = {
-                    "direct-rr": "bg-zinc-800", "remote-rr": "bg-sky-500", "remote-cxh": "bg-emerald-500",
-                    "reverse-rr": "bg-violet-500", "relay-rr2rr": "bg-amber-500", "relay-rr2ssh": "bg-rose-500",
-                    "relay-rr2pq": "bg-teal-500",
-                }
                 const entries = Object.entries(this.stats.method_usage_bytes || {}).filter(([, bytes]) => bytes > 0)
                 const total = entries.reduce((sum, [, bytes]) => sum + bytes, 0)
                 return entries
-                    .map(([tag, bytes]) => ({
-                        tag, bytes, name: names[tag] || tag, color: colors[tag] || "bg-zinc-400",
-                        share: total ? bytes / total * 100 : 0,
-                    }))
+                    .map(([tag, bytes]) => {
+                        const method = methods.find(m => m.tag === tag)
+                        return {
+                            tag, bytes, name: method?.name || tag, color: method?.color || "bg-zinc-400",
+                            share: total ? bytes / total * 100 : 0,
+                        }
+                    })
                     .sort((a, b) => b.bytes - a.bytes)
             },
 

@@ -395,18 +395,12 @@
     </section>
 
     <!-- Xray core: restart and logs -->
-    <div class="card mt-4 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <span class="min-w-0">
-            <span class="block text-sm font-semibold">Xray Core</span>
-            <span class="block text-[11px] text-zinc-400">Restart the local Xray process or follow the manager and node logs.</span>
-        </span>
-        <div class="flex flex-col gap-2 sm:flex-row">
-            <a class="btn btn-outline w-full sm:w-auto" href="admin-logs.html">View Logs</a>
-            <button class="btn btn-outline-amber w-full sm:w-auto" :disabled="busy"
-                    @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
-                Restart Xray Core
-            </button>
-        </div>
+    <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <a class="btn btn-outline w-full sm:w-auto" href="admin-logs.html">View Logs</a>
+        <button class="btn btn-outline-amber w-full sm:w-auto" :disabled="busy"
+                @click="action('Restart the Xray core?', 'POST', '/api/admin/xray/restart')">
+            Restart Xray Core
+        </button>
     </div>
 
     <!-- Platform -->

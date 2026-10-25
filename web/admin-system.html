@@ -81,9 +81,25 @@
             </p>
         </div>
 
-        <!-- Actions: usage resets inline, the account tools behind a toggle -->
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3" x-data="{ danger: false }">
-            <div class="flex flex-wrap items-center gap-2">
+        <!-- Actions: usage resets and account tools, each behind its own toggle -->
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3"
+             x-data="{ reset: false, danger: false }">
+            <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
+                    @click="reset = !reset">
+                <span x-text="reset ? 'Hide reset tools' : 'Reset usage'"></span>
+                <svg class="h-3 w-3 transition-transform" :class="reset && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+            <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
+                    @click="danger = !danger">
+                <span x-text="danger ? 'Hide account tools' : 'Manage accounts'"></span>
+                <svg class="h-3 w-3 transition-transform" :class="danger && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+            <!-- Reset tools -->
+            <div x-show="reset" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
                 <span class="hidden text-[11px] text-zinc-400 sm:inline">Reset</span>
                 <button class="btn btn-xs btn-outline-green" :disabled="busy"
                         @click="action('Reset the total usage?', 'PATCH', '/api/admin/stats', {total_usage: 0}, true)">
@@ -98,13 +114,6 @@
                     Account usages
                 </button>
             </div>
-            <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
-                    @click="danger = !danger">
-                <span x-text="danger ? 'Hide account tools' : 'Manage accounts'"></span>
-                <svg class="h-3 w-3 transition-transform" :class="danger && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
-                </svg>
-            </button>
             <!-- Account tools: import from another manager, and the bulk deletes -->
             <div x-show="danger" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
                 <button class="btn btn-xs btn-outline" :disabled="busy" @click="importOpen = true">Import accounts…</button>

@@ -80,8 +80,8 @@
             </div>
             <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs" x-show="methodUsage().length">
                 <template x-for="m in methodUsage()" :key="m.tag">
-                    <span class="flex items-center gap-1.5" :class="!m.bytes && 'text-zinc-400'">
-                        <span class="h-2 w-2 rounded-full" :class="m.bytes ? m.color : 'bg-zinc-300'"></span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full" :class="m.color"></span>
                         <span x-text="m.name"></span>
                         <span class="font-medium tabular-nums" x-text="fmtBytes(m.bytes)"></span>
                     </span>
@@ -550,7 +550,8 @@
             },
 
             // Usage per method from the stats, sorted by traffic, each with its
-            // share of the total and a fixed color; methods never used are not listed.
+            // share of the total and a fixed color. Xray reports a counter for every
+            // enabled inbound, even at zero, so only methods with traffic are listed.
             methodUsage() {
                 const names = {
                     "direct-rr": "Direct RR", "remote-rr": "Remote RR", "remote-cxh": "Remote CXH",
@@ -562,7 +563,7 @@
                     "reverse-rr": "bg-violet-500", "relay-rr2rr": "bg-amber-500", "relay-rr2ssh": "bg-rose-500",
                     "relay-rr2pq": "bg-teal-500",
                 }
-                const entries = Object.entries(this.stats.method_usage_bytes || {})
+                const entries = Object.entries(this.stats.method_usage_bytes || {}).filter(([, bytes]) => bytes > 0)
                 const total = entries.reduce((sum, [, bytes]) => sum + bytes, 0)
                 return entries
                     .map(([tag, bytes]) => ({

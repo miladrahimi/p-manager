@@ -135,6 +135,13 @@
         <button type="button" @click="open = !open"
                 class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
             <h2 class="text-sm font-semibold">Xray Settings</h2>
+            <!-- State summary, shown while collapsed -->
+            <span class="ml-auto mr-3 flex min-w-0 items-center gap-1.5 text-[11px] text-zinc-400" x-show="!open">
+                <template x-for="m in methods.filter(m => enabled[m.key])" :key="m.key">
+                    <span class="h-2 w-2 rounded-full" :class="m.color" :title="m.name"></span>
+                </template>
+                <span x-text="`${methods.filter(m => enabled[m.key]).length} of ${methods.length} on`"></span>
+            </span>
             <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
                  viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
@@ -153,7 +160,7 @@
                                     <span class="h-2 w-2 flex-none rounded-full" :class="enabled[m.key] ? m.color : 'bg-zinc-300'"></span>
                                     <span x-text="m.name"></span>
                                 </span>
-                                <code class="block truncate text-[11px] text-zinc-400" x-html="flowHtml(m)"></code>
+                                <code class="block text-[11px] break-all text-zinc-400 sm:truncate" x-html="flowHtml(m)"></code>
                             </span>
                         </label>
                         <div class="flex gap-2 sm:justify-end">
@@ -227,6 +234,14 @@
         <button type="button" @click="open = !open"
                 class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
             <h2 class="text-sm font-semibold">Main Settings</h2>
+            <!-- State summary, shown while collapsed -->
+            <span class="ml-auto mr-3 flex min-w-0 items-center gap-1.5 text-[11px] text-zinc-400" x-show="!open">
+                <span class="truncate" x-text="main.host || ''"></span>
+                <span>·</span>
+                <span x-text="main.reset_policy === 'monthly' ? 'monthly reset' : 'no reset'"></span>
+                <span>·</span>
+                <span x-text="main.subscription_enabled ? 'subscription on' : 'subscription off'"></span>
+            </span>
             <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
                  viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
@@ -235,8 +250,12 @@
         <form x-show="open" class="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2" @submit.prevent="saveMainSettings()">
             <div>
                 <label class="label" title="Password for the admin account to access this panel.">Admin Password</label>
-                <input type="text" class="input" x-model.trim="main.admin_password"
-                       minlength="8" maxlength="32" required>
+                <div class="relative" x-data="{ show: false }">
+                    <input :type="show ? 'text' : 'password'" class="input pr-14" x-model.trim="main.admin_password"
+                           minlength="8" maxlength="32" required autocomplete="new-password">
+                    <button type="button" class="absolute inset-y-0 right-0 cursor-pointer px-3 text-[11px] text-zinc-400 hover:text-zinc-700"
+                            @click="show = !show" x-text="show ? 'Hide' : 'Show'"></button>
+                </div>
             </div>
             <div>
                 <label class="label" title="Host for proxy server and account links.">Host</label>
@@ -285,6 +304,12 @@
         <button type="button" @click="open = !open"
                 class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
             <h2 class="text-sm font-semibold">Integrations</h2>
+            <!-- State summary, shown while collapsed -->
+            <span class="ml-auto mr-3 flex min-w-0 items-center gap-1.5 text-[11px] text-zinc-400" x-show="!open">
+                <template x-for="p in integrations" :key="p.key">
+                    <span class="chip" :class="integrationOn(p) ? 'chip-green' : 'chip-zinc'" x-text="p.name"></span>
+                </template>
+            </span>
             <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
                  viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
@@ -378,7 +403,12 @@
             </div>
             <div>
                 <label class="label">Admin Password</label>
-                <input type="text" class="input" x-model.trim="importForm.password" required>
+                <div class="relative" x-data="{ show: false }">
+                    <input :type="show ? 'text' : 'password'" class="input pr-14" x-model.trim="importForm.password" required
+                           autocomplete="off">
+                    <button type="button" class="absolute inset-y-0 right-0 cursor-pointer px-3 text-[11px] text-zinc-400 hover:text-zinc-700"
+                            @click="show = !show" x-text="show ? 'Hide' : 'Show'"></button>
+                </div>
             </div>
             <div class="sm:col-span-2">
                 <button type="submit" class="btn btn-dark w-full" :disabled="busy">Import Accounts</button>

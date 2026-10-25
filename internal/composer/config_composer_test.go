@@ -136,9 +136,9 @@ func TestNodeConfigRemoteCxh(t *testing.T) {
 		d.Cdn.Certificate = "-----BEGIN CERTIFICATE-----\nAAA\nBBB\n-----END CERTIFICATE-----\n"
 		d.Cdn.PrivateKey = "-----BEGIN EC PRIVATE KEY-----\nKKK\n-----END EC PRIVATE KEY-----\n"
 		d.Cdn.Records = []*data.CdnRecord{
-			{Id: "r1", NodeId: node.Id, Name: "old.example.com", Content: node.Host},
-			{Id: "r2", NodeId: node.Id, Name: "new.example.com", Content: node.Host},
-			{Id: "r3", NodeId: "other", Name: "x.example.com", Content: "10.0.0.2"},
+			{Id: "r1", NodeId: node.Id, Name: "old.example.com", Content: node.Host, CreatedAt: 1},
+			{Id: "r2", NodeId: node.Id, Name: "new.example.com", Content: node.Host, CreatedAt: 2},
+			{Id: "r3", NodeId: "other", Name: "x.example.com", Content: "10.0.0.2", CreatedAt: 3},
 		}
 	})
 
@@ -164,20 +164,23 @@ func TestNodeConfigRemoteCxh(t *testing.T) {
 
 	var account *data.Account
 	c.db.Read(func(d *data.Data) { account = d.Accounts[0] })
+	// Only the newest subdomain is handed out; the previous one keeps working
+	// for clients that already hold it.
 	links := c.AccountLinks(account)
-	for _, name := range []string{"remote-cxh-old.example.com@127.0.0.1", "remote-cxh-new.example.com@127.0.0.1"} {
-		link, ok := links[name]
-		if !ok {
-			t.Fatalf("no %s link in %v", name, links)
+	if _, ok := links["remote-cxh-old.example.com@127.0.0.1"]; ok {
+		t.Fatal("link for the previous subdomain")
+	}
+	link, ok := links["remote-cxh-new.example.com@127.0.0.1"]
+	if !ok {
+		t.Fatalf("no link for the newest subdomain in %v", links)
+	}
+	for _, want := range []string{"@new.example.com:2053", "type=xhttp", "security=tls", "path=%2Fabc", "mode=packet-up", "sni=new.example.com", "host=new.example.com", "fp=chrome", "alpn=h2"} {
+		if !strings.Contains(link, want) {
+			t.Errorf("link lacks %q: %s", want, link)
 		}
-		for _, want := range []string{"@old.example.com:2053", "type=xhttp", "security=tls", "path=%2Fabc", "mode=packet-up", "sni=old.example.com", "host=old.example.com", "fp=chrome", "alpn=h2"} {
-			if name[len("remote-cxh-"):][:3] == "old" && !strings.Contains(link, want) {
-				t.Errorf("link %s lacks %q: %s", name, want, link)
-			}
-		}
-		if strings.Contains(link, "flow=") || strings.Contains(link, "pbk=") {
-			t.Errorf("link %s carries Reality fields: %s", name, link)
-		}
+	}
+	if strings.Contains(link, "flow=") || strings.Contains(link, "pbk=") {
+		t.Errorf("link carries Reality fields: %s", link)
 	}
 	if _, ok := links["remote-cxh-x.example.com@127.0.0.1"]; ok {
 		t.Fatal("link for another node's record")

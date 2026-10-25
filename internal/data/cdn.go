@@ -43,3 +43,14 @@ func (c *Cdn) NodeRecords(nodeId string) []*CdnRecord {
 	}
 	return records
 }
+
+// NewestNodeRecord returns the node's most recently created record, or nil.
+func (c *Cdn) NewestNodeRecord(nodeId string) *CdnRecord {
+	var newest *CdnRecord
+	for _, r := range c.Records {
+		if r.NodeId == nodeId && (newest == nil || r.CreatedAt >= newest.CreatedAt) {
+			newest = r
+		}
+	}
+	return newest
+}

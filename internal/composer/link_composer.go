@@ -52,11 +52,12 @@ func (c *Composer) accountLinks(d *data.Data, account *data.Account, links map[s
 		}
 	}
 
-	// Remote CXH: one link per live subdomain of each node, so subscriptions
-	// pick up rotated subdomains while the previous ones keep working.
+	// Remote CXH: one link per node, on its newest subdomain. The previous
+	// subdomain stays alive for one more rotation so clients holding it keep
+	// working, but it is not handed out any more.
 	if xs.RemoteCxhPort > 0 && d.Cdn.Ready() {
 		for _, n := range d.Nodes {
-			for _, r := range d.Cdn.NodeRecords(n.Id) {
+			if r := d.Cdn.NewestNodeRecord(n.Id); r != nil {
 				name := fmt.Sprintf("remote-cxh-%s@%s", r.Name, d.MainSettings.Host)
 				links[name] = makeVlessLink(vlessLinkOptions{
 					host:        r.Name,

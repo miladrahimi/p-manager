@@ -208,8 +208,8 @@ certificate; changing the domain revokes the certificate and starts over (the pa
 what Cloudflare confirmed deleted: failed deletes/revokes stay stored and are retried on the next run, a domain
 switch waits until the old domain is clean, and without a token the state is kept for when one is set again. A certificate or path
 change triggers a node push; a new record does not. The composer adds the `remote-cxh` inbound
-(`vless.MakeCxhInbound`, certificate inline as PEM lines, `xhttpSettings.mode: auto`) and one link per live record
-(`remote-cxh-<subdomain>@<host>`: `type=xhttp&security=tls&mode=packet-up&alpn=h2&fp=chrome`, SNI and `host` = the
+(`vless.MakeCxhInbound`, certificate inline as PEM lines, `xhttpSettings.mode: auto`) and one link per node on its newest record
+(`Cdn.NewestNodeRecord`; the previous subdomain keeps working but is no longer handed out) (`remote-cxh-<subdomain>@<host>`: `type=xhttp&security=tls&mode=packet-up&alpn=h2&fp=chrome`, SNI and `host` = the
 subdomain). Node usage counts the `remote-cxh` inbound like `remote-rr`, and node stats are pulled whenever Remote RR or
 Remote CXH is on (`nodeStatsEnabled`; before CXH the pull was gated on Remote RR alone, so a CXH-only setup counted
 nothing). The e2e runs it against a fake Cloudflare

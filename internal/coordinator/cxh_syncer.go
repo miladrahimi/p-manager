@@ -13,6 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// cdnLabelLength is the length of a node's random subdomain label: short enough
+// to read and type, 36^6 keeps clashes out of reach.
+const cdnLabelLength = 6
+
 // cdnRecordsPerNode is how many subdomains a node keeps: the newest one goes
 // into fresh subscriptions, the previous one keeps older clients working for
 // one more rotation interval.
@@ -217,7 +221,7 @@ func (s *cdnSyncer) createRecord(
 			recordType = "AAAA"
 		}
 	}
-	name := util.ShortId() + "." + cdn.Domain
+	name := util.RandomLabel(cdnLabelLength) + "." + cdn.Domain
 	created, err := client.CreateDnsRecord(ctx, cdn.ZoneId, cloudflare.DnsRecord{
 		Type:    recordType,
 		Name:    name,

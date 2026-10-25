@@ -204,7 +204,7 @@ certificate. The token needs Zone Read, DNS Edit and SSL and Certificates Edit o
 be Full (strict). State the manager keeps itself lives in `data.Cdn` (`cxh_path`, zone id, certificate id + PEM
 certificate and key, `records`): `coordinator/cxh_syncer.go` (`syncCdn`, every 20s, `pkg/cloudflare`) looks the zone
 up, issues one 15-year Origin ECC certificate for `domain` + `*.domain` (`cloudflare.GenerateCsr`), creates a proxied
-record on a random `util.ShortId()` subdomain per node (A for an IP host, CNAME otherwise), rotates it every
+record on a random 6-character subdomain (`util.RandomLabel(cdnLabelLength)`) per node (A for an IP host, CNAME otherwise), rotates it every
 `MainSettings.CdnRotationHours` (0 = never) keeping the newest `cdnRecordsPerNode` (2) so older clients survive one
 interval, and deletes records of gone or re-hosted nodes. Turning the method off deletes the records and keeps the
 certificate; changing the domain revokes the certificate and starts over (the path is kept). Cleanup forgets only

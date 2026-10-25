@@ -148,8 +148,8 @@ func TestCdnSyncerIssuesCertificateAndRecords(t *testing.T) {
 		t.Fatalf("want one record per node, got %d at cloudflare, %d stored", fake.count(), len(cdn.Records))
 	}
 	for _, r := range cdn.Records {
-		if !strings.HasSuffix(r.Name, ".example.com") {
-			t.Errorf("record %q not under the domain", r.Name)
+		if !strings.HasSuffix(r.Name, ".example.com") || len(r.Name) != cdnLabelLength+len(".example.com") {
+			t.Errorf("record %q: want a %d-character label under the domain", r.Name, cdnLabelLength)
 		}
 		got := fake.records[r.Id]
 		wantType := "A"

@@ -63,9 +63,9 @@
                 <p class="text-[11px] text-zinc-400" x-text="`since ${ts2date(stats.total_usage_reset_at)}`"></p>
             </div>
             <div class="flex flex-wrap gap-2 text-xs">
-                <span class="chip chip-zinc"><b class="tabular-nums" x-text="stats.total_accounts ?? '-'"></b> accounts</span>
+                <span class="chip chip-dark"><b class="tabular-nums" x-text="stats.total_accounts ?? '-'"></b> accounts</span>
                 <span class="chip chip-green"><b class="tabular-nums" x-text="stats.active_accounts ?? '-'"></b> active</span>
-                <span class="chip" :class="disabledAccounts() > 0 ? 'chip-amber' : 'chip-zinc'">
+                <span class="chip" :class="disabledAccounts() > 0 ? 'chip-red' : 'chip-zinc'">
                     <b class="tabular-nums" x-text="disabledAccounts()"></b> disabled
                 </span>
             </div>

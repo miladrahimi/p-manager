@@ -65,6 +65,10 @@
         @apply bg-zinc-100 text-zinc-600;
     }
 
+    .chip-dark {
+        @apply bg-zinc-800 text-white;
+    }
+
     .chip-green {
         @apply bg-emerald-100 text-emerald-700;
     }

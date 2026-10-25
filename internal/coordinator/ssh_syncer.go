@@ -3,6 +3,7 @@ package coordinator
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/miladrahimi/p-manager/internal/data"
@@ -11,6 +12,13 @@ import (
 	"github.com/miladrahimi/p-node/pkg/util"
 	"go.uber.org/zap"
 )
+
+// sshStartStagger is the pause between starting two tunnels to the same node.
+// sshd rate-limits connections that are still authenticating (MaxStartups,
+// 10:30:100 by default) and refuses the ones above the limit; a burst of 16
+// starts lost three of them on every manager restart. Spread out, any number
+// of connections comes up cleanly on a node with default sshd settings.
+const sshStartStagger = 300 * time.Millisecond
 
 // sshSyncer is a syncer that syncs the SSH status of the nodes in the database.
 type sshSyncer struct {
@@ -130,6 +138,9 @@ func (s *sshSyncer) syncSshProxies() error {
 		newConfigs := make([]*ssh.ProxyConfig, 0, desiredConnections)
 
 		for i := 0; i < desiredConnections; i++ {
+			if i > 0 {
+				time.Sleep(sshStartStagger)
+			}
 			freePort, err := util.FreePort()
 			if err != nil {
 				errList = errors.Join(errList, err)

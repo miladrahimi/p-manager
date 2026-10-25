@@ -88,6 +88,9 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
   root@<node>` + `git -c http.proxy=socks5h://127.0.0.1:1089 pull` (README → Update). A `make update` killed
   mid-pull leaves an orphaned `git merge` holding `.git/index.lock`; stop it with `pkill -x git`, never
   `pkill -f "make update"` from a remote command line that itself contains those words.
+- Relay RR2SSH tunnels to one node start `sshStartStagger` (300 ms) apart: sshd refuses connections above
+  `MaxStartups` (10 by default) while they are still authenticating, so a burst of 16 lost three on every restart
+  (they came back after the 2 s retry, but it filled the log with `ssh: process exited 255`).
 - Xray zeroes its counters on restart, and every manager restart pushes node configs with a new
   `_metadata.updatedAt` that makes P-Node restart Xray. So the config syncer reads the counters first:
   `beforeReconfigure` (local `loadLocalStats`) and `beforePush` (`pullStatsBeforePush`, reachable nodes only, when

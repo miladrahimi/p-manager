@@ -77,9 +77,12 @@
     </div>
 
     <!-- Usage by method (inbound counters: manager methods locally, Remote RR/CXH from the nodes) -->
-    <div class="card mt-3 px-4 py-3" x-show="methodUsage().length" x-cloak>
+    <div class="card mt-3 px-4 py-3">
         <p class="text-xs text-zinc-500">Usage by method</p>
-        <div class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
+        <p class="mt-1 text-[11px] text-zinc-400" x-show="!methodUsage().length">
+            No traffic counted yet: methods appear here after their first traffic (counters are read every minute).
+        </p>
+        <div class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4" x-show="methodUsage().length">
             <template x-for="m in methodUsage()" :key="m.tag">
                 <div class="flex items-baseline justify-between gap-2 border-b border-zinc-100 pb-1">
                     <span class="truncate text-xs" :class="m.bytes > 0 ? 'text-zinc-700' : 'text-zinc-400'" x-text="m.name"></span>

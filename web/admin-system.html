@@ -92,7 +92,7 @@
             </p>
         </div>
 
-        <!-- Actions: usage resets inline, the destructive ones behind a toggle -->
+        <!-- Actions: usage resets inline, the account tools behind a toggle -->
         <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3" x-data="{ danger: false }">
             <div class="flex flex-wrap items-center gap-2">
                 <span class="text-[11px] text-zinc-400">Reset</span>
@@ -109,15 +109,17 @@
                     Account usages
                 </button>
             </div>
-            <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-red-600"
+            <button type="button" class="flex cursor-pointer items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-700"
                     @click="danger = !danger">
-                <span x-text="danger ? 'Hide danger zone' : 'Danger zone'"></span>
+                <span x-text="danger ? 'Hide account tools' : 'Manage accounts'"></span>
                 <svg class="h-3 w-3 transition-transform" :class="danger && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
                 </svg>
             </button>
-            <div x-show="danger" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50/60 px-3 py-2">
-                <span class="text-[11px] font-medium tracking-wide text-red-500 uppercase">Danger zone</span>
+            <!-- Account tools: import from another manager, and the bulk deletes -->
+            <div x-show="danger" x-cloak class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                <button class="btn btn-xs btn-outline" :disabled="busy" @click="importOpen = true">Import accounts…</button>
+                <span class="mx-1 h-4 w-px bg-zinc-200"></span>
                 <button class="btn btn-xs btn-outline-danger" :disabled="busy"
                         @click="action('Delete all disabled accounts?', 'DELETE', '/api/admin/accounts?enabled=false')">
                     Delete disabled accounts
@@ -129,6 +131,76 @@
             </div>
         </div>
     </div>
+
+    <!-- Main Settings -->
+    <section class="card mt-4" x-data="{ open: false }">
+        <button type="button" @click="open = !open"
+                class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
+            <h2 class="text-sm font-semibold">Main Settings</h2>
+            <!-- State summary, shown while collapsed -->
+            <span class="ml-auto mr-3 flex min-w-0 items-center gap-1.5 text-[11px] text-zinc-400" x-show="!open">
+                <span class="truncate" x-text="main.host || ''"></span>
+                <span>·</span>
+                <span x-text="main.reset_policy === 'monthly' ? 'monthly reset' : 'no reset'"></span>
+                <span>·</span>
+                <span x-text="main.subscription_enabled ? 'subscription on' : 'subscription off'"></span>
+            </span>
+            <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
+                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+        <form x-show="open" class="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2" @submit.prevent="saveMainSettings()">
+            <div>
+                <label class="label" title="Password for the admin account to access this panel.">Admin Password</label>
+                <div class="relative" x-data="{ show: false }">
+                    <input :type="show ? 'text' : 'password'" class="input pr-14" x-model.trim="main.admin_password"
+                           minlength="8" maxlength="32" required autocomplete="new-password">
+                    <button type="button" class="absolute inset-y-0 right-0 cursor-pointer px-3 text-[11px] text-zinc-400 hover:text-zinc-700"
+                            @click="show = !show" x-text="show ? 'Hide' : 'Show'"></button>
+                </div>
+            </div>
+            <div>
+                <label class="label" title="Host for proxy server and account links.">Host</label>
+                <input type="text" class="input" x-model.trim="main.host" required>
+            </div>
+            <div>
+                <label class="label" title="When to reset account usages.">Reset Policy</label>
+                <select class="input" x-model="main.reset_policy">
+                    <option value="">Never</option>
+                    <option value="monthly">First of each month</option>
+                </select>
+            </div>
+            <div>
+                <label class="label" title="Usage multiplier for displaying to accounts.">Usage Ratio</label>
+                <input type="number" class="input" x-model.number="main.traffic_ratio"
+                       min="1" max="1024" step="0.01" required>
+            </div>
+            <div class="sm:col-span-2">
+                <label class="label">
+                    <a class="underline" href="https://github.com/miladrahimi/singet" target="_blank">Singet</a>
+                    Server (URL, or empty to disable)
+                </label>
+                <input type="url" class="input" x-model.trim="main.singet_server" placeholder="https://...">
+            </div>
+            <div class="sm:col-span-2">
+                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 px-3 py-2.5">
+                    <input type="checkbox" class="switch" x-model="main.subscription_enabled">
+                    <span class="min-w-0">
+                        <span class="block text-sm font-medium"
+                              :class="!main.subscription_enabled && 'text-zinc-400'">Subscription link</span>
+                        <span class="block text-[11px] text-zinc-400">
+                            Show the auto-updating all-servers link on the account page.
+                            When off, the page shows only the individual server links.
+                        </span>
+                    </span>
+                </label>
+            </div>
+            <div class="sm:col-span-2">
+                <button type="submit" class="btn btn-dark w-full" :disabled="busy">Save Main Settings</button>
+            </div>
+        </form>
+    </section>
 
     <!-- Xray Settings -->
     <section class="card mt-4" x-data="{ open: false }">
@@ -229,76 +301,6 @@
         </form>
     </section>
 
-    <!-- Main Settings -->
-    <section class="card mt-4" x-data="{ open: false }">
-        <button type="button" @click="open = !open"
-                class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
-            <h2 class="text-sm font-semibold">Main Settings</h2>
-            <!-- State summary, shown while collapsed -->
-            <span class="ml-auto mr-3 flex min-w-0 items-center gap-1.5 text-[11px] text-zinc-400" x-show="!open">
-                <span class="truncate" x-text="main.host || ''"></span>
-                <span>·</span>
-                <span x-text="main.reset_policy === 'monthly' ? 'monthly reset' : 'no reset'"></span>
-                <span>·</span>
-                <span x-text="main.subscription_enabled ? 'subscription on' : 'subscription off'"></span>
-            </span>
-            <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
-                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
-            </svg>
-        </button>
-        <form x-show="open" class="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2" @submit.prevent="saveMainSettings()">
-            <div>
-                <label class="label" title="Password for the admin account to access this panel.">Admin Password</label>
-                <div class="relative" x-data="{ show: false }">
-                    <input :type="show ? 'text' : 'password'" class="input pr-14" x-model.trim="main.admin_password"
-                           minlength="8" maxlength="32" required autocomplete="new-password">
-                    <button type="button" class="absolute inset-y-0 right-0 cursor-pointer px-3 text-[11px] text-zinc-400 hover:text-zinc-700"
-                            @click="show = !show" x-text="show ? 'Hide' : 'Show'"></button>
-                </div>
-            </div>
-            <div>
-                <label class="label" title="Host for proxy server and account links.">Host</label>
-                <input type="text" class="input" x-model.trim="main.host" required>
-            </div>
-            <div>
-                <label class="label" title="When to reset account usages.">Reset Policy</label>
-                <select class="input" x-model="main.reset_policy">
-                    <option value="">Never</option>
-                    <option value="monthly">First of each month</option>
-                </select>
-            </div>
-            <div>
-                <label class="label" title="Usage multiplier for displaying to accounts.">Usage Ratio</label>
-                <input type="number" class="input" x-model.number="main.traffic_ratio"
-                       min="1" max="1024" step="0.01" required>
-            </div>
-            <div class="sm:col-span-2">
-                <label class="label">
-                    <a class="underline" href="https://github.com/miladrahimi/singet" target="_blank">Singet</a>
-                    Server (URL, or empty to disable)
-                </label>
-                <input type="url" class="input" x-model.trim="main.singet_server" placeholder="https://...">
-            </div>
-            <div class="sm:col-span-2">
-                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 px-3 py-2.5">
-                    <input type="checkbox" class="switch" x-model="main.subscription_enabled">
-                    <span class="min-w-0">
-                        <span class="block text-sm font-medium"
-                              :class="!main.subscription_enabled && 'text-zinc-400'">Subscription link</span>
-                        <span class="block text-[11px] text-zinc-400">
-                            Show the auto-updating all-servers link on the account page.
-                            When off, the page shows only the individual server links.
-                        </span>
-                    </span>
-                </label>
-            </div>
-            <div class="sm:col-span-2">
-                <button type="submit" class="btn btn-dark w-full" :disabled="busy">Save Main Settings</button>
-            </div>
-        </form>
-    </section>
-
     <!-- Integrations -->
     <section class="card mt-4" x-data="{ open: false }">
         <button type="button" @click="open = !open"
@@ -385,40 +387,41 @@
         </form>
     </section>
 
-    <!-- Import -->
-    <section class="card mt-4" x-data="{ open: false }">
-        <button type="button" @click="open = !open"
-                class="flex w-full cursor-pointer items-center justify-between p-5 text-left">
-            <h2 class="text-sm font-semibold">Import accounts</h2>
-            <svg class="h-4 w-4 flex-none text-zinc-400 transition-transform" :class="open && 'rotate-180'"
-                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
-            </svg>
-        </button>
-        <form x-show="open" class="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2" @submit.prevent="importAccounts()">
-            <p class="text-sm text-zinc-500 sm:col-span-2">Import accounts from another P-Manager.</p>
-            <div>
-                <label class="label">URL</label>
-                <input type="url" class="input" x-model.trim="importForm.url" placeholder="https://domain-or-ip" required>
-            </div>
-            <div>
-                <label class="label">Admin Password</label>
-                <div class="relative" x-data="{ show: false }">
-                    <input :type="show ? 'text' : 'password'" class="input pr-14" x-model.trim="importForm.password" required
-                           autocomplete="off">
-                    <button type="button" class="absolute inset-y-0 right-0 cursor-pointer px-3 text-[11px] text-zinc-400 hover:text-zinc-700"
-                            @click="show = !show" x-text="show ? 'Hide' : 'Show'"></button>
-                </div>
-            </div>
-            <div class="sm:col-span-2">
-                <button type="submit" class="btn btn-dark w-full" :disabled="busy">Import Accounts</button>
-            </div>
-        </form>
-    </section>
-
     <!-- Platform -->
     <p class="mt-6 text-center text-xs text-zinc-400" x-show="platform.app_name" x-cloak
        x-text="`${platform.app_name} ${platform.app_version} · ${platform.core_name}`"></p>
+
+    <!-- Import accounts modal -->
+    <div x-cloak x-show="importOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="importOpen = false">
+        <div class="absolute inset-0 bg-black/50" @click="importOpen = false"></div>
+        <form class="card relative w-full max-w-md p-5" @submit.prevent="importAccounts()">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="font-semibold">Import accounts</h3>
+                <button type="button" class="text-zinc-400 hover:text-zinc-700" @click="importOpen = false">&#10005;</button>
+            </div>
+            <p class="mb-3 text-sm text-zinc-500">Copy the accounts of another P-Manager into this one.</p>
+            <div class="grid grid-cols-1 gap-3">
+                <div>
+                    <label class="label">URL</label>
+                    <input type="url" class="input" x-model.trim="importForm.url" placeholder="https://domain-or-ip" required>
+                </div>
+                <div>
+                    <label class="label">Admin Password</label>
+                    <div class="relative" x-data="{ show: false }">
+                        <input :type="show ? 'text' : 'password'" class="input pr-14" x-model.trim="importForm.password" required
+                               autocomplete="off">
+                        <button type="button" class="absolute inset-y-0 right-0 cursor-pointer px-3 text-[11px] text-zinc-400 hover:text-zinc-700"
+                                @click="show = !show" x-text="show ? 'Hide' : 'Show'"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2">
+                <button type="button" class="btn btn-outline" @click="importOpen = false">Cancel</button>
+                <button type="submit" class="btn btn-dark" :disabled="busy">Import</button>
+            </div>
+        </form>
+    </div>
 
     <!-- Confirm dialog (replaces the native confirm(); see confirmDialog in app.js) -->
     <div x-cloak x-show="$store.dialog.open" class="fixed inset-0 z-[55] flex items-center justify-center p-4"
@@ -526,6 +529,7 @@
             main: {},
             xray: {},
             importForm: {url: "", password: ""},
+            importOpen: false,
             busy: false,
 
             async load() {
@@ -686,7 +690,9 @@
                     })
                     console.log("Import from P-Manager:", response)
                     this.importForm = {url: "", password: ""}
+                    this.importOpen = false
                     this.$store.toast.info("Accounts imported successfully. See the results in your console.")
+                    await this.load()
                 } catch (e) {
                     this.$store.toast.error(e.message)
                 } finally {

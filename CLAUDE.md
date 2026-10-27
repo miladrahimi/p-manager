@@ -91,10 +91,12 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - Relay RR2SSH tunnels to one node start `sshStartStagger` (300 ms) apart: sshd refuses connections above
   `MaxStartups` (10 by default) while they are still authenticating, so a burst of 16 lost three on every restart
   (they came back after the 2 s retry, but it filled the log with `ssh: process exited 255`).
-- Xray zeroes its counters on restart, and every manager restart pushes node configs with a new
-  `_metadata.updatedAt` that makes P-Node restart Xray. So the config syncer reads the counters first:
+- Xray zeroes its counters on restart, so the config syncer reads them before anything that may restart it:
   `beforeReconfigure` (local `loadLocalStats`) and `beforePush` (`pullStatsBeforePush`, reachable nodes only, when
-  Remote RR or CXH is on).
+  Remote RR or CXH is on). Every push carries a fresh `_metadata.updatedAt`; P-Node's `Config.Equals` ignores that
+  block (2026-10-27), so an unchanged config no longer restarts the node's Xray. Before that, the hourly
+  `resetUsageForAccounts` worker called `UpdateConfigs` unconditionally and every node restarted Xray once an hour;
+  it now updates only when an account was actually reset.
 - **Usage accounting** (`coordinator/stats_aggregate.go`, pure functions with tests): `aggregateLocalStats` reads the
   manager's counters — accounts from `user>>>` (except reverse bridge ids, which are attributed to their node), nodes
   from the `relay-*` outbounds plus the bridge users, total and per-method from the client inbounds `direct-rr`,

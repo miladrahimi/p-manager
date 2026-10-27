@@ -222,6 +222,7 @@ func (s *statsSyncer) resetUsageForAccounts() error {
 
 	s.l.Info("coordinator: resetting usage for all accounts...")
 
+	reset := 0
 	if err := s.db.Write(func(d *data.Data) {
 		now := time.Now()
 		for _, u := range d.Accounts {
@@ -233,12 +234,16 @@ func (s *statsSyncer) resetUsageForAccounts() error {
 			u.UsageBytes = 0
 			u.Enabled = true
 			u.UsageResetAt = now.Unix()
+			reset++
 		}
 	}); err != nil {
 		return errors.WithStack(err)
 	}
 
-	if s.updateConfigs != nil {
+	// Only a real reset changes the configs. This worker runs hourly, and an
+	// unconditional update pushed every node a config with a fresh timestamp
+	// each hour (older P-Nodes restarted Xray on it, dropping every user).
+	if reset > 0 && s.updateConfigs != nil {
 		go s.updateConfigs()
 	}
 

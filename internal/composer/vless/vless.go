@@ -62,9 +62,13 @@ func MakeRrInbound(
 		// (nodes, ssh/paqet SOCKS) receive domains instead of client-resolved
 		// IPs and resolve them at the exit. The Xray access log still prints the
 		// destination the client sent; sniffed names show up in the error log.
+		// The Reality SNI is excluded: a client that tunnels its own proxy
+		// connection (another of our Reality ports) sends that fake SNI, and
+		// overriding it dialled e.g. snapp.ir:3443, which never answers.
 		Sniffing: &component.Sniffing{
-			Enabled:      true,
-			DestOverride: []string{"http", "tls", "quic"},
+			Enabled:         true,
+			DestOverride:    []string{"http", "tls", "quic"},
+			DomainsExcluded: []string{sni},
 		},
 	}
 

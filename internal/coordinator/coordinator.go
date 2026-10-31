@@ -120,7 +120,10 @@ func (c *Coordinator) Run(ctx context.Context) error {
 		return nil
 	}).Start(ctx)
 
-	worker.New("updateNodeSshStatus", c.l, time.Second*10, func() error {
+	// The SSH status only feeds the admin UI, and every check is a full SSH
+	// login on the node (it was 360 an hour at 10 s); adding or editing a node
+	// still checks it at once (CheckSshStatus).
+	worker.New("updateNodeSshStatus", c.l, time.Minute, func() error {
 		return errors.WithStack(c.sshSyncer.checkSshStatuses())
 	}).Start(ctx)
 

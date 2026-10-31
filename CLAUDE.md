@@ -91,6 +91,19 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - Relay RR2SSH tunnels to one node start `sshStartStagger` (300 ms) apart: sshd refuses connections above
   `MaxStartups` (10 by default) while they are still authenticating, so a burst of 16 lost three on every restart
   (they came back after the 2 s retry, but it filled the log with `ssh: process exited 255`).
+- Log volume (2026-10-31, measured on a 1-vCPU manager with 34 accounts): Xray at `info` wrote ~60 MB a day of
+  dial lines to `xray-error.log`, and the RR2SSH tunnels ran with `-v` (~10 MB a day of `debug1` lines in
+  `ssh-err.log`). Defaults are now Xray `warning` and tunnels `-o LogLevel=ERROR`. `config.New` rewrites
+  `configs/main.json` with every merged value, so existing installs keep the Xray level written there: change
+  `xray.log_level` in `main.json` (`info`/`debug` when debugging a connection).
+- The tunnel supervisor (`pkg/ssh/process.go`) backs off while a tunnel keeps failing (`nextRetryDelay`: 2 s doubling
+  to 30 s, reset after a 2-minute run) and logs only the first failure of a streak as an error, without a stack
+  trace (repeats are debug). A down node used to cost every tunnel an error line every 2–12 s.
+- `updateNodeSshStatus` runs every minute: the status only feeds the UI and each check is a full SSH login on the
+  node (360 an hour at the old 10 s). Adding or editing a node still checks at once (`CheckSshStatus`).
+- Reality inbounds exclude their own SNI from sniffing (`domainsExcluded`): a client whose app tunnels its own proxy
+  connection through the proxy (nested, e.g. a delay test while connected) sends the fake SNI, and overriding the
+  destination dialled `snapp.ir:3443` from the node, which only timed out (2,600 attempts in 6 h from one device).
 - Xray zeroes its counters on restart, so the config syncer reads them before anything that may restart it:
   `beforeReconfigure` (local `loadLocalStats`) and `beforePush` (`pullStatsBeforePush`, reachable nodes only, when
   Remote RR or CXH is on). Every push carries a fresh `_metadata.updatedAt`; P-Node's `Config.Equals` ignores that

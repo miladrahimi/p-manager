@@ -183,9 +183,11 @@ func (c *Client) StartSocks(config *ProxyConfig, stdoutPath, stderrPath string) 
 	args := []string{
 		"-D", strconv.Itoa(config.LocalPort),
 		"-C",
-		"-q",
 		"-N",
-		"-v",
+		// Errors only: -v logged every forwarded connection (~10 MB a day of
+		// debug1 lines in ssh-err.log) and per-destination "open failed"
+		// lines are the users' business, not the tunnel's.
+		"-o", "LogLevel=ERROR",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "BatchMode=yes",
 		"-o", "NumberOfPasswordPrompts=0",

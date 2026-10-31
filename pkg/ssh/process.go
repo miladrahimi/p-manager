@@ -27,7 +27,27 @@ type Process struct {
 	running    bool
 }
 
-const defaultRetryDelay = 2 * time.Second
+const (
+	// minRetryDelay is the pause before restarting a tunnel that exited.
+	minRetryDelay = 2 * time.Second
+	// maxRetryDelay caps the doubling pause while a node stays unreachable.
+	maxRetryDelay = 30 * time.Second
+	// stableRun is how long a tunnel must stay up to count as healthy again. It
+	// is longer than the ServerAlive window (15 s x 3), so a tunnel that comes
+	// up and then dies on its keepalive still counts as a failed attempt.
+	stableRun = 2 * time.Minute
+)
+
+// nextRetryDelay returns the pause before the next start: minRetryDelay after a
+// stable run (or the first one), else double the previous pause up to
+// maxRetryDelay. A down node used to cost every tunnel a restart (and an error
+// line) every 2-12 s; with 16 tunnels that is thousands of lines an hour.
+func nextRetryDelay(prev, ran time.Duration) time.Duration {
+	if prev <= 0 || ran >= stableRun {
+		return minRetryDelay
+	}
+	return min(prev*2, maxRetryDelay)
+}
 
 func newProcess(
 	l *logger.Logger,
@@ -91,36 +111,30 @@ func (p *Process) Stop() error {
 	return nil
 }
 
-// run runs the SSH SOCKS proxy process.
+// run runs the SSH SOCKS proxy process and restarts it when it exits, backing
+// off while it keeps failing. Only the first failure of a streak is logged as
+// an error; repeats are debug lines, so an outage costs one line per tunnel.
 func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 	defer close(doneChan)
 
+	var delay time.Duration
+	failures := 0
 	for {
 		if p.shouldStop(stopChan) {
 			p.l.Info("ssh: stopped")
 			return
 		}
 
+		started := time.Now()
+		message := "ssh: process exited"
 		cmd, cleanup, stdoutFile, stderrFile, err := p.startCommand(stopChan)
 		if err != nil {
-			if p.shouldStop(stopChan) {
-				p.l.Info("ssh: stopped")
-				return
-			}
-			p.l.Error("ssh: start failed", zap.Error(errors.WithStack(err)))
-			if cleanup != nil {
-				cleanup()
-			}
-			if !p.waitRetry(stopChan) {
-				p.l.Info("ssh: stopped")
-				return
-			}
-			continue
+			message = "ssh: start failed"
+		} else {
+			err = cmd.Wait()
+			p.clearCommand(cmd)
+			p.closeOutputFiles(stdoutFile, stderrFile)
 		}
-
-		err = cmd.Wait()
-		p.clearCommand(cmd)
-		p.closeOutputFiles(stdoutFile, stderrFile)
 		if cleanup != nil {
 			cleanup()
 		}
@@ -130,17 +144,42 @@ func (p *Process) run(stopChan <-chan struct{}, doneChan chan<- struct{}) {
 			return
 		}
 
-		if err != nil && err.Error() != "signal: killed" {
-			p.l.Error("ssh: process exited", zap.Error(errors.WithStack(err)))
-		} else {
-			p.l.Info("ssh: exited")
+		ran := time.Since(started)
+		delay = nextRetryDelay(delay, ran)
+		if ran >= stableRun {
+			failures = 0
 		}
 
-		if !p.waitRetry(stopChan) {
+		if err == nil || err.Error() == "signal: killed" {
+			p.l.Info("ssh: exited", p.fields(ran, delay)...)
+		} else {
+			failures++
+			fields := append(p.fields(ran, delay), zap.String("error", err.Error()), zap.Int("failures", failures))
+			if failures == 1 {
+				p.l.Error(message, fields...)
+			} else {
+				p.l.Debug(message, fields...)
+			}
+		}
+
+		if !p.waitRetry(stopChan, delay) {
 			p.l.Info("ssh: stopped")
 			return
 		}
 	}
+}
+
+// fields describes the tunnel in log lines (no stack trace: an exit status
+// carries none worth reading).
+func (p *Process) fields(ran, retryIn time.Duration) []zap.Field {
+	fields := []zap.Field{zap.Duration("ran", ran.Round(time.Second)), zap.Duration("retry_in", retryIn)}
+	if p.config != nil {
+		fields = append(fields, zap.Int("local_port", p.config.LocalPort))
+		if p.config.Connection != nil {
+			fields = append(fields, zap.String("host", p.config.Connection.Host))
+		}
+	}
+	return fields
 }
 
 // startCommand starts the SSH SOCKS proxy command.
@@ -216,9 +255,9 @@ func (p *Process) shouldStop(stopChan <-chan struct{}) bool {
 	}
 }
 
-// waitRetry waits for the retry delay or until the stop channel is closed.
-func (p *Process) waitRetry(stopChan <-chan struct{}) bool {
-	timer := time.NewTimer(defaultRetryDelay)
+// waitRetry waits for the given delay or until the stop channel is closed.
+func (p *Process) waitRetry(stopChan <-chan struct{}, delay time.Duration) bool {
+	timer := time.NewTimer(delay)
 	defer timer.Stop()
 
 	select {

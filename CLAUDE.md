@@ -123,6 +123,14 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 - Use Java-style camelCase for namings (`UserId` instead of `userID`, `clientId` instead of `clientID`, etc.).
 - Hetzner provisioning (`internal/provisioner`): needs `MainSettings.HetznerToken`. Picks the cheapest non-deprecated x86 server type in stock at a `DE` location (tie → more memory), the newest non-deprecated `debian-*` system image, IPv4 only, with all SSH keys of the Hetzner project injected (the manager host's key must already be one of them; nothing is generated or uploaded). Installs P-Node with its one-line installer as root (waits for cloud-init/apt locks), reads `http_port`/`http_token` from `/root/p-node-1/storage/database/data.json`, adds the node with `Provider=hetzner` + `ProviderServerId` and fills `Node.Details` (free-form `map[string]string` shown in the node details modal: provider, server, type, specs, location, image, price, IP, created), then runs `set-manager` best-effort. One job runs at a time; on failure the created server is deleted again. `NodesDelete` deletes the Hetzner server first and keeps the node if that fails.
 - `Node` sync flags `SshEnabled`/`PushEnabled` default on via `NewNode`. There is no DB migration layer (backward compatibility with pre-flag databases is intentionally not supported), so the driver's `json.Unmarshal` leaves keys the file omits at their zero value — an old database would read those flags back as `false`; recreate/re-add nodes rather than relying on an upgrade path. Pulling is intentionally NOT a flag: a P-Node pulls only after its setup command is run on the node, so the pull status is derived from `PulledAt` (`pullStatus`) and shown read-only in the UI — there is nothing manager-side to enable/disable.
+- **Auto IP** (`Node.AutoIpEnabled`, on by default, "Auto IP" toggle on the node card): the pull handler
+  (`NodesConfigShow`) moves the node's host to the address the pull comes from (`c.RealIP()`), so a P-Node whose
+  server got a new IP takes its record along; it needs pulling to be set up. `Node.AutoIpHost` changes only an IP
+  host, and only to an address of the same family and kind (public/private/loopback): a pull seen through a proxy in
+  front of the manager (loopback/private source) never overwrites a public IP, and a domain host is left alone.
+  `Coordinator.NodeRehosted` then forgets the new address in known_hosts (a recycled IP has another key), re-checks
+  SSH and updates configs (links, relays, tunnels; the CDN syncer moves the record). It is the one flag with a
+  default for databases written before it: `Node.UnmarshalJSON` reads a missing `auto_ip_enabled` as on.
 
 ## Xray Proxy
 Xray is a proxy platform which can run proxy servers with different protocols like Shadowsocks, VMess, VLess,

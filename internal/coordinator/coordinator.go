@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -221,6 +222,21 @@ func (c *Coordinator) CheckSshStatus(nodeId string) {
 	if err := c.sshSyncer.checkSshStatus(node); err != nil {
 		c.l.Debug("coordinator: ssh check failed", zap.String("id", nodeId), zap.Error(err))
 	}
+}
+
+// NodeRehosted follows a node to the host Auto IP gave it. The address may be a
+// re-used one that ssh knows under another server's host key, which silently
+// disables the tunnels' port forwarding; a loopback one is this machine.
+func (c *Coordinator) NodeRehosted(nodeId, oldHost, newHost string) {
+	c.l.Info("coordinator: node host updated from its pull",
+		zap.String("id", nodeId), zap.String("from", oldHost), zap.String("to", newHost))
+	if a, err := netip.ParseAddr(newHost); err == nil && !a.IsLoopback() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		c.sshClient.ForgetHost(ctx, newHost)
+		cancel()
+	}
+	c.CheckSshStatus(nodeId)
+	c.UpdateConfigs()
 }
 
 // Close stops the paqet clients.

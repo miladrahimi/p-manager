@@ -87,27 +87,24 @@
                 </div>
 
                 <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <template x-for="option in options" :key="option.field">
-                        <div class="flex items-center justify-between gap-2 rounded-lg border border-zinc-100 bg-zinc-50 px-2.5 py-2">
-                            <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+                    <template x-for="option in options" :key="option.label">
+                        <div class="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-zinc-100 bg-zinc-50 px-2.5 py-2">
+                            <div class="flex min-w-0 flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:gap-2">
                                 <p class="text-xs font-medium" x-text="option.label" :title="option.hint"></p>
-                                <span :class="statusChip(node[option.status]).class"
-                                      x-text="statusChip(node[option.status]).label"></span>
+                                <span :class="option.chip(node).class" :title="option.chip(node).hint || ''"
+                                      x-text="option.chip(node).label"></span>
                             </div>
-                            <input type="checkbox" class="switch" :title="option.hint"
-                                   :checked="node[option.field]"
-                                   @change="toggle(node, option.field, $event.target.checked)">
+                            <!-- Status-only options (Pull) have no field to toggle. -->
+                            <template x-if="option.field">
+                                <input type="checkbox" class="switch" :title="option.hint"
+                                       :checked="node[option.field]"
+                                       @change="toggle(node, option.field, $event.target.checked)">
+                            </template>
                         </div>
                     </template>
                 </div>
 
-                <div class="mt-3 flex items-center justify-between gap-2 text-xs text-zinc-500">
-                    <span class="flex items-center gap-2"
-                          title="Whether this P-Node is pulling its config from P-Manager. Pulling starts implicitly once the setup command is run on the node.">
-                        Pull
-                        <span :class="statusChip(node.pull_status, true).class"
-                              x-text="statusChip(node.pull_status, true).label"></span>
-                    </span>
+                <div class="mt-3 flex items-center justify-end gap-2 text-xs text-zinc-500">
                     <span>
                         Usage: <span class="font-medium text-zinc-700" x-text="`${parseFloat(node.usage).toFixed(2)} GB`"></span>
                     </span>
@@ -157,6 +154,10 @@
                     <label class="flex items-center gap-2 text-sm">
                         <input type="checkbox" class="switch" x-model="addForm.ssh_enabled">
                         SSH
+                    </label>
+                    <label class="flex items-center gap-2 text-sm" :title="autoIpHint">
+                        <input type="checkbox" class="switch" x-model="addForm.auto_ip_enabled">
+                        Auto IP
                     </label>
                 </div>
 
@@ -219,6 +220,10 @@
                     <label class="flex items-center gap-2 text-sm">
                         <input type="checkbox" class="switch" x-model="edit.ssh_enabled">
                         SSH
+                    </label>
+                    <label class="flex items-center gap-2 text-sm" :title="autoIpHint">
+                        <input type="checkbox" class="switch" x-model="edit.auto_ip_enabled">
+                        Auto IP
                     </label>
                 </div>
 
@@ -346,6 +351,24 @@
 </main>
 
 <script>
+    const AUTO_IP_HINT = "P-Manager moves this node's host to the IP its pulls come from, so the node follows a new server IP. " +
+        "Works once pulling is set up and only for an IP host; turn it off to set the host by hand."
+
+    // autoIpChip tells whether Auto IP is in effect: it needs a pulling node
+    // with an IP host.
+    function autoIpChip(node) {
+        if (!node.auto_ip_enabled) {
+            return {class: "chip chip-zinc", label: "Disabled"}
+        }
+        if (!/^[\d.]+$|:/.test(node.host)) {
+            return {class: "chip chip-zinc", label: "Domain host", hint: "Auto IP updates only an IP host."}
+        }
+        if (node.pull_status !== "available") {
+            return {class: "chip chip-zinc", label: "Needs pull", hint: "Auto IP works once the P-Node pulls (run the setup command from View)."}
+        }
+        return {class: "chip chip-green", label: "Active"}
+    }
+
     function nodesPage() {
         return {
             nodes: [],
@@ -355,20 +378,33 @@
             addOpen: false,
             addTab: "json",
             addJson: "",
-            addForm: {host: "", http_port: null, http_token: "", ssh_user: "root", ssh_port: 22, push_enabled: true, ssh_enabled: true},
+            addForm: {host: "", http_port: null, http_token: "", ssh_user: "root", ssh_port: 22, push_enabled: true, ssh_enabled: true, auto_ip_enabled: true},
             editOpen: false,
             edit: {},
             infoOpen: false,
             info: {},
             hetzner: {configured: false, jobs: []},
+            autoIpHint: AUTO_IP_HINT,
             options: [
                 {
-                    field: "push_enabled", status: "push_status", label: "Push",
+                    field: "push_enabled", label: "Push",
                     hint: "P-Manager pushes configurations to this P-Node.",
+                    chip: node => statusChip(node.push_status),
                 },
                 {
-                    field: "ssh_enabled", status: "ssh_status", label: "SSH",
+                    field: "ssh_enabled", label: "SSH",
                     hint: "P-Manager tunnels traffic to this P-Node over SSH (Relay RR2SSH).",
+                    chip: node => statusChip(node.ssh_status),
+                },
+                {
+                    field: null, label: "Pull",
+                    hint: "Whether this P-Node is pulling its config from P-Manager. Pulling starts implicitly once the setup command is run on the node.",
+                    chip: node => statusChip(node.pull_status, true),
+                },
+                {
+                    field: "auto_ip_enabled", label: "Auto IP",
+                    hint: AUTO_IP_HINT,
+                    chip: node => autoIpChip(node),
                 },
             ],
 
@@ -456,7 +492,7 @@
 
             openAdd() {
                 this.addJson = ""
-                this.addForm = {host: "", http_port: null, http_token: "", ssh_user: "root", ssh_port: 22, push_enabled: true, ssh_enabled: true}
+                this.addForm = {host: "", http_port: null, http_token: "", ssh_user: "root", ssh_port: 22, push_enabled: true, ssh_enabled: true, auto_ip_enabled: true}
                 this.addTab = "json"
                 this.addOpen = true
             },
@@ -479,6 +515,7 @@
                     // Absent flags stay undefined, which the backend defaults on.
                     push_enabled: payload.push_enabled,
                     ssh_enabled: payload.ssh_enabled,
+                    auto_ip_enabled: payload.auto_ip_enabled,
                 }
             },
 
@@ -560,6 +597,7 @@
                         ssh_port: this.edit.ssh_port,
                         ssh_enabled: this.edit.ssh_enabled,
                         push_enabled: this.edit.push_enabled,
+                        auto_ip_enabled: this.edit.auto_ip_enabled,
                     })
                     this.editOpen = false
                     this.$store.toast.info("Node saved successfully.")

@@ -21,11 +21,18 @@ func NodesConfigShow(
 		nodeId := c.Param("id")
 
 		var node *data.Node
+		var oldHost, newHost string
 		err := db.Mutate(func(d *data.Data) (bool, error) {
 			for _, n := range d.Nodes {
 				if n.Id == nodeId {
 					node = n
 					node.PulledAt = time.Now().UnixMilli()
+					// Auto IP: the host follows the address the node pulls from.
+					if host, changed := n.AutoIpHost(c.RealIP()); changed {
+						oldHost, newHost = n.Host, host
+						n.Host = host
+						n.SshStatus = data.NodeStatusProcessing
+					}
 					return true, nil
 				}
 			}
@@ -36,6 +43,9 @@ func NodesConfigShow(
 		}
 		if node == nil {
 			return c.NoContent(http.StatusNotFound)
+		}
+		if newHost != "" {
+			go cdr.NodeRehosted(nodeId, oldHost, newHost)
 		}
 
 		nc := composer.NodeConfig(node, cdr.State().XrayUpdatedAt())

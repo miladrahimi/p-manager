@@ -470,6 +470,58 @@ func TestProxyMethods(t *testing.T) {
 			})
 		}
 	})
+
+	// Auto IP: the node pulls from 127.0.0.1, so once its host is another
+	// address, a pull moves the host back to 127.0.0.1, unless Auto IP is off.
+	// Setting the manager on the node pulls at once. Runs last: it moves the host.
+	t.Run("auto-ip", func(t *testing.T) {
+		const oldHost = "127.0.0.2"
+		pull := func() {
+			nodeApi.call(t, http.MethodPost, "/manager", map[string]any{
+				"url":   fmt.Sprintf("%s/api/node/%s", managerUrl, node.Id),
+				"token": node.PullToken,
+			}, nil)
+		}
+		host := func() (string, bool) {
+			var nodes []struct {
+				Id            string `json:"id"`
+				Host          string `json:"host"`
+				AutoIpEnabled bool   `json:"auto_ip_enabled"`
+			}
+			admin.call(t, http.MethodGet, "/nodes", nil, &nodes)
+			for _, n := range nodes {
+				if n.Id == node.Id {
+					return n.Host, n.AutoIpEnabled
+				}
+			}
+			t.Fatalf("node %s not listed", node.Id)
+			return "", false
+		}
+
+		if h, on := host(); !on {
+			t.Fatalf("Auto IP should be on for a new node (host %s)", h)
+		}
+		admin.call(t, http.MethodPut, "/nodes/"+node.Id, map[string]any{
+			"host":            oldHost,
+			"http_token":      nodeDb.Settings.HttpToken,
+			"http_port":       nodePort,
+			"ssh_user":        sshUser,
+			"ssh_port":        sshPort,
+			"ssh_enabled":     withSsh,
+			"push_enabled":    true,
+			"auto_ip_enabled": false,
+		}, nil)
+		pull()
+		if h, _ := host(); h != oldHost {
+			t.Fatalf("host moved to %s with Auto IP off, want %s", h, oldHost)
+		}
+
+		admin.call(t, http.MethodPatch, "/nodes/"+node.Id, map[string]any{"auto_ip_enabled": true}, nil)
+		pull()
+		if h, _ := host(); h != "127.0.0.1" {
+			t.Fatalf("host is %s after a pull from 127.0.0.1 with Auto IP on", h)
+		}
+	})
 }
 
 // setupVeth creates the veth pair for paqet and returns the MAC addresses of the

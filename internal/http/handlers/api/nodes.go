@@ -37,13 +37,14 @@ func pullStatus(pulledAt int64) data.NodeStatus {
 }
 
 type NodesStoreRequest struct {
-	Host        string `json:"host" validate:"required,max=128"`
-	HttpToken   string `json:"http_token"`
-	HttpPort    int    `json:"http_port" validate:"omitempty,min=1,max=65535"`
-	SshUser     string `json:"ssh_user" validate:"required"`
-	SshPort     int    `json:"ssh_port" validate:"required,min=1,max=65535"`
-	SshEnabled  *bool  `json:"ssh_enabled"`
-	PushEnabled *bool  `json:"push_enabled"`
+	Host          string `json:"host" validate:"required,max=128"`
+	HttpToken     string `json:"http_token"`
+	HttpPort      int    `json:"http_port" validate:"omitempty,min=1,max=65535"`
+	SshUser       string `json:"ssh_user" validate:"required"`
+	SshPort       int    `json:"ssh_port" validate:"required,min=1,max=65535"`
+	SshEnabled    *bool  `json:"ssh_enabled"`
+	PushEnabled   *bool  `json:"push_enabled"`
+	AutoIpEnabled *bool  `json:"auto_ip_enabled"`
 }
 
 // nodeIdExists reports whether a node with the given id already exists.
@@ -71,8 +72,9 @@ type NodesUpdatePartialRequest struct {
 }
 
 type NodesTogglesRequest struct {
-	SshEnabled  *bool `json:"ssh_enabled"`
-	PushEnabled *bool `json:"push_enabled"`
+	SshEnabled    *bool `json:"ssh_enabled"`
+	PushEnabled   *bool `json:"push_enabled"`
+	AutoIpEnabled *bool `json:"auto_ip_enabled"`
 }
 
 // boolOr returns the pointed-to value or the given default when nil. Requests
@@ -164,6 +166,7 @@ func NodesStore(coordinator *coordinator.Coordinator, db *data.Store) echo.Handl
 
 			target.SshEnabled = boolOr(r.SshEnabled, target.SshEnabled)
 			target.PushEnabled = boolOr(r.PushEnabled, target.PushEnabled)
+			target.AutoIpEnabled = boolOr(r.AutoIpEnabled, target.AutoIpEnabled)
 
 			nodeId = target.Id
 			node = *target
@@ -225,6 +228,7 @@ func NodesUpdate(coordinator *coordinator.Coordinator, db *data.Store) echo.Hand
 			target.SshStatus = data.NodeStatusProcessing
 			target.SshEnabled = boolOr(r.SshEnabled, target.SshEnabled)
 			target.PushEnabled = boolOr(r.PushEnabled, target.PushEnabled)
+			target.AutoIpEnabled = boolOr(r.AutoIpEnabled, target.AutoIpEnabled)
 
 			found = true
 			nodeId = target.Id
@@ -278,7 +282,7 @@ func NodesUpdatePartialBatch(coordinator *coordinator.Coordinator, db *data.Stor
 	}
 }
 
-// NodesUpdateToggles updates the sync flags (ssh/push/pull) of a single node.
+// NodesUpdateToggles updates the sync flags (ssh/push/auto ip) of a single node.
 func NodesUpdateToggles(coordinator *coordinator.Coordinator, db *data.Store) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var r NodesTogglesRequest
@@ -305,6 +309,9 @@ func NodesUpdateToggles(coordinator *coordinator.Coordinator, db *data.Store) ec
 				if r.PushEnabled != nil && *r.PushEnabled != n.PushEnabled {
 					n.PushEnabled = *r.PushEnabled
 					n.PushStatus = data.NodeStatusProcessing
+				}
+				if r.AutoIpEnabled != nil {
+					n.AutoIpEnabled = *r.AutoIpEnabled
 				}
 				found = true
 				nodeId = n.Id

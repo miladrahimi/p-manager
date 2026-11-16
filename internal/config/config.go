@@ -11,7 +11,7 @@ import (
 )
 
 const AppName = "P-Manager"
-const AppVersion = "v26.9.6"
+const AppVersion = "v26.11.16"
 const CoreName = "Xray-core v26.3.27"
 const MaxAccountsCount = 1024
 const MaxNodesCount = 10

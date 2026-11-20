@@ -72,7 +72,7 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
 
 ## Build & Run
 - `make local-serve` — run locally (`go run main.go serve`)
-- `make build` — cross-compile the Linux amd64 `p-manager` binary
+- `make build` — cross-compile the Linux amd64 `p-manager` binary (`-trimpath`, so stack traces carry module paths, not the Mac's build paths)
 - `make e2e` — end-to-end test (`e2e/`, build tag `e2e`): builds P-Manager and P-Node, runs both as processes in temp dirs, and fetches a local HTTP target through every proxy method via an Xray client; needs the local Xray binary (`make local-setup`) and `../p-node` (override with `P_NODE_DIR`); set `E2E_SSH=1` to include Relay RR2SSH (needs passwordless ssh to 127.0.0.1); set `E2E_PQ=1` to include Relay RR2PQ (needs root on Linux: the test creates a veth pair `pq0`/`pq1` for paqet); set `E2E_CF_TOKEN` + `E2E_CF_DOMAIN` to run Remote CXH against the real Cloudflare API on that zone (certificate revoked and records deleted at the end) instead of the in-test fake; `CF_TOKEN` + `CF_DOMAIN` likewise run `pkg/cloudflare`'s `TestRealApi`
 - `make e2e-docker` — the same e2e with `E2E_PQ=1` inside a privileged Linux container (`e2e/Dockerfile`, `scripts/e2e-docker.sh`); downloads the Linux binaries for the container architecture into `third_party` on first use. This is the only way to run RR2PQ end to end on a Mac: paqet needs root and an Ethernet interface (no loopback)
 - `make web` — rebuild the admin UI stylesheet (`web/assets/css/app.css`) via the Tailwind standalone CLI (downloaded to `bin/` on first use); commit the regenerated CSS
@@ -110,6 +110,10 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
   block (2026-10-27), so an unchanged config no longer restarts the node's Xray. Before that, the hourly
   `resetUsageForAccounts` worker called `UpdateConfigs` unconditionally and every node restarted Xray once an hour;
   it now updates only when an account was actually reset.
+- The manager's Xray starts only once it has something to serve (a node and an account); until then
+  `loadLocalStats` is a no-op (`Xray.Running`) instead of a dial error to `127.0.0.1:3411` every minute (2026-11-20).
+  The API port is fixed at 3411, so `make e2e` on a Mac running another local P-Manager can query that one's Xray and
+  time out in `usage`; `make e2e-docker` has its own network.
 - **Usage accounting** (`coordinator/stats_aggregate.go`, pure functions with tests): `aggregateLocalStats` reads the
   manager's counters — accounts from `user>>>` (except reverse bridge ids, which are attributed to their node), nodes
   from the `relay-*` outbounds plus the bridge users, total and per-method from the client inbounds `direct-rr`,

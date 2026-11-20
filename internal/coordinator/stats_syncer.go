@@ -147,6 +147,13 @@ func (s *statsSyncer) pullStatsFromNode(node *data.Node) {
 
 // loadLocalStats loads the local XraySettings instance stats.
 func (s *statsSyncer) loadLocalStats() error {
+	// Xray starts only once the manager has something to serve (a node and an
+	// account); until then it has no stats and its API port is closed.
+	if !s.xray.Running() {
+		s.l.Debug("coordinator: local xray is not running, local stats skipped")
+		return nil
+	}
+
 	s.l.Info("coordinator: loading local stats...")
 
 	queryStats, err := s.xray.QueryStats()

@@ -27,7 +27,7 @@ e2e-docker:
 
 .PHONY: build
 build:
-	@GOOS=linux GOARCH=amd64 go build -o p-manager
+	@GOOS=linux GOARCH=amd64 go build -trimpath -o p-manager
 
 TAILWIND_VERSION := v4.3.3
 

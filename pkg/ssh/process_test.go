@@ -1,9 +1,49 @@
 package ssh
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 )
+
+// ssh writes no time, so each line of its output gets one; stdout and stderr
+// share a file and a writer.
+func TestProcessLogLinesHaveTime(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ssh.log")
+	p := &Process{stdoutPath: path, stderrPath: path}
+	stdout, stderr, err := p.openLogFiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stdout != stderr {
+		t.Fatal("one log file should get one writer")
+	}
+	cmd := exec.Command("sh", "-c", "echo out; echo 'ssh: connect to host 1.2.3.4 port 22: Connection timed out' >&2; printf partial")
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+	p.closeOutputFiles(stdout, stderr)
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+	stamped := regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \S`)
+	if len(lines) != 3 {
+		t.Fatalf("want 3 lines, got %q", b)
+	}
+	for _, line := range lines {
+		if !stamped.MatchString(line) {
+			t.Errorf("line without a time: %q", line)
+		}
+	}
+}
 
 func TestNextRetryDelay(t *testing.T) {
 	cases := []struct {

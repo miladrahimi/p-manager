@@ -96,6 +96,9 @@ It stores state in JSON files under `storage/` and syncs configs and stats betwe
   `ssh-err.log`). Defaults are now Xray `warning` and tunnels `-o LogLevel=ERROR`. `config.New` rewrites
   `configs/main.json` with every merged value, so existing installs keep the Xray level written there: change
   `xray.log_level` in `main.json` (`info`/`debug` when debugging a connection).
+- Child process logs get a time on every line (2026-11-21): ssh writes none and paqet only on its own log lines, so
+  `pkg/ssh` and P-Node's `pkg/paqet` write through P-Node's `logger.Stamp` (`2006-01-02 15:04:05.000`, the app
+  log format; lines that already start with a date are kept). Xray and the app logs carry their own.
 - The tunnel supervisor (`pkg/ssh/process.go`) backs off while a tunnel keeps failing (`nextRetryDelay`: 2 s doubling
   to 30 s, reset after a 2-minute run) and logs only the first failure of a streak as an error, without a stack
   trace (repeats are debug). A down node used to cost every tunnel an error line every 2–12 s.

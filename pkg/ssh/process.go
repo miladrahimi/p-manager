@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -183,7 +184,7 @@ func (p *Process) fields(ran, retryIn time.Duration) []zap.Field {
 }
 
 // startCommand starts the SSH SOCKS proxy command.
-func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, func(), *os.File, *os.File, error) {
+func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, func(), io.WriteCloser, io.WriteCloser, error) {
 	if p.config == nil {
 		return nil, nil, nil, nil, errors.New("ssh: config is nil")
 	}
@@ -209,6 +210,7 @@ func (p *Process) startCommand(stopChan <-chan struct{}) (*exec.Cmd, func(), *os
 
 	cmd.Stdout = stdoutFile
 	cmd.Stderr = stderrFile
+	cmd.WaitDelay = time.Second
 
 	if err := cmd.Start(); err != nil {
 		p.closeOutputFiles(stdoutFile, stderrFile)
@@ -268,23 +270,25 @@ func (p *Process) waitRetry(stopChan <-chan struct{}, delay time.Duration) bool 
 	}
 }
 
-// openLogFiles opens the log files for the SSH proxy output.
-func (p *Process) openLogFiles() (*os.File, *os.File, error) {
+// openLogFiles opens the log files for the SSH proxy output; ssh writes no
+// time, so every line is stamped with one.
+func (p *Process) openLogFiles() (io.WriteCloser, io.WriteCloser, error) {
 	stdoutFile, err := p.openLogFile(p.stdoutPath)
 	if err != nil {
 		return nil, nil, err
 	}
+	stdout := logger.NewStamp(stdoutFile)
 	if p.stderrPath == p.stdoutPath {
-		return stdoutFile, stdoutFile, nil
+		return stdout, stdout, nil
 	}
 
 	stderrFile, err := p.openLogFile(p.stderrPath)
 	if err != nil {
-		_ = stdoutFile.Close()
+		_ = stdout.Close()
 		return nil, nil, err
 	}
 
-	return stdoutFile, stderrFile, nil
+	return stdout, logger.NewStamp(stderrFile), nil
 }
 
 // openLogFile opens the log file for the SSH proxy output.
@@ -304,7 +308,7 @@ func (p *Process) openLogFile(path string) (*os.File, error) {
 }
 
 // closeOutputFiles closes the log files for the SSH proxy output.
-func (p *Process) closeOutputFiles(stdoutFile, stderrFile *os.File) {
+func (p *Process) closeOutputFiles(stdoutFile, stderrFile io.WriteCloser) {
 	if stdoutFile != nil {
 		_ = stdoutFile.Close()
 	}
